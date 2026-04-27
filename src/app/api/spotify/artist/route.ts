@@ -9,15 +9,20 @@ export async function GET(req: NextRequest) {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const [info, topTracksData, relatedData] = await Promise.all([
-    getArtist(id, session.accessToken),
-    getArtistTopTracks(id, session.accessToken),
-    getRelatedArtists(id, session.accessToken),
-  ]);
+  try {
+    const [info, topTracksData, relatedData] = await Promise.all([
+      getArtist(id, session.accessToken),
+      getArtistTopTracks(id, session.accessToken),
+      getRelatedArtists(id, session.accessToken).catch(() => ({ artists: [] })),
+    ]);
 
-  return NextResponse.json({
-    info,
-    topTracks: topTracksData.tracks ?? [],
-    related: (relatedData.artists ?? []).slice(0, 8),
-  });
+    return NextResponse.json({
+      info,
+      topTracks: topTracksData.tracks ?? [],
+      related: (relatedData.artists ?? []).slice(0, 8),
+    });
+  } catch (e) {
+    console.error("Artist fetch error:", e);
+    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+  }
 }
