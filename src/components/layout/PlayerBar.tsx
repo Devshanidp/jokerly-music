@@ -4,7 +4,7 @@ import { useEffect, useCallback, useState } from "react";
 import { usePlayerStore } from "@/store/player";
 import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2 } from "lucide-react";
 import Image from "next/image";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 
 function formatTime(seconds: number) {
@@ -96,6 +96,22 @@ export default function PlayerBar() {
     if (nextIndex === null) return;
     fetchAndPlay(nextIndex);
   }, [endedToken, fetchAndPlay, getNextIndex]);
+
+  if (sdkError && !currentTrack) {
+    return (
+      <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-800 px-4 py-3 flex items-center justify-between gap-3">
+        <p className="text-red-400 text-sm truncate">{sdkError}</p>
+        {sdkError.includes("Premium") || sdkError.includes("auth") ? null : (
+          <button
+            onClick={() => { signOut({ callbackUrl: "/login" }); }}
+            className="shrink-0 text-xs bg-red-500 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-red-400 transition-colors"
+          >
+            Re-login
+          </button>
+        )}
+      </div>
+    );
+  }
 
   if (!currentTrack) return null;
 
