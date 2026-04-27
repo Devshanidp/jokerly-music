@@ -2,9 +2,10 @@
 
 import { useEffect, useCallback, useState } from "react";
 import { usePlayerStore } from "@/store/player";
-import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 
 function formatTime(seconds: number) {
   if (!isFinite(seconds)) return "0:00";
@@ -41,6 +42,26 @@ export default function PlayerBar() {
     usePlayerStore();
   const [fetching, setFetching] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [modalTrack, setModalTrack] = useState<{ name: string; uri: string } | null>(null);
+  const [resolvingAdd, setResolvingAdd] = useState(false);
+
+  const handleAddToPlaylist = useCallback(async () => {
+    if (!currentTrack) return;
+    if (currentTrack.uri) {
+      setModalTrack({ name: currentTrack.name, uri: currentTrack.uri });
+      return;
+    }
+    setResolvingAdd(true);
+    try {
+      const res = await fetch(
+        `/api/spotify/resolve?track=${encodeURIComponent(currentTrack.name)}&artist=${encodeURIComponent(currentTrack.artist)}`
+      );
+      const data = await res.json();
+      if (data.uri) setModalTrack({ name: currentTrack.name, uri: data.uri });
+    } finally {
+      setResolvingAdd(false);
+    }
+  }, [currentTrack]);
 
   useEffect(() => {
     if (!session?.accessToken) return;
@@ -138,9 +159,19 @@ export default function PlayerBar() {
                   )}
                 </div>
 
-                <div className="text-center">
-                  <p className="truncate text-2xl font-bold text-white">{currentTrack.name}</p>
-                  <p className="mt-1 truncate text-sm text-zinc-400">{currentTrack.artist}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1 text-center">
+                    <p className="truncate text-2xl font-bold text-white">{currentTrack.name}</p>
+                    <p className="mt-1 truncate text-sm text-zinc-400">{currentTrack.artist}</p>
+                  </div>
+                  <button
+                    onClick={handleAddToPlaylist}
+                    disabled={resolvingAdd}
+                    title="Add to playlist"
+                    className="shrink-0 p-2.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-colors disabled:opacity-40"
+                  >
+                    {resolvingAdd ? <Loader2 size={20} className="animate-spin" /> : <ListPlus size={20} />}
+                  </button>
                 </div>
 
                 <div
@@ -291,21 +322,29 @@ export default function PlayerBar() {
           </button>
         </div>
 
-        {/* Time + status */}
-        <div className="flex items-center gap-2 flex-1 justify-end">
+        {/* Time + add + close */}
+        <div className="flex items-center gap-1 flex-1 justify-end">
           {sdkError ? (
-            <span className="text-red-400 text-xs truncate max-w-[180px]" title={sdkError}>
+            <span className="text-red-400 text-xs truncate max-w-[120px]" title={sdkError}>
               {sdkError}
             </span>
           ) : !isPlayerReady ? (
-            <span className="text-zinc-600 text-xs">Connecting player...</span>
+            <span className="text-zinc-600 text-xs">Connecting...</span>
           ) : noTrackUri ? (
-            <span className="text-zinc-600 text-xs">Not found on Spotify</span>
+            <span className="text-zinc-600 text-xs">Not on Spotify</span>
           ) : (
             <span className="text-zinc-500 text-xs tabular-nums whitespace-nowrap">
               {formatTime(progressMs / 1000)} / {formatTime(durationMs / 1000)}
             </span>
           )}
+          <button
+            onClick={handleAddToPlaylist}
+            disabled={resolvingAdd}
+            title="Add to playlist"
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 transition-colors disabled:opacity-40"
+          >
+            {resolvingAdd ? <Loader2 size={15} className="animate-spin" /> : <ListPlus size={15} />}
+          </button>
           <button
             onClick={stop}
             className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 transition-colors"
@@ -316,6 +355,10 @@ export default function PlayerBar() {
         </div>
       </div>
       </div>
+
+      {modalTrack && (
+        <AddToPlaylistModal track={modalTrack} onClose={() => setModalTrack(null)} />
+      )}
     </>
   );
 }

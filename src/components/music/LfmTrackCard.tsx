@@ -26,7 +26,7 @@ export default function LfmTrackCard({ track, onGetSimilar, onPlay, onAddToPlayl
 
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-xl group transition-colors ${
+      className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg group transition-colors ${
         onPlay ? "cursor-pointer" : ""
       } ${
         isCurrentlyPlaying ? "bg-red-500/10 border border-red-500/20" : "hover:bg-zinc-800/60"
@@ -34,17 +34,17 @@ export default function LfmTrackCard({ track, onGetSimilar, onPlay, onAddToPlayl
       onClick={handleRowClick}
     >
       {rank !== undefined && (
-        <span className={`text-xs w-5 text-right shrink-0 ${isCurrentlyPlaying ? "text-red-400" : "text-zinc-600"}`}>
+        <span className={`text-xs w-4 text-right shrink-0 ${isCurrentlyPlaying ? "text-red-400" : "text-zinc-600"}`}>
           {rank}
         </span>
       )}
 
-      <div className="relative shrink-0 w-12 h-12">
+      <div className="relative shrink-0 w-9 h-9">
         {image ? (
-          <Image src={image} alt={track.name} fill unoptimized className="rounded-lg object-cover" sizes="48px" />
+          <Image src={image} alt={track.name} fill unoptimized className="rounded-md object-cover" sizes="36px" />
         ) : (
-          <div className="w-12 h-12 rounded-lg bg-zinc-800 flex items-center justify-center">
-            <Music size={18} className="text-zinc-600" />
+          <div className="w-9 h-9 rounded-md bg-zinc-800 flex items-center justify-center">
+            <Music size={14} className="text-zinc-600" />
           </div>
         )}
         {onPlay && (
@@ -64,15 +64,10 @@ export default function LfmTrackCard({ track, onGetSimilar, onPlay, onAddToPlayl
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate ${isCurrentlyPlaying ? "text-red-400" : "text-white"}`}>
+        <p className={`text-xs font-medium truncate ${isCurrentlyPlaying ? "text-red-400" : "text-white"}`}>
           {track.name}
         </p>
-        <p className="text-xs text-zinc-400 truncate">{artist}</p>
-        {track.listeners && (
-          <p className="text-xs text-zinc-600">
-            {Number(track.listeners).toLocaleString()} listeners
-          </p>
-        )}
+        <p className="text-[11px] text-zinc-400 truncate">{artist}</p>
       </div>
 
       <div className="flex items-center gap-0.5 shrink-0">
@@ -80,18 +75,18 @@ export default function LfmTrackCard({ track, onGetSimilar, onPlay, onAddToPlayl
           <button
             onClick={(e) => { e.stopPropagation(); onAddToPlaylist(track); }}
             title="Add to playlist"
-            className="p-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-700 transition-colors"
+            className="p-1.5 rounded-md text-zinc-400 hover:text-red-400 hover:bg-zinc-700 transition-colors"
           >
-            <ListPlus size={17} />
+            <ListPlus size={15} />
           </button>
         )}
         {onGetSimilar && (
           <button
             onClick={(e) => { e.stopPropagation(); onGetSimilar(track); }}
             title="Find similar tracks"
-            className="p-2 rounded-lg text-zinc-400 hover:text-purple-400 hover:bg-zinc-700 transition-colors"
+            className="p-1.5 rounded-md text-zinc-400 hover:text-purple-400 hover:bg-zinc-700 transition-colors"
           >
-            <Sparkles size={15} />
+            <Sparkles size={13} />
           </button>
         )}
         <a
@@ -99,10 +94,10 @@ export default function LfmTrackCard({ track, onGetSimilar, onPlay, onAddToPlayl
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+          className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
           title="Open on Last.fm"
         >
-          <ExternalLink size={14} />
+          <ExternalLink size={12} />
         </a>
       </div>
     </div>

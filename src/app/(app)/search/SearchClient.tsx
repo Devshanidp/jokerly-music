@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Search, Loader2, Music, Mic2, Play } from "lucide-react";
+import { Search, Loader2, Music, Mic2, Play, ListPlus } from "lucide-react";
 import LfmTrackCard from "@/components/music/LfmTrackCard";
 import LfmArtistCard from "@/components/music/LfmArtistCard";
 import LfmAlbumCard from "@/components/music/LfmAlbumCard";
@@ -75,8 +75,9 @@ export default function SearchClient() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  const [playingKey, setPlayingKey] = useState<string | null>(null); // tracks which suggestion is loading
+  const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [resolvingAddKey, setResolvingAddKey] = useState<string | null>(null);
+  const [resolvingSuggestKey, setResolvingSuggestKey] = useState<string | null>(null);
   const [modalTrack, setModalTrack] = useState<ResolvedTrackPayload | null>(null);
 
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -221,6 +222,18 @@ export default function SearchClient() {
     if (e.key === "Escape") setShowSuggestions(false);
   };
 
+  const handleSuggestionAdd = async (s: Suggestion) => {
+    const key = `${s.name}::${s.sub}`;
+    setResolvingSuggestKey(key);
+    setShowSuggestions(false);
+    try {
+      const data = await fetchPreview(s.name, s.sub);
+      if (data.uri) setModalTrack({ uri: data.uri, name: s.name });
+    } finally {
+      setResolvingSuggestKey(null);
+    }
+  };
+
   // Click on a track suggestion → play immediately
   const handleSuggestionPlay = async (s: Suggestion) => {
     if (s.type === "artist") {
@@ -349,42 +362,40 @@ export default function SearchClient() {
                       .filter((s) => s.type === "track")
                       .map((s, i) => {
                         const key = `${s.name}::${s.sub}`;
-                        const isLoading = playingKey === key;
+                        const isPlaying = playingKey === key;
+                        const isAdding = resolvingSuggestKey === key;
                         return (
-                          <button
-                            key={`track-${i}`}
-                            onClick={() => handleSuggestionPlay(s)}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-800 transition-colors text-left group"
-                          >
-                            <div className="relative w-10 h-10 shrink-0">
-                              {s.image ? (
-                                <Image src={s.image} alt={s.name} fill unoptimized sizes="40px" className="rounded-lg object-cover" />
-                              ) : (
-                                <div className="w-10 h-10 bg-zinc-700 rounded-lg flex items-center justify-center">
-                                  <Music size={14} className="text-zinc-500" />
-                                </div>
-                              )}
-                              {/* Play overlay */}
-                              <div className="absolute inset-0 rounded-lg bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                {isLoading ? (
-                                  <Loader2 size={14} className="text-white animate-spin" />
+                          <div key={`track-${i}`} className="flex items-center gap-2 px-3 py-2 hover:bg-zinc-800 transition-colors group">
+                            <button
+                              onClick={() => handleSuggestionPlay(s)}
+                              className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                            >
+                              <div className="relative w-9 h-9 shrink-0">
+                                {s.image ? (
+                                  <Image src={s.image} alt={s.name} fill unoptimized sizes="36px" className="rounded-md object-cover" />
                                 ) : (
-                                  <Play size={14} className="text-white" />
+                                  <div className="w-9 h-9 bg-zinc-700 rounded-md flex items-center justify-center">
+                                    <Music size={13} className="text-zinc-500" />
+                                  </div>
                                 )}
+                                <div className="absolute inset-0 rounded-md bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {isPlaying ? <Loader2 size={13} className="text-white animate-spin" /> : <Play size={13} className="text-white" />}
+                                </div>
                               </div>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-white text-sm font-medium truncate">{s.name}</p>
-                              <p className="text-zinc-400 text-xs truncate">{s.sub}</p>
-                            </div>
-                            <div className="shrink-0 text-zinc-600 group-hover:text-red-400 transition-colors">
-                              {isLoading ? (
-                                <Loader2 size={15} className="animate-spin" />
-                              ) : (
-                                <Play size={15} />
-                              )}
-                            </div>
-                          </button>
+                              <div className="min-w-0">
+                                <p className="text-white text-sm font-medium truncate">{s.name}</p>
+                                <p className="text-zinc-400 text-xs truncate">{s.sub}</p>
+                              </div>
+                            </button>
+                            <button
+                              onClick={() => handleSuggestionAdd(s)}
+                              disabled={isAdding}
+                              title="Add to playlist"
+                              className="shrink-0 p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-700 transition-colors"
+                            >
+                              {isAdding ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
+                            </button>
+                          </div>
                         );
                       })}
                   </div>
