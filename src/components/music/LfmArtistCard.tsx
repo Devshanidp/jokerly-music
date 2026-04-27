@@ -25,6 +25,7 @@ export default function LfmArtistCard({ artist, onSelect }: Props) {
             src={image}
             alt={artist.name}
             fill
+            unoptimized
             className="rounded-full object-cover"
             sizes="80px"
           />

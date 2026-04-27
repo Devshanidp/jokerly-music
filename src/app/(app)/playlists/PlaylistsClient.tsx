@@ -215,7 +215,7 @@ export default function PlaylistsClient() {
                     {pl.name}
                   </Link>
                   <p className="text-zinc-400 text-xs">
-                    {pl.tracks.total} tracks · {pl.owner.display_name}
+                    {pl.tracks?.total ?? 0} tracks · {pl.owner?.display_name ?? ""}
                   </p>
                 </div>
               )}

@@ -125,10 +125,11 @@ export interface LfmAlbum {
   image?: LfmImage[];
 }
 
-export function lfmImage(images?: LfmImage[], size: LfmImage["size"] = "extralarge"): string {
-  if (!images) return "";
+export function lfmImage(images?: LfmImage[], size: LfmImage["size"] = "extralarge"): string | null {
+  if (!images) return null;
   const img = images.find((i) => i.size === size) ?? images[images.length - 1];
-  return img?.["#text"] ?? "";
+  const url = img?.["#text"];
+  return url && url.trim() !== "" ? url : null;
 }
 
 export function lfmArtistName(artist: LfmTrack["artist"]): string {

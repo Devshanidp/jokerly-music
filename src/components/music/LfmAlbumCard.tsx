@@ -22,6 +22,7 @@ export default function LfmAlbumCard({ album }: Props) {
             src={image}
             alt={album.name}
             fill
+            unoptimized
             className="rounded-lg object-cover"
             sizes="160px"
           />

@@ -3,15 +3,27 @@
 import { useEffect, useState } from "react";
 import { Sparkles, RefreshCw, Music } from "lucide-react";
 import LfmTrackCard from "@/components/music/LfmTrackCard";
-import { LfmTrack } from "@/lib/lastfm";
+import { LfmTrack, lfmArtistName, lfmImage } from "@/lib/lastfm";
+import { usePlayerStore, PlayableTrack } from "@/store/player";
 
 const GENRE_TAGS = ["pop", "rock", "hip-hop", "electronic", "jazz", "classical", "indie", "r&b"];
+
+function toPlayable(t: LfmTrack): PlayableTrack {
+  return {
+    name: t.name,
+    artist: lfmArtistName(t.artist),
+    image: lfmImage(t.image, "large") ?? undefined,
+    lfmUrl: t.url,
+  };
+}
 
 export default function RecommendationsClient() {
   const [tracks, setTracks] = useState<LfmTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [similarSeed, setSimilarSeed] = useState<{ name: string; artist: string } | null>(null);
+
+  const { setQueueAndPlay, currentTrack, isPlaying } = usePlayerStore();
 
   const fetchCharts = async () => {
     setLoading(true);
@@ -40,7 +52,7 @@ export default function RecommendationsClient() {
   };
 
   const fetchSimilar = async (track: LfmTrack) => {
-    const artistName = typeof track.artist === "string" ? track.artist : track.artist.name;
+    const artistName = lfmArtistName(track.artist);
     setLoading(true);
     setSimilarSeed({ name: track.name, artist: artistName });
     setSelectedTag(null);
@@ -54,6 +66,33 @@ export default function RecommendationsClient() {
       setLoading(false);
     }
   };
+
+  const handlePlay = async (track: LfmTrack) => {
+    const index = tracks.findIndex(
+      (t) => t.name === track.name && lfmArtistName(t.artist) === lfmArtistName(track.artist)
+    );
+    if (index === -1) return;
+
+    const playable = tracks.map(toPlayable);
+
+    try {
+      const res = await fetch(
+        `/api/spotify/preview?track=${encodeURIComponent(track.name)}&artist=${encodeURIComponent(lfmArtistName(track.artist))}`
+      );
+      const data = await res.json();
+      playable[index].previewUrl = data.previewUrl ?? null;
+      if (data.imageUrl) playable[index].image = data.imageUrl;
+    } catch {
+      playable[index].previewUrl = null;
+    }
+
+    setQueueAndPlay(playable, index);
+  };
+
+  const isTrackPlaying = (track: LfmTrack) =>
+    currentTrack?.name === track.name &&
+    currentTrack?.artist === lfmArtistName(track.artist) &&
+    isPlaying;
 
   useEffect(() => { fetchCharts(); }, []);
 
@@ -88,9 +127,7 @@ export default function RecommendationsClient() {
             key={tag}
             onClick={() => fetchByTag(tag)}
             className={`px-3 py-1.5 rounded-full text-sm font-medium capitalize transition-colors ${
-              selectedTag === tag
-                ? "bg-purple-500 text-white"
-                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+              selectedTag === tag ? "bg-purple-500 text-white" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
             }`}
           >
             {tag}
@@ -117,6 +154,8 @@ export default function RecommendationsClient() {
               track={track}
               rank={i + 1}
               onGetSimilar={fetchSimilar}
+              onPlay={handlePlay}
+              isCurrentlyPlaying={isTrackPlaying(track)}
             />
           ))}
         </div>

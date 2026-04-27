@@ -3,12 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ListMusic } from "lucide-react";
+import { usePlayerStore } from "@/store/player";
 
 export default function FloatingNav() {
   const pathname = usePathname();
+  const hasPlayer = usePlayerStore((s) => s.currentTrack !== null);
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3">
+    <div
+      className={`fixed left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 transition-all duration-300 ${
+        hasPlayer ? "bottom-[84px]" : "bottom-6"
+      }`}
+    >
       <Link
         href="/"
         className={`flex items-center gap-2 px-5 py-3 rounded-full font-semibold text-sm shadow-2xl transition-all duration-200 ${

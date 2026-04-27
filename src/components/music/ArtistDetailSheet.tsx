@@ -38,7 +38,7 @@ export default function ArtistDetailSheet({ artist, onClose }: Props) {
         <div className="flex items-start gap-4 p-5 border-b border-zinc-800 shrink-0">
           <div className="relative w-16 h-16 shrink-0">
             {image ? (
-              <Image src={image} alt={artist.name} fill className="rounded-full object-cover" sizes="64px" />
+              <Image src={image} alt={artist.name} fill unoptimized className="rounded-full object-cover" sizes="64px" />
             ) : (
               <div className="w-16 h-16 rounded-full bg-zinc-800" />
             )}
