@@ -4,7 +4,10 @@ async function spotifyFetch(url: string, accessToken: string) {
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) throw new Error(`Spotify API error: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Spotify API ${res.status}: ${body}`);
+  }
   return res.json();
 }
 
