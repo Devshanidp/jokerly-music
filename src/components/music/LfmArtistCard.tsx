@@ -36,7 +36,7 @@ export default function LfmArtistCard({ artist, onSelect }: Props) {
       </div>
 
       <div className="text-center w-full">
-        <p className="text-white text-sm font-medium truncate group-hover:text-green-400 transition-colors">
+        <p className="text-white text-sm font-medium truncate group-hover:text-red-400 transition-colors">
           {artist.name}
         </p>
         {artist.listeners && (

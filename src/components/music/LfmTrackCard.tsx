@@ -41,7 +41,7 @@ export default function LfmTrackCard({ track, onGetSimilar, rank }: Props) {
           href={track.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-medium text-white hover:text-green-400 transition-colors truncate block"
+          className="text-sm font-medium text-white hover:text-red-400 transition-colors truncate block"
         >
           {track.name}
         </a>

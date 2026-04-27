@@ -103,7 +103,7 @@ export default function PlaylistsClient() {
         </div>
         <button
           onClick={() => setCreating(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 hover:bg-green-400 text-black font-semibold text-sm transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-400 text-black font-semibold text-sm transition-colors"
         >
           <Plus size={16} /> New Playlist
         </button>
@@ -117,19 +117,19 @@ export default function PlaylistsClient() {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Playlist name"
-            className="w-full bg-zinc-700 text-white placeholder-zinc-400 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full bg-zinc-700 text-white placeholder-zinc-400 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <input
             value={newDesc}
             onChange={(e) => setNewDesc(e.target.value)}
             placeholder="Description (optional)"
-            className="w-full bg-zinc-700 text-white placeholder-zinc-400 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full bg-zinc-700 text-white placeholder-zinc-400 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <div className="flex gap-2">
             <button
               onClick={createPlaylist}
               disabled={saving || !newName.trim()}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-semibold text-sm"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-400 disabled:opacity-50 text-black font-semibold text-sm"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
               Create
@@ -182,18 +182,18 @@ export default function PlaylistsClient() {
                     autoFocus
                     value={edit.name}
                     onChange={(e) => setEdit({ ...edit, name: e.target.value })}
-                    className="flex-1 bg-zinc-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="flex-1 bg-zinc-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
                   <input
                     value={edit.description}
                     onChange={(e) => setEdit({ ...edit, description: e.target.value })}
                     placeholder="Description"
-                    className="flex-1 bg-zinc-700 text-white placeholder-zinc-400 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="flex-1 bg-zinc-700 text-white placeholder-zinc-400 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
                   <button
                     onClick={saveEdit}
                     disabled={saving}
-                    className="px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-400 text-black text-sm font-medium"
+                    className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-400 text-black text-sm font-medium"
                   >
                     {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                   </button>
@@ -210,7 +210,7 @@ export default function PlaylistsClient() {
                     href={pl.external_urls.spotify}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-white text-sm font-medium hover:text-green-400 transition-colors truncate block"
+                    className="text-white text-sm font-medium hover:text-red-400 transition-colors truncate block"
                   >
                     {pl.name}
                   </Link>
@@ -235,7 +235,7 @@ export default function PlaylistsClient() {
                   disabled={pinning === pl.id}
                   className={`p-2 rounded-lg transition-colors ${
                     pinned.has(pl.id)
-                      ? "text-green-400 hover:text-white bg-zinc-700"
+                      ? "text-red-400 hover:text-white bg-zinc-700"
                       : "text-zinc-400 hover:text-white hover:bg-zinc-700"
                   }`}
                   title={pinned.has(pl.id) ? "Unpin" : "Pin"}

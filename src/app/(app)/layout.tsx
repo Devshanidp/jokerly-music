@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Topbar />
-        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-zinc-900 to-zinc-950 p-6">
+        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-zinc-950 to-black dark:from-zinc-950 dark:to-black light:from-gray-50 light:to-white p-6">
           {children}
         </main>
         <PlayerBar />

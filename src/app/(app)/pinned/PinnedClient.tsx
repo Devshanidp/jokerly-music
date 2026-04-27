@@ -35,7 +35,7 @@ export default function PinnedClient() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h2 className="text-3xl font-bold text-white flex items-center gap-2">
-          <Pin size={28} className="text-green-400" /> Pinned Playlists
+          <Pin size={28} className="text-red-400" /> Pinned Playlists
         </h2>
         <p className="text-zinc-400 mt-1">Your quick-access playlists</p>
       </div>

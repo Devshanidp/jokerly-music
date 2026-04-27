@@ -66,7 +66,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
               >
                 <span className="text-white text-sm truncate">{pl.name}</span>
                 {added.has(pl.id) ? (
-                  <Check size={16} className="text-green-400 shrink-0" />
+                  <Check size={16} className="text-red-400 shrink-0" />
                 ) : adding === pl.id ? (
                   <Loader2 size={16} className="animate-spin text-zinc-400 shrink-0" />
                 ) : null}

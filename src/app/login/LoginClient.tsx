@@ -31,7 +31,7 @@ export default function LoginClient() {
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black font-semibold py-3.5 rounded-xl transition-colors text-sm"
+          className="w-full flex items-center justify-center gap-3 bg-red-500 hover:bg-red-400 disabled:opacity-60 text-black font-semibold py-3.5 rounded-xl transition-colors text-sm"
         >
           {loading ? (
             <Loader2 size={18} className="animate-spin" />

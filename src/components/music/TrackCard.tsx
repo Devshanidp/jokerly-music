@@ -47,7 +47,7 @@ export default function TrackCard({ track, onAddToPlaylist }: Props) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate ${isActive ? "text-green-400" : "text-white"}`}>
+        <p className={`text-sm font-medium truncate ${isActive ? "text-red-400" : "text-white"}`}>
           {track.name}
         </p>
         <p className="text-xs text-zinc-400 truncate">
@@ -60,7 +60,7 @@ export default function TrackCard({ track, onAddToPlaylist }: Props) {
         {onAddToPlaylist && (
           <button
             onClick={() => onAddToPlaylist(track)}
-            className="text-xs text-zinc-400 hover:text-green-400 px-2 py-1 rounded-lg hover:bg-zinc-700 transition-colors opacity-0 group-hover:opacity-100"
+            className="text-xs text-zinc-400 hover:text-red-400 px-2 py-1 rounded-lg hover:bg-zinc-700 transition-colors opacity-0 group-hover:opacity-100"
           >
             + Playlist
           </button>

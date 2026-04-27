@@ -17,14 +17,14 @@ export default function PlayerBar() {
   const image = currentTrack.album.images[0]?.url;
 
   return (
-    <div className="h-20 bg-zinc-900 border-t border-zinc-800 flex items-center px-4 gap-4 shrink-0">
+    <div className="h-20 bg-black border-t border-red-500/30 flex items-center px-4 gap-4 shrink-0">
       {image && (
         <Image
           src={image}
           alt={currentTrack.album.name}
           width={56}
           height={56}
-          className="rounded object-cover"
+          className="rounded object-cover border border-zinc-800"
         />
       )}
 
@@ -43,13 +43,13 @@ export default function PlayerBar() {
         <button
           onClick={togglePlay}
           disabled={!currentTrack.preview_url}
-          className="p-2 rounded-full bg-green-500 hover:bg-green-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-full bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          {isPlaying ? <Pause size={18} className="text-black" /> : <Play size={18} className="text-black" />}
+          {isPlaying ? <Pause size={18} className="text-white" /> : <Play size={18} className="text-white" />}
         </button>
         <button
           onClick={stop}
-          className="p-2 rounded-full bg-zinc-700 hover:bg-zinc-600 transition-colors"
+          className="p-2 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors"
         >
           <Square size={18} className="text-white" />
         </button>
@@ -57,7 +57,7 @@ export default function PlayerBar() {
           href={currentTrack.external_urls.spotify}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-2 rounded-full bg-zinc-700 hover:bg-zinc-600 transition-colors"
+          className="p-2 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors"
           title="Open in Spotify"
         >
           <ExternalLink size={18} className="text-white" />

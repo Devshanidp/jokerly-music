@@ -79,12 +79,12 @@ export default function SearchClient() {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKey}
           placeholder="Search for music, artists, albums, movies..."
-          className="w-full bg-zinc-800 text-white placeholder-zinc-500 rounded-xl pl-12 pr-28 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+          className="w-full bg-zinc-800 text-white placeholder-zinc-500 rounded-xl pl-12 pr-28 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition"
         />
         <button
           onClick={handleSearch}
           disabled={loading || !query.trim()}
-          className="absolute right-3 top-1/2 -translate-y-1/2 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black font-semibold text-sm px-4 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+          className="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 hover:bg-red-400 disabled:opacity-40 text-black font-semibold text-sm px-4 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : "Search"}
         </button>
@@ -157,7 +157,7 @@ export default function SearchClient() {
             <div className="mt-6 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-white font-semibold">
-                  Similar to <span className="text-green-400">{similarSeed.name}</span>
+                  Similar to <span className="text-red-400">{similarSeed.name}</span>
                 </h3>
                 <button
                   onClick={() => { setSimilarSeed(null); setSimilarTracks([]); }}

@@ -30,7 +30,7 @@ export default async function HomePage() {
           href="/"
           className="flex items-center gap-3 p-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition-colors"
         >
-          <Home size={24} className="text-green-400" />
+          <Home size={24} className="text-red-400" />
           <span className="font-semibold">Home</span>
         </Link>
         <Link

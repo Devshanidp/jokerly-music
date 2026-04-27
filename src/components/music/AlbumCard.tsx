@@ -26,7 +26,7 @@ export default function AlbumCard({ album }: Props) {
         />
       )}
       <div>
-        <p className="text-white text-sm font-medium truncate group-hover:text-green-400 transition-colors">
+        <p className="text-white text-sm font-medium truncate group-hover:text-red-400 transition-colors">
           {album.name}
         </p>
         <p className="text-zinc-400 text-xs truncate">
