@@ -1,24 +1,21 @@
 "use client";
 
-import { LfmTrack, lfmImage, lfmArtistName } from "@/lib/lastfm";
+import { SpotifyTrack, trackImage, artistNames } from "@/types/spotify";
 import { Music, ExternalLink, Sparkles, Play, Pause, ListPlus } from "lucide-react";
 import Image from "next/image";
-import { useSpotifyImage } from "@/hooks/useSpotifyImage";
 
 interface Props {
-  track: LfmTrack;
-  onGetSimilar?: (track: LfmTrack) => void;
-  onPlay?: (track: LfmTrack) => void;
-  onAddToPlaylist?: (track: LfmTrack) => void;
+  track: SpotifyTrack;
+  onGetSimilar?: (track: SpotifyTrack) => void;
+  onPlay?: (track: SpotifyTrack) => void;
+  onAddToPlaylist?: (track: SpotifyTrack) => void;
   isCurrentlyPlaying?: boolean;
   rank?: number;
-  imageOverride?: string | null;
 }
 
-export default function LfmTrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist, isCurrentlyPlaying, rank, imageOverride }: Props) {
-  const artist = lfmArtistName(track.artist);
-  const lfmImg = lfmImage(track.image, "large");
-  const image = useSpotifyImage(track.name, artist, imageOverride ?? lfmImg);
+export default function SpotifyTrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist, isCurrentlyPlaying, rank }: Props) {
+  const image = trackImage(track);
+  const artist = artistNames(track);
 
   const handleRowClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("button, a")) return;
@@ -87,12 +84,12 @@ export default function LfmTrackCard({ track, onGetSimilar, onPlay, onAddToPlayl
           </button>
         )}
         <a
-          href={track.url}
+          href={track.external_urls.spotify}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
           className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
-          title="Open on Last.fm"
+          title="Open on Spotify"
         >
           <ExternalLink size={12} />
         </a>

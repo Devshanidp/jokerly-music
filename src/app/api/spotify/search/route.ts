@@ -9,9 +9,15 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q");
   const type = searchParams.get("type") ?? "track";
+  const limit = Number(searchParams.get("limit") ?? "20");
 
   if (!q) return NextResponse.json({ error: "Missing query" }, { status: 400 });
 
-  const data = await searchSpotify(q, type, session.accessToken, 20);
-  return NextResponse.json(data);
+  const data = await searchSpotify(q, type, session.accessToken, limit);
+
+  return NextResponse.json({
+    tracks: data.tracks?.items ?? [],
+    artists: data.artists?.items ?? [],
+    albums: data.albums?.items ?? [],
+  });
 }

@@ -2,20 +2,31 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Search, Loader2, Music, Mic2, Play, ListPlus } from "lucide-react";
-import LfmTrackCard from "@/components/music/LfmTrackCard";
-import LfmArtistCard from "@/components/music/LfmArtistCard";
-import LfmAlbumCard from "@/components/music/LfmAlbumCard";
+import SpotifyTrackCard from "@/components/music/SpotifyTrackCard";
+import SpotifyArtistCard from "@/components/music/SpotifyArtistCard";
+import SpotifyAlbumCard from "@/components/music/SpotifyAlbumCard";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
-import { LfmTrack, LfmArtist, LfmAlbum, lfmArtistName, lfmImage } from "@/lib/lastfm";
-import ArtistDetailSheet from "@/components/music/ArtistDetailSheet";
+import ArtistSheet from "@/components/music/ArtistSheet";
+import { SpotifyTrack, SpotifyArtist, SpotifyAlbum, trackImage, artistImage, artistNames } from "@/types/spotify";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import { useToastStore } from "@/store/toast";
 import Image from "next/image";
 
 type Tab = "track" | "artist" | "album";
 
-interface SearchCache { tracks: LfmTrack[]; artists: LfmArtist[]; albums: LfmAlbum[] }
+interface SearchCache { tracks: SpotifyTrack[]; artists: SpotifyArtist[]; albums: SpotifyAlbum[] }
 const searchCache = new Map<string, SearchCache>();
+
+interface Suggestion {
+  type: "track" | "artist";
+  name: string;
+  sub: string;
+  image: string | null;
+  id: string;
+  uri?: string;
+  durationMs?: number;
+}
+
 const suggestCache = new Map<string, Suggestion[]>();
 
 const TABS: { label: string; value: Tab }[] = [
@@ -24,60 +35,35 @@ const TABS: { label: string; value: Tab }[] = [
   { label: "Albums", value: "album" },
 ];
 
-interface Suggestion {
-  type: "track" | "artist";
-  name: string;
-  sub: string;
-  image: string | null;
-}
-
-interface ResolvedTrackPayload {
-  uri: string;
-  name: string;
-}
-
-function toPlayable(t: LfmTrack): PlayableTrack {
+function toPlayable(t: SpotifyTrack): PlayableTrack {
   return {
     name: t.name,
-    artist: lfmArtistName(t.artist),
-    image: lfmImage(t.image, "large") ?? undefined,
-    lfmUrl: t.url,
+    artist: artistNames(t),
+    image: trackImage(t),
+    uri: t.uri,
+    durationMs: t.duration_ms,
   };
-}
-
-async function fetchPreview(name: string, artist: string) {
-  const res = await fetch(
-    `/api/spotify/resolve?track=${encodeURIComponent(name)}&artist=${encodeURIComponent(artist)}`
-  );
-  return res.json() as Promise<{ uri: string | null; imageUrl: string | null; durationMs: number | null }>;
-}
-
-async function resolveTrackForPlaylist(name: string, artist: string): Promise<ResolvedTrackPayload | null> {
-  const data = await fetchPreview(name, artist);
-  if (!data.uri) return null;
-  return { uri: data.uri, name };
 }
 
 export default function SearchClient() {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<Tab>("track");
-  const [tracks, setTracks] = useState<LfmTrack[]>([]);
-  const [artists, setArtists] = useState<LfmArtist[]>([]);
-  const [albums, setAlbums] = useState<LfmAlbum[]>([]);
+  const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
+  const [artists, setArtists] = useState<SpotifyArtist[]>([]);
+  const [albums, setAlbums] = useState<SpotifyAlbum[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [selectedArtist, setSelectedArtist] = useState<LfmArtist | null>(null);
-  const [similarSeed, setSimilarSeed] = useState<LfmTrack | null>(null);
-  const [similarTracks, setSimilarTracks] = useState<LfmTrack[]>([]);
+  const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
+  const [similarSeed, setSimilarSeed] = useState<SpotifyTrack | null>(null);
+  const [similarTracks, setSimilarTracks] = useState<SpotifyTrack[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
 
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [playingKey, setPlayingKey] = useState<string | null>(null);
-  const [resolvingAddKey, setResolvingAddKey] = useState<string | null>(null);
   const [resolvingSuggestKey, setResolvingSuggestKey] = useState<string | null>(null);
-  const [modalTrack, setModalTrack] = useState<ResolvedTrackPayload | null>(null);
+  const [modalTrack, setModalTrack] = useState<{ name: string; uri: string } | null>(null);
 
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -95,7 +81,8 @@ export default function SearchClient() {
       return;
     }
 
-    const cached = suggestCache.get(query.trim().toLowerCase());
+    const cacheKey = query.trim().toLowerCase();
+    const cached = suggestCache.get(cacheKey);
     if (cached) {
       setSuggestions(cached);
       setShowSuggestions(true);
@@ -105,26 +92,28 @@ export default function SearchClient() {
     setSuggestionsLoading(true);
     suggestTimer.current = setTimeout(async () => {
       try {
-        const [trackRes, artistRes] = await Promise.all([
-          fetch(`/api/lastfm/search?q=${encodeURIComponent(query)}&type=track&limit=5`),
-          fetch(`/api/lastfm/search?q=${encodeURIComponent(query)}&type=artist&limit=3`),
-        ]);
-        const [trackData, artistData] = await Promise.all([trackRes.json(), artistRes.json()]);
+        const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}&type=all&limit=8`);
+        const data = await res.json();
 
-        const trackSugs: Suggestion[] = (trackData.tracks ?? []).map((t: LfmTrack) => ({
+        const trackSugs: Suggestion[] = (data.tracks ?? []).slice(0, 5).map((t: SpotifyTrack) => ({
           type: "track",
           name: t.name,
-          sub: lfmArtistName(t.artist),
-          image: lfmImage(t.image, "small"),
+          sub: artistNames(t),
+          image: trackImage(t) ?? null,
+          id: t.id,
+          uri: t.uri,
+          durationMs: t.duration_ms,
         }));
-        const artistSugs: Suggestion[] = (artistData.artists ?? []).map((a: LfmArtist) => ({
+        const artistSugs: Suggestion[] = (data.artists ?? []).slice(0, 3).map((a: SpotifyArtist) => ({
           type: "artist",
           name: a.name,
-          sub: a.listeners ? `${Number(a.listeners).toLocaleString()} listeners` : "Artist",
-          image: lfmImage(a.image, "small"),
+          sub: a.followers?.total != null ? `${a.followers.total.toLocaleString()} followers` : "Artist",
+          image: artistImage(a) ?? null,
+          id: a.id,
         }));
+
         const combined = [...trackSugs, ...artistSugs];
-        suggestCache.set(query.trim().toLowerCase(), combined);
+        suggestCache.set(cacheKey, combined);
         setSuggestions(combined);
         setShowSuggestions(true);
       } catch {
@@ -168,7 +157,7 @@ export default function SearchClient() {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/lastfm/search?q=${encodeURIComponent(q)}&type=all`);
+      const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(q)}&type=all&limit=20`);
       if (!res.ok) throw new Error("Search failed. Try again.");
       const data = await res.json();
       const result = { tracks: data.tracks ?? [], artists: data.artists ?? [], albums: data.albums ?? [] };
@@ -189,19 +178,15 @@ export default function SearchClient() {
   };
 
   const handleSuggestionAdd = async (s: Suggestion) => {
-    const key = `${s.name}::${s.sub}`;
+    if (!s.uri) return;
+    const key = s.id;
     setResolvingSuggestKey(key);
     setShowSuggestions(false);
-    try {
-      const data = await fetchPreview(s.name, s.sub);
-      if (data.uri) setModalTrack({ uri: data.uri, name: s.name });
-    } finally {
-      setResolvingSuggestKey(null);
-    }
+    setModalTrack({ uri: s.uri, name: s.name });
+    setResolvingSuggestKey(null);
   };
 
-  // Click on a track suggestion → play immediately
-  const handleSuggestionPlay = async (s: Suggestion) => {
+  const handleSuggestionPlay = (s: Suggestion) => {
     if (s.type === "artist") {
       setQuery(s.name);
       setShowSuggestions(false);
@@ -209,74 +194,46 @@ export default function SearchClient() {
       return;
     }
 
-    const key = `${s.name}::${s.sub}`;
-    setPlayingKey(key);
+    setPlayingKey(s.id);
     setShowSuggestions(false);
 
     const playable: PlayableTrack = {
       name: s.name,
       artist: s.sub,
       image: s.image ?? undefined,
+      uri: s.uri ?? null,
+      durationMs: s.durationMs,
     };
-
-    try {
-      const data = await fetchPreview(s.name, s.sub);
-      playable.uri = data.uri ?? null;
-      if (typeof data.durationMs === "number") playable.durationMs = data.durationMs;
-      if (data.imageUrl) playable.image = data.imageUrl;
-    } catch {
-      playable.uri = null;
-    }
 
     setQueueAndPlay([playable], 0);
     setPlayingKey(null);
   };
 
-  const handleGetSimilar = async (track: LfmTrack) => {
+  const handleGetSimilar = async (track: SpotifyTrack) => {
     setSimilarSeed(track);
     setLoadingSimilar(true);
-    const artistName = lfmArtistName(track.artist);
-    const res = await fetch(
-      `/api/lastfm/recommendations?track=${encodeURIComponent(track.name)}&artist=${encodeURIComponent(artistName)}`
-    );
-    const data = await res.json();
-    setSimilarTracks(data.tracks ?? []);
-    setLoadingSimilar(false);
-  };
-
-  const handlePlay = async (track: LfmTrack, trackList: LfmTrack[]) => {
-    const index = trackList.findIndex(
-      (t) => t.name === track.name && lfmArtistName(t.artist) === lfmArtistName(track.artist)
-    );
-    if (index === -1) return;
-
-    const playable = trackList.map(toPlayable);
     try {
-      const data = await fetchPreview(track.name, lfmArtistName(track.artist));
-      playable[index].uri = data.uri ?? null;
-      if (typeof data.durationMs === "number") playable[index].durationMs = data.durationMs;
-      if (data.imageUrl) playable[index].image = data.imageUrl;
-    } catch {
-      playable[index].uri = null;
+      const res = await fetch(`/api/spotify/recommendations?trackId=${encodeURIComponent(track.id)}`);
+      const data = await res.json();
+      setSimilarTracks(data.tracks ?? []);
+    } finally {
+      setLoadingSimilar(false);
     }
-    setQueueAndPlay(playable, index);
   };
 
-  const isTrackPlaying = (track: LfmTrack) =>
+  const handlePlay = (track: SpotifyTrack, trackList: SpotifyTrack[]) => {
+    const index = trackList.findIndex((t) => t.id === track.id);
+    if (index === -1) return;
+    setQueueAndPlay(trackList.map(toPlayable), index);
+  };
+
+  const isTrackPlaying = (track: SpotifyTrack) =>
     currentTrack?.name === track.name &&
-    currentTrack?.artist === lfmArtistName(track.artist) &&
+    currentTrack?.artist === artistNames(track) &&
     isPlaying;
 
-  const handleAddToPlaylist = async (track: LfmTrack) => {
-    const artist = lfmArtistName(track.artist);
-    const key = `${track.name}::${artist}`;
-    setResolvingAddKey(key);
-    try {
-      const resolved = await resolveTrackForPlaylist(track.name, artist);
-      if (resolved) setModalTrack(resolved);
-    } finally {
-      setResolvingAddKey(null);
-    }
+  const handleAddToPlaylist = (track: SpotifyTrack) => {
+    setModalTrack({ uri: track.uri, name: track.name });
   };
 
   return (
@@ -320,18 +277,16 @@ export default function SearchClient() {
               </div>
             ) : (
               <>
-                {/* Track suggestions */}
                 {suggestions.filter((s) => s.type === "track").length > 0 && (
                   <div>
                     <p className="text-zinc-600 text-xs font-medium px-4 pt-3 pb-1 uppercase tracking-wider">Tracks</p>
                     {suggestions
                       .filter((s) => s.type === "track")
-                      .map((s, i) => {
-                        const key = `${s.name}::${s.sub}`;
-                        const isPlaying = playingKey === key;
-                        const isAdding = resolvingSuggestKey === key;
+                      .map((s) => {
+                        const isResolving = resolvingSuggestKey === s.id;
+                        const isLoading = playingKey === s.id;
                         return (
-                          <div key={`track-${i}`} className="flex items-center gap-2 px-3 py-2 hover:bg-zinc-800 transition-colors group">
+                          <div key={s.id} className="flex items-center gap-2 px-3 py-2 hover:bg-zinc-800 transition-colors group">
                             <button
                               onClick={() => handleSuggestionPlay(s)}
                               className="flex items-center gap-3 min-w-0 flex-1 text-left"
@@ -345,7 +300,7 @@ export default function SearchClient() {
                                   </div>
                                 )}
                                 <div className="absolute inset-0 rounded-md bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {isPlaying ? <Loader2 size={13} className="text-white animate-spin" /> : <Play size={13} className="text-white" />}
+                                  {isLoading ? <Loader2 size={13} className="text-white animate-spin" /> : <Play size={13} className="text-white" />}
                                 </div>
                               </div>
                               <div className="min-w-0">
@@ -353,29 +308,30 @@ export default function SearchClient() {
                                 <p className="text-zinc-400 text-xs truncate">{s.sub}</p>
                               </div>
                             </button>
-                            <button
-                              onClick={() => handleSuggestionAdd(s)}
-                              disabled={isAdding}
-                              title="Add to playlist"
-                              className="shrink-0 p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-700 transition-colors"
-                            >
-                              {isAdding ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
-                            </button>
+                            {s.uri && (
+                              <button
+                                onClick={() => handleSuggestionAdd(s)}
+                                disabled={isResolving}
+                                title="Add to playlist"
+                                className="shrink-0 p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-700 transition-colors"
+                              >
+                                {isResolving ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
+                              </button>
+                            )}
                           </div>
                         );
                       })}
                   </div>
                 )}
 
-                {/* Artist suggestions */}
                 {suggestions.filter((s) => s.type === "artist").length > 0 && (
                   <div className="border-t border-zinc-800">
                     <p className="text-zinc-600 text-xs font-medium px-4 pt-3 pb-1 uppercase tracking-wider">Artists</p>
                     {suggestions
                       .filter((s) => s.type === "artist")
-                      .map((s, i) => (
+                      .map((s) => (
                         <button
-                          key={`artist-${i}`}
+                          key={s.id}
                           onClick={() => handleSuggestionPlay(s)}
                           className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-800 transition-colors text-left"
                         >
@@ -435,8 +391,8 @@ export default function SearchClient() {
                 <p className="text-zinc-500 text-sm py-8 text-center">No tracks found.</p>
               ) : (
                 tracks.map((t, i) => (
-                  <LfmTrackCard
-                    key={`${t.name}-${i}`}
+                  <SpotifyTrackCard
+                    key={t.id}
                     track={t}
                     rank={i + 1}
                     onGetSimilar={handleGetSimilar}
@@ -454,8 +410,8 @@ export default function SearchClient() {
               {artists.length === 0 ? (
                 <p className="text-zinc-500 text-sm py-8 col-span-4 text-center">No artists found.</p>
               ) : (
-                artists.map((a, i) => (
-                  <LfmArtistCard key={`${a.name}-${i}`} artist={a} onSelect={setSelectedArtist} />
+                artists.map((a) => (
+                  <SpotifyArtistCard key={a.id} artist={a} onSelect={setSelectedArtist} />
                 ))
               )}
             </div>
@@ -466,8 +422,8 @@ export default function SearchClient() {
               {albums.length === 0 ? (
                 <p className="text-zinc-500 text-sm py-8 col-span-5 text-center">No albums found.</p>
               ) : (
-                albums.map((a, i) => (
-                  <LfmAlbumCard key={`${a.name}-${i}`} album={a} />
+                albums.map((a) => (
+                  <SpotifyAlbumCard key={a.id} album={a} />
                 ))
               )}
             </div>
@@ -493,15 +449,15 @@ export default function SearchClient() {
               ) : (
                 <div className="space-y-1">
                   {similarTracks.map((t, i) => (
-                    <LfmTrackCard
-                      key={`sim-${t.name}-${i}`}
+                    <SpotifyTrackCard
+                      key={t.id}
                       track={t}
                       rank={i + 1}
                       onGetSimilar={handleGetSimilar}
                       onPlay={(track) => handlePlay(track, similarTracks)}
                       onAddToPlaylist={handleAddToPlaylist}
                       isCurrentlyPlaying={isTrackPlaying(t)}
-                      />
+                    />
                   ))}
                 </div>
               )}
@@ -510,18 +466,12 @@ export default function SearchClient() {
         </>
       )}
 
-      {resolvingAddKey && (
-        <div className="fixed bottom-24 right-4 bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs px-3 py-2 rounded-lg shadow-xl">
-          Resolving track for playlist...
-        </div>
-      )}
-
       {modalTrack && (
         <AddToPlaylistModal track={modalTrack} onClose={() => setModalTrack(null)} />
       )}
 
       {selectedArtist && (
-        <ArtistDetailSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />
+        <ArtistSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />
       )}
     </div>
   );

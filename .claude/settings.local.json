@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs wc *)",
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "Bash(git rebase *)",
+      "Bash(gh repo *)",
+      "PowerShell(gh repo create jokerly-v2 --public --description \"Jokerly Music App v2\" 2>&1)",
+      "Bash(git remote *)",
+      "mcp__23f573de-66ba-4bee-8c76-4b95c49826f8__deploy_to_vercel",
+      "mcp__23f573de-66ba-4bee-8c76-4b95c49826f8__get_runtime_logs",
+      "mcp__23f573de-66ba-4bee-8c76-4b95c49826f8__list_teams",
+      "mcp__23f573de-66ba-4bee-8c76-4b95c49826f8__list_projects",
+      "PowerShell(cd \"D:\\\\ClaudeVscode\\\\Music App\\\\jokerly-music2\\\\jokerly v2\\\\.claude\\\\worktrees\\\\cool-greider-f1c503\"; vercel whoami 2>&1; cat $env:APPDATA\\\\Local\\\\com.vercel.cli\\\\auth.json 2>&1 | Select-String \"token\" | Select-Object -First 3)",
+      "PowerShell($r = Invoke-WebRequest -Uri \"https://cool-greider-f1c503.vercel.app/login\" -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue; Write-Host \"Status: $\\($r.StatusCode\\)\"; $r.Content | Select-String \"error|Error|exception\" | Select-Object -First 5)",
+      "Bash(git commit -m 'Add /api/ping probe and global-error to surface 500 message *)",
+      "Bash(git commit -m 'Remove auth\\(\\) from server components to fix edge/Next.js 16 incompatibility *)",
+      "Bash(vercel deploy *)",
+      "Bash(vercel env *)",
+      "Bash(vercel logs *)",
+      "Bash(node -e \"process.stdout.write\\('https://cool-greider-f1c503.vercel.app'\\)\")",
+      "Bash(node -e \"process.stdout.write\\('nGfdHXDjKhaySOo739z6IOTdbG6U6lYwPR0QCX9+6NU='\\)\")",
+      "Bash(node -e \"process.stdout.write\\('20932fc0d6562e2953eee6693cd06466'\\)\")",
+      "Bash(node -e \"process.stdout.write\\('0876463bc12245bab872fa3c4f72e0df'\\)\")",
+      "Bash(node -e \"process.stdout.write\\('f0ce9247acae456c95e58321e5bf0cf9'\\)\")",
+      "Bash(node -e \"process.stdout.write\\('https://xkbcarzjreuybqpxwxpz.supabase.co'\\)\")",
+      "Bash(node -e \"process.stdout.write\\('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhrYmNhcnpqcmV1eWJxcHh3eHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyODI4NDUsImV4cCI6MjA5Mjg1ODg0NX0.S5PHwg13N4FyLnbOjQ8XOXrtRf1YIwj_quZ-Navdt_A'\\)\")",
+      "Bash(git commit -m 'Fix track images via Spotify, show add-to-playlist button, improve suggestions *)",
+      "mcp__1bd87535-937c-4e65-9f58-99a0542c99e5__list_tables",
+      "mcp__1bd87535-937c-4e65-9f58-99a0542c99e5__apply_migration",
+      "Bash(git commit -m 'Add playlist button to player bar, suggestions, smaller track cards *)",
+      "Bash(git commit -m 'Fix images via per-card Spotify resolve hook, faster suggestions, clean player UI *)",
+      "Bash(git commit -m 'Auto-close add-to-playlist modal, expandable playlist tracks dropdown *)"
+    ]
+  }
+}

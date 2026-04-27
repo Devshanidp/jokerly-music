@@ -1,23 +1,35 @@
 import { auth } from "@/lib/auth";
-import {
-  getRecommendations,
-  getUserTopTracks,
-  getUserTopArtists,
-} from "@/lib/spotify";
-import { NextResponse } from "next/server";
+import { getUserTopTracks, getRecommendationsByTrack, getRecommendationsByGenre } from "@/lib/spotify";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+const GENRE_MAP: Record<string, string> = { "r&b": "r-n-b" };
+
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const [topTracks, topArtists] = await Promise.all([
-    getUserTopTracks(session.accessToken, 5),
-    getUserTopArtists(session.accessToken, 5),
-  ]);
+  const { searchParams } = new URL(req.url);
+  const trackId = searchParams.get("trackId");
+  const genre = searchParams.get("genre");
 
-  const seedTracks = (topTracks.items ?? []).slice(0, 3).map((t: any) => t.id);
-  const seedArtists = (topArtists.items ?? []).slice(0, 2).map((a: any) => a.id);
-
-  const recs = await getRecommendations(seedTracks, seedArtists, session.accessToken, 30);
-  return NextResponse.json({ tracks: recs.tracks ?? [] });
+  try {
+    if (trackId) {
+      const data = await getRecommendationsByTrack(trackId, session.accessToken, 20);
+      return NextResponse.json({ tracks: data.tracks ?? [] });
+    }
+    if (genre) {
+      const seed = GENRE_MAP[genre] ?? genre;
+      const data = await getRecommendationsByGenre(seed, session.accessToken, 20);
+      return NextResponse.json({ tracks: data.tracks ?? [] });
+    }
+    const data = await getUserTopTracks(session.accessToken, 20);
+    return NextResponse.json({ tracks: data.items ?? [] });
+  } catch {
+    try {
+      const data = await getRecommendationsByGenre("pop", session.accessToken, 20);
+      return NextResponse.json({ tracks: data.tracks ?? [] });
+    } catch {
+      return NextResponse.json({ tracks: [] });
+    }
+  }
 }

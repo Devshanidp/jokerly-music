@@ -1,36 +1,53 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LfmArtist, LfmArtistInfo, LfmTrack, lfmImage } from "@/lib/lastfm";
+import { SpotifyArtist, SpotifyTrack, artistImage } from "@/types/spotify";
 import { X, Loader2, ExternalLink } from "lucide-react";
 import Image from "next/image";
-import LfmTrackCard from "./LfmTrackCard";
-import LfmArtistCard from "./LfmArtistCard";
+import SpotifyTrackCard from "./SpotifyTrackCard";
+import SpotifyArtistCard from "./SpotifyArtistCard";
+import { usePlayerStore, PlayableTrack } from "@/store/player";
 
 interface Props {
-  artist: LfmArtist;
+  artist: SpotifyArtist;
   onClose: () => void;
 }
 
-export default function ArtistDetailSheet({ artist, onClose }: Props) {
-  const [info, setInfo] = useState<LfmArtistInfo | null>(null);
-  const [topTracks, setTopTracks] = useState<LfmTrack[]>([]);
-  const [similar, setSimilar] = useState<LfmArtist[]>([]);
+function toPlayable(t: SpotifyTrack): PlayableTrack {
+  return {
+    name: t.name,
+    artist: t.artists.map((a) => a.name).join(", "),
+    image: t.album?.images?.[0]?.url,
+    uri: t.uri,
+    durationMs: t.duration_ms,
+  };
+}
+
+export default function ArtistSheet({ artist, onClose }: Props) {
+  const [info, setInfo] = useState<SpotifyArtist | null>(null);
+  const [topTracks, setTopTracks] = useState<SpotifyTrack[]>([]);
+  const [related, setRelated] = useState<SpotifyArtist[]>([]);
   const [loading, setLoading] = useState(true);
+  const { setQueueAndPlay } = usePlayerStore();
 
   useEffect(() => {
-    fetch(`/api/lastfm/artist?name=${encodeURIComponent(artist.name)}`)
+    fetch(`/api/spotify/artist?id=${encodeURIComponent(artist.id)}`)
       .then((r) => r.json())
       .then((d) => {
-        setInfo(d.info);
+        setInfo(d.info ?? null);
         setTopTracks(d.topTracks ?? []);
-        setSimilar(d.similar ?? []);
+        setRelated(d.related ?? []);
       })
       .finally(() => setLoading(false));
-  }, [artist.name]);
+  }, [artist.id]);
 
-  const image = lfmImage(info?.image ?? artist.image, "extralarge");
-  const bio = info?.bio?.summary?.replace(/<[^>]+>/g, "").split("Read more")[0].trim();
+  const image = artistImage(info ?? artist);
+
+  const handlePlay = (track: SpotifyTrack) => {
+    const index = topTracks.findIndex((t) => t.id === track.id);
+    if (index === -1) return;
+    setQueueAndPlay(topTracks.map(toPlayable), index);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4">
@@ -45,17 +62,16 @@ export default function ArtistDetailSheet({ artist, onClose }: Props) {
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-bold text-white">{artist.name}</h2>
-            {info?.stats && (
+            {(info ?? artist).followers?.total != null && (
               <p className="text-zinc-400 text-sm">
-                {Number(info.stats.listeners).toLocaleString()} listeners ·{" "}
-                {Number(info.stats.playcount).toLocaleString()} plays
+                {((info ?? artist).followers.total).toLocaleString()} followers
               </p>
             )}
-            {info?.tags?.tag && (
+            {(info ?? artist).genres?.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1.5">
-                {info.tags.tag.slice(0, 4).map((tag) => (
-                  <span key={tag.name} className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">
-                    {tag.name}
+                {(info ?? artist).genres.slice(0, 4).map((g) => (
+                  <span key={g} className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full capitalize">
+                    {g}
                   </span>
                 ))}
               </div>
@@ -63,11 +79,11 @@ export default function ArtistDetailSheet({ artist, onClose }: Props) {
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <a
-              href={artist.url}
+              href={(info ?? artist).external_urls.spotify}
               target="_blank"
               rel="noopener noreferrer"
               className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-              title="Open on Last.fm"
+              title="Open on Spotify"
             >
               <ExternalLink size={16} />
             </a>
@@ -87,30 +103,23 @@ export default function ArtistDetailSheet({ artist, onClose }: Props) {
             </div>
           ) : (
             <>
-              {bio && (
-                <section>
-                  <h3 className="text-white font-semibold mb-2">About</h3>
-                  <p className="text-zinc-400 text-sm leading-relaxed line-clamp-4">{bio}</p>
-                </section>
-              )}
-
               {topTracks.length > 0 && (
                 <section>
                   <h3 className="text-white font-semibold mb-2">Top Tracks</h3>
                   <div className="space-y-1">
                     {topTracks.map((t, i) => (
-                      <LfmTrackCard key={`${t.name}-${i}`} track={t} rank={i + 1} />
+                      <SpotifyTrackCard key={t.id} track={t} rank={i + 1} onPlay={handlePlay} />
                     ))}
                   </div>
                 </section>
               )}
 
-              {similar.length > 0 && (
+              {related.length > 0 && (
                 <section>
-                  <h3 className="text-white font-semibold mb-2">Similar Artists</h3>
+                  <h3 className="text-white font-semibold mb-2">Related Artists</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {similar.map((a, i) => (
-                      <LfmArtistCard key={`${a.name}-${i}`} artist={a} />
+                    {related.map((a) => (
+                      <SpotifyArtistCard key={a.id} artist={a} />
                     ))}
                   </div>
                 </section>

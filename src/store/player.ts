@@ -4,7 +4,6 @@ export interface PlayableTrack {
   name: string;
   artist: string;
   image?: string;
-  lfmUrl?: string;
   uri?: string | null; // undefined = not yet resolved, null = not found on Spotify
   durationMs?: number;
 }
