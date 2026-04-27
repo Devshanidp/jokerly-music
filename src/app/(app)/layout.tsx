@@ -1,14 +1,9 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import Topbar from "@/components/layout/Topbar";
 import PlayerBar from "@/components/layout/PlayerBar";
 import FloatingNav from "@/components/layout/FloatingNav";
 import ToastContainer from "@/components/layout/ToastContainer";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  if (!session) redirect("/login");
-
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-black">
       <Topbar />
