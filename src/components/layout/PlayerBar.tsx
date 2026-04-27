@@ -2,9 +2,10 @@
 
 import { useEffect, useCallback, useState } from "react";
 import { usePlayerStore } from "@/store/player";
-import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, Plus } from "lucide-react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 
 function formatTime(seconds: number) {
   if (!isFinite(seconds)) return "0:00";
@@ -40,6 +41,7 @@ export default function PlayerBar() {
     usePlayerStore();
   const [fetching, setFetching] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [modalTrack, setModalTrack] = useState<{ name: string; uri: string } | null>(null);
 
   useEffect(() => {
     if (!session?.accessToken) return;
@@ -83,23 +85,37 @@ export default function PlayerBar() {
   const hasNext = nextIndex !== null;
   const progressRatio = durationMs > 0 ? Math.min(progressMs / durationMs, 1) : 0;
   const noTrackUri = currentTrack.uri === null;
-  const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
+  const setRepeatAll = () => {
+    setRepeatMode(repeatMode === "all" ? "off" : "all");
+  };
 
-  const cycleRepeatMode = () => {
-    if (repeatMode === "off") {
-      setRepeatMode("all");
-      return;
-    }
-    if (repeatMode === "all") {
-      setRepeatMode("one");
-      return;
-    }
-    setRepeatMode("off");
+  const setRepeatOne = () => {
+    setRepeatMode(repeatMode === "one" ? "off" : "one");
   };
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     seek((e.clientX - rect.left) / rect.width);
+  };
+
+  const handleAddCurrentToPlaylist = async () => {
+    if (!currentTrack) return;
+
+    if (currentTrack.uri) {
+      setModalTrack({ name: currentTrack.name, uri: currentTrack.uri });
+      return;
+    }
+
+    const res = await fetch(
+      `/api/spotify/resolve?track=${encodeURIComponent(currentTrack.name)}&artist=${encodeURIComponent(currentTrack.artist)}`
+    );
+    const data = await res.json();
+    if (!data.uri) return;
+
+    if (queueIndex >= 0) {
+      updateTrackUri(queueIndex, data.uri ?? null, data.imageUrl, data.durationMs ?? undefined);
+    }
+    setModalTrack({ name: currentTrack.name, uri: data.uri });
   };
 
   return (
@@ -161,11 +177,32 @@ export default function PlayerBar() {
 
                 <div className="flex items-center justify-center gap-3">
                   <button
+                    onClick={handleAddCurrentToPlaylist}
+                    className="rounded-2xl p-3 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
+                    title="Add current track to playlist"
+                  >
+                    <Plus size={18} />
+                  </button>
+                  <button
                     onClick={toggleShuffle}
                     className={`rounded-2xl p-3 transition-colors ${shuffleEnabled ? "bg-red-500/15 text-red-400" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
-                    title="Shuffle"
+                    title={shuffleEnabled ? "Shuffle on" : "Shuffle off"}
                   >
                     <Shuffle size={18} />
+                  </button>
+                  <button
+                    onClick={setRepeatAll}
+                    className={`rounded-2xl p-3 transition-colors ${repeatMode === "all" ? "bg-red-500/15 text-red-400" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
+                    title={repeatMode === "all" ? "Repeat all on" : "Repeat all off"}
+                  >
+                    <Repeat size={18} />
+                  </button>
+                  <button
+                    onClick={setRepeatOne}
+                    className={`rounded-2xl p-3 transition-colors ${repeatMode === "one" ? "bg-red-500/15 text-red-400" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
+                    title={repeatMode === "one" ? "Repeat one on" : "Repeat one off"}
+                  >
+                    <Repeat1 size={18} />
                   </button>
                   <button
                     onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)}
@@ -191,32 +228,6 @@ export default function PlayerBar() {
                   >
                     <SkipForward size={22} />
                   </button>
-                  <button
-                    onClick={cycleRepeatMode}
-                    className={`rounded-2xl p-3 transition-colors ${repeatMode !== "off" ? "bg-red-500/15 text-red-400" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"}`}
-                    title={repeatMode === "off" ? "Repeat off" : repeatMode === "all" ? "Repeat all" : "Repeat one"}
-                  >
-                    <RepeatIcon size={18} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-xs text-zinc-500 sm:grid-cols-4">
-                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 px-3 py-2">
-                    <span className="block uppercase tracking-wide">Shuffle</span>
-                    <span className="mt-1 block text-sm text-white">{shuffleEnabled ? "On" : "Off"}</span>
-                  </div>
-                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 px-3 py-2">
-                    <span className="block uppercase tracking-wide">Repeat</span>
-                    <span className="mt-1 block text-sm text-white">{repeatMode === "off" ? "Off" : repeatMode === "all" ? "Queue" : "Track"}</span>
-                  </div>
-                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 px-3 py-2">
-                    <span className="block uppercase tracking-wide">Queue</span>
-                    <span className="mt-1 block text-sm text-white">{Math.max(queueIndex + 1, 1)} / {queue.length}</span>
-                  </div>
-                  <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 px-3 py-2">
-                    <span className="block uppercase tracking-wide">Auto Next</span>
-                    <span className="mt-1 block text-sm text-white">{repeatMode === "one" ? "Loop 1" : hasNext ? "Ready" : repeatMode === "all" ? "Wrap" : "Stop"}</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -302,6 +313,13 @@ export default function PlayerBar() {
             </span>
           )}
           <button
+            onClick={handleAddCurrentToPlaylist}
+            className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 transition-colors"
+            title="Add to playlist"
+          >
+            <Plus size={15} />
+          </button>
+          <button
             onClick={stop}
             className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 transition-colors"
             title="Close"
@@ -311,6 +329,8 @@ export default function PlayerBar() {
         </div>
       </div>
       </div>
+
+      {modalTrack && <AddToPlaylistModal track={modalTrack} onClose={() => setModalTrack(null)} />}
     </>
   );
 }

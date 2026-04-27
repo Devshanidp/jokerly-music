@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2 } from "lucide-react";
-import { SpotifyPlaylist } from "@/types";
+import { useState } from "react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, ChevronDown, Music } from "lucide-react";
 import Image from "next/image";
+import {
+  createLocalPlaylist,
+  deleteLocalPlaylist,
+  togglePinnedPlaylist,
+  updateLocalPlaylist,
+  useLocalPlaylists,
+} from "@/lib/local-playlists";
 
 interface EditState {
   id: string;
@@ -11,107 +17,47 @@ interface EditState {
   description: string;
 }
 
-interface PinnedRow {
-  playlist_id: string;
-}
-
 export default function PlaylistsClient() {
-  const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
-  const [loading, setLoading] = useState(true);
+  const playlists = useLocalPlaylists();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [saving, setSaving] = useState(false);
   const [edit, setEdit] = useState<EditState | null>(null);
-  const [pinned, setPinned] = useState<Set<string>>(new Set());
   const [pinning, setPinning] = useState<string | null>(null);
-
-  const load = async () => {
-    setLoading(true);
-    const [plRes, pinRes] = await Promise.all([
-      fetch("/api/spotify/playlists"),
-      fetch("/api/pinned"),
-    ]);
-    const plData = await plRes.json();
-    const pinData = (await pinRes.json()) as PinnedRow[];
-    setPlaylists(plData.items ?? []);
-    setPinned(new Set(pinData.map((p) => p.playlist_id)));
-    setLoading(false);
-  };
-
-  useEffect(() => { load(); }, []);
+  const [openPlaylistId, setOpenPlaylistId] = useState<string | null>(null);
 
   const createPlaylist = async () => {
     if (!newName.trim()) return;
     setSaving(true);
-    const res = await fetch("/api/spotify/playlists", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim(), description: newDesc.trim() }),
-    });
-    if (res.ok) {
-      setNewName("");
-      setNewDesc("");
-      setCreating(false);
-      load();
-    }
+    createLocalPlaylist(newName.trim(), newDesc.trim());
+    setNewName("");
+    setNewDesc("");
+    setCreating(false);
     setSaving(false);
   };
 
   const saveEdit = async () => {
     if (!edit) return;
     setSaving(true);
-    await fetch(`/api/spotify/playlists/${edit.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: edit.name, description: edit.description }),
-    });
+    updateLocalPlaylist(edit.id, { name: edit.name, description: edit.description });
     setEdit(null);
     setSaving(false);
-    load();
   };
 
-  const togglePin = async (pl: SpotifyPlaylist) => {
-    setPinning(pl.id);
-    if (pinned.has(pl.id)) {
-      await fetch("/api/pinned", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playlist_id: pl.id }),
-      });
-      setPinned((prev) => { const s = new Set(prev); s.delete(pl.id); return s; });
-    } else {
-      await fetch("/api/pinned", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playlist_id: pl.id,
-          playlist_name: pl.name,
-          playlist_image: pl.images?.[0]?.url ?? "",
-        }),
-      });
-      setPinned((prev) => new Set(prev).add(pl.id));
-    }
+  const togglePin = async (playlistId: string) => {
+    setPinning(playlistId);
+    togglePinnedPlaylist(playlistId);
     setPinning(null);
   };
 
   const removePlaylist = async (playlistId: string) => {
-    const ok = window.confirm("Delete this playlist from your Spotify account?");
+    const ok = window.confirm("Delete this local playlist?");
     if (!ok) return;
 
     setSaving(true);
-    const res = await fetch(`/api/spotify/playlists/${playlistId}`, {
-      method: "DELETE",
-    });
+    deleteLocalPlaylist(playlistId);
     setSaving(false);
-    if (!res.ok) return;
-
-    setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
-    setPinned((prev) => {
-      const next = new Set(prev);
-      next.delete(playlistId);
-      return next;
-    });
   };
 
   return (
@@ -166,13 +112,7 @@ export default function PlaylistsClient() {
         </div>
       )}
 
-      {loading ? (
-        <div className="grid grid-cols-2 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-20 bg-zinc-800/50 rounded-xl animate-pulse" />
-          ))}
-        </div>
-      ) : playlists.length === 0 ? (
+      {playlists.length === 0 ? (
         <div className="text-center py-20 text-zinc-500">
           <ListMusic size={48} className="mx-auto mb-4 opacity-30" />
           <p>No playlists yet. Create your first one!</p>
@@ -182,94 +122,126 @@ export default function PlaylistsClient() {
           {playlists.map((pl) => (
             <div
               key={pl.id}
-              className="flex items-center gap-4 p-3 rounded-xl bg-zinc-800/40 hover:bg-zinc-800 transition-colors group"
+              className="rounded-xl bg-zinc-800/40 hover:bg-zinc-800 transition-colors group"
             >
-              {pl.images?.[0]?.url ? (
-                <Image
-                  src={pl.images[0].url}
-                  alt={pl.name}
-                  width={52}
-                  height={52}
-                  className="rounded-lg object-cover shrink-0"
-                />
-              ) : (
-                <div className="w-13 h-13 rounded-lg bg-zinc-700 flex items-center justify-center shrink-0 w-[52px] h-[52px]">
-                  <ListMusic size={20} className="text-zinc-500" />
-                </div>
-              )}
-
-              {edit?.id === pl.id ? (
-                <div className="flex-1 flex gap-2">
-                  <input
-                    autoFocus
-                    value={edit.name}
-                    onChange={(e) => setEdit({ ...edit, name: e.target.value })}
-                    className="flex-1 bg-zinc-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              <div className="flex items-center gap-4 p-3">
+                {pl.image ? (
+                  <Image
+                    src={pl.image}
+                    alt={pl.name}
+                    width={52}
+                    height={52}
+                    className="rounded-lg object-cover shrink-0"
                   />
-                  <input
-                    value={edit.description}
-                    onChange={(e) => setEdit({ ...edit, description: e.target.value })}
-                    placeholder="Description"
-                    className="flex-1 bg-zinc-700 text-white placeholder-zinc-400 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-                  />
-                  <button
-                    onClick={saveEdit}
-                    disabled={saving}
-                    className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-400 text-black text-sm font-medium"
-                  >
-                    {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                  </button>
-                  <button
-                    onClick={() => setEdit(null)}
-                    className="px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-sm"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate block">{pl.name}</p>
-                  <p className="text-zinc-400 text-xs">
-                    {pl.tracks?.total ?? 0} tracks · Local playlist
-                  </p>
-                </div>
-              )}
+                ) : (
+                  <div className="w-13 h-13 rounded-lg bg-zinc-700 flex items-center justify-center shrink-0 w-[52px] h-[52px]">
+                    <ListMusic size={20} className="text-zinc-500" />
+                  </div>
+                )}
 
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                {edit?.id === pl.id ? (
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      autoFocus
+                      value={edit.name}
+                      onChange={(e) => setEdit({ ...edit, name: e.target.value })}
+                      className="flex-1 bg-zinc-700 text-white rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                    <input
+                      value={edit.description}
+                      onChange={(e) => setEdit({ ...edit, description: e.target.value })}
+                      placeholder="Description"
+                      className="flex-1 bg-zinc-700 text-white placeholder-zinc-400 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                    />
+                    <button
+                      onClick={saveEdit}
+                      disabled={saving}
+                      className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-400 text-black text-sm font-medium"
+                    >
+                      {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                    </button>
+                    <button
+                      onClick={() => setEdit(null)}
+                      className="px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-white text-sm"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate block">{pl.name}</p>
+                    <p className="text-zinc-400 text-xs">
+                      {pl.tracks.length} tracks · Local playlist
+                    </p>
+                  </div>
+                )}
+
                 <button
-                  onClick={() =>
-                    setEdit({ id: pl.id, name: pl.name, description: pl.description ?? "" })
-                  }
+                  onClick={() => setOpenPlaylistId(openPlaylistId === pl.id ? null : pl.id)}
                   className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
-                  title="Edit"
+                  title="Show songs"
                 >
-                  <Pencil size={15} />
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform ${openPlaylistId === pl.id ? "rotate-180" : ""}`}
+                  />
                 </button>
-                <button
-                  onClick={() => togglePin(pl)}
-                  disabled={pinning === pl.id}
-                  className={`p-2 rounded-lg transition-colors ${
-                    pinned.has(pl.id)
-                      ? "text-red-400 hover:text-white bg-zinc-700"
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-700"
-                  }`}
-                  title={pinned.has(pl.id) ? "Unpin" : "Pin"}
-                >
-                  {pinning === pl.id ? (
-                    <Loader2 size={15} className="animate-spin" />
-                  ) : (
-                    <Pin size={15} />
-                  )}
-                </button>
-                <button
-                  onClick={() => removePlaylist(pl.id)}
-                  disabled={saving}
-                  className="p-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-700 transition-colors disabled:opacity-50"
-                  title="Delete"
-                >
-                  <Trash2 size={15} />
-                </button>
+
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <button
+                    onClick={() =>
+                      setEdit({ id: pl.id, name: pl.name, description: pl.description ?? "" })
+                    }
+                    className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+                    title="Edit"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    onClick={() => togglePin(pl.id)}
+                    disabled={pinning === pl.id}
+                    className={`p-2 rounded-lg transition-colors ${
+                      pl.pinned
+                        ? "text-red-400 hover:text-white bg-zinc-700"
+                        : "text-zinc-400 hover:text-white hover:bg-zinc-700"
+                    }`}
+                    title={pl.pinned ? "Unpin" : "Pin"}
+                  >
+                    {pinning === pl.id ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <Pin size={15} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => removePlaylist(pl.id)}
+                    disabled={saving}
+                    className="p-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                    title="Delete"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
+
+              {openPlaylistId === pl.id && (
+                <div className="px-3 pb-3">
+                  <div className="rounded-lg border border-zinc-700 bg-zinc-900/70">
+                    {pl.tracks.length === 0 ? (
+                      <p className="px-3 py-2.5 text-xs text-zinc-500">No songs added yet.</p>
+                    ) : (
+                      <ul className="max-h-56 overflow-y-auto divide-y divide-zinc-800">
+                        {pl.tracks.map((track) => (
+                          <li key={track.uri} className="px-3 py-2.5 flex items-center gap-2">
+                            <Music size={13} className="text-zinc-500 shrink-0" />
+                            <span className="text-sm text-zinc-200 truncate">{track.name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

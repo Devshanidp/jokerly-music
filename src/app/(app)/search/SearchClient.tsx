@@ -47,6 +47,37 @@ async function fetchPreview(name: string, artist: string) {
   return res.json() as Promise<{ uri: string | null; imageUrl: string | null; durationMs: number | null }>;
 }
 
+async function hydrateTracksWithImages(inputTracks: LfmTrack[]) {
+  const missing = inputTracks
+    .map((track, index) => ({ track, index }))
+    .filter(({ track }) => !lfmImage(track.image, "large"))
+    .slice(0, 12);
+
+  if (missing.length === 0) return inputTracks;
+
+  const copy = [...inputTracks];
+  const resolved = await Promise.all(
+    missing.map(async ({ track, index }) => {
+      try {
+        const data = await fetchPreview(track.name, lfmArtistName(track.artist));
+        return { index, imageUrl: data.imageUrl };
+      } catch {
+        return { index, imageUrl: null };
+      }
+    })
+  );
+
+  for (const item of resolved) {
+    if (!item.imageUrl) continue;
+    copy[item.index] = {
+      ...copy[item.index],
+      image: [{ "#text": item.imageUrl, size: "large" }],
+    };
+  }
+
+  return copy;
+}
+
 async function resolveTrackForPlaylist(name: string, artist: string): Promise<ResolvedTrackPayload | null> {
   const data = await fetchPreview(name, artist);
   if (!data.uri) return null;
@@ -142,7 +173,10 @@ export default function SearchClient() {
     try {
       const res = await fetch(`/api/lastfm/search?q=${encodeURIComponent(q)}&type=all`);
       const data = await res.json();
-      setTracks(data.tracks ?? []);
+      const fetchedTracks = (data.tracks ?? []) as LfmTrack[];
+      setTracks(fetchedTracks);
+      const hydratedTracks = await hydrateTracksWithImages(fetchedTracks);
+      setTracks(hydratedTracks);
       setArtists(data.artists ?? []);
       setAlbums(data.albums ?? []);
     } finally {
