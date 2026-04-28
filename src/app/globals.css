@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #08080f;
-  --surface: #0f0f1a;
-  --card: #13131e;
-  --border: rgba(255, 255, 255, 0.07);
-  --accent: #ff2d55;
-  --foreground: #f4f4f5;
+  --background: #06040e;
+  --surface: #0d0918;
+  --card: #110d1f;
+  --border: rgba(139, 92, 246, 0.1);
+  --accent: #8b5cf6;
+  --foreground: #f0eeff;
 }
 
 body {
@@ -20,8 +20,8 @@ body::before {
   content: "";
   position: fixed;
   top: 0; left: 0; right: 0;
-  height: 40vh;
-  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255,45,85,0.08) 0%, transparent 70%);
+  height: 50vh;
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(139,92,246,0.12) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
