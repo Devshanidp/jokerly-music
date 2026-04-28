@@ -77,7 +77,8 @@ export default function PlaylistsClient() {
   const playTrack = (tracks: PlaylistTrack[], index: number) => {
     const queue: PlayableTrack[] = tracks.map((t) => ({
       name: t.track_name,
-      artist: "",
+      artist: t.track_artist ?? "",
+      image: t.track_image ?? undefined,
       uri: t.track_uri,
     }));
     setQueueAndPlay(queue, index);
