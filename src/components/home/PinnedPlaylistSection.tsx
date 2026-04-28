@@ -57,7 +57,8 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
       if (!list.length || !isPlayerReady) return;
       const queue: PlayableTrack[] = list.map((t) => ({
         name: t.track_name,
-        artist: "",
+        artist: t.track_artist ?? "",
+        image: t.track_image ?? undefined,
         uri: t.track_uri,
       }));
       setQueueAndPlay(queue, startIndex);
