@@ -34,7 +34,12 @@
       "mcp__1bd87535-937c-4e65-9f58-99a0542c99e5__apply_migration",
       "Bash(git commit -m 'Add playlist button to player bar, suggestions, smaller track cards *)",
       "Bash(git commit -m 'Fix images via per-card Spotify resolve hook, faster suggestions, clean player UI *)",
-      "Bash(git commit -m 'Auto-close add-to-playlist modal, expandable playlist tracks dropdown *)"
+      "Bash(git commit -m 'Auto-close add-to-playlist modal, expandable playlist tracks dropdown *)",
+      "Bash(git commit *)",
+      "mcp__1bd87535-937c-4e65-9f58-99a0542c99e5__list_projects",
+      "Bash(git rm *)",
+      "mcp__23f573de-66ba-4bee-8c76-4b95c49826f8__list_deployments",
+      "Bash(npx vercel *)"
     ]
   }
 }
