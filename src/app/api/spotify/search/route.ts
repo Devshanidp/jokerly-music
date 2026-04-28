@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q");
   const type = searchParams.get("type") ?? "track";
-  const limit = Number(searchParams.get("limit") ?? "20");
+  const rawLimit = parseInt(searchParams.get("limit") ?? "20", 10);
+  // Spotify max is 50 per type; clamp and default to 20 on invalid input
+  const limit = isNaN(rawLimit) || rawLimit < 1 ? 20 : Math.min(rawLimit, 50);
 
   if (!q) return NextResponse.json({ error: "Missing query" }, { status: 400 });
 
