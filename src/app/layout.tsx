@@ -9,7 +9,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Jokerly",
   description: "Discover, search, and play your music",
-  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/icon-16.png",  sizes: "16x16",   type: "image/png" },

@@ -20,8 +20,11 @@ async function spotifyFetch(url: string, accessToken: string): Promise<any> {
 }
 
 export async function searchSpotify(query: string, type: string, accessToken: string, limit = 20) {
-  const t = type === "all" ? "track,artist,album" : type;
-  const params = new URLSearchParams({ q: query, type: t, limit: String(limit) });
+  const isMulti = type === "all";
+  const t = isMulti ? "track,artist,album" : type;
+  // Spotify caps limit at 50 per type; for multi-type searches keep it ≤ 20
+  const safeLimit = Math.max(1, Math.min(limit, isMulti ? 20 : 50));
+  const params = new URLSearchParams({ q: query, type: t, limit: String(safeLimit) });
   return spotifyFetch(`${SPOTIFY_BASE}/search?${params}`, accessToken);
 }
 
