@@ -21,7 +21,7 @@ export default function SpotifyArtistCard({ artist, onSelect }: Props) {
     >
       <div className="relative w-20 h-20 shrink-0">
         {image ? (
-          <Image src={image} alt={artist.name} fill unoptimized className="rounded-full object-cover ring-2 ring-white/10 group-hover:ring-[#ff2d55]/40 transition-all" sizes="80px" />
+          <Image src={image} alt={artist.name} fill unoptimized className="rounded-full object-cover ring-2 ring-white/10 group-hover:ring-[#8b5cf6]/40 transition-all" sizes="80px" />
         ) : (
           <div className="w-20 h-20 rounded-full bg-white/[0.06] flex items-center justify-center ring-2 ring-white/[0.06]">
             <Mic2 size={28} className="text-white/25" />
@@ -30,7 +30,7 @@ export default function SpotifyArtistCard({ artist, onSelect }: Props) {
       </div>
 
       <div className="text-center w-full">
-        <p className="text-white text-sm font-semibold truncate group-hover:text-[#ff2d55] transition-colors">
+        <p className="text-white text-sm font-semibold truncate group-hover:text-[#8b5cf6] transition-colors">
           {artist.name}
         </p>
         {artist.followers?.total != null && (
