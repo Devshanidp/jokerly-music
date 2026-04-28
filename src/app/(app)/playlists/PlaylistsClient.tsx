@@ -57,37 +57,7 @@ export default function PlaylistsClient() {
     try {
       const res = await fetch(`/api/spotify/playlists/${id}`);
       const data = await res.json();
-      const items: PlaylistTrack[] = data.items ?? [];
-
-      // Batch-fetch images from Spotify for tracks that don't have one stored
-      const missing = items.filter((t) => !t.track_image).map((t) => {
-        // URI format: spotify:track:TRACK_ID
-        const parts = t.track_uri.split(":");
-        return parts[parts.length - 1];
-      }).filter(Boolean);
-
-      if (missing.length > 0) {
-        try {
-          const enrichRes = await fetch(`/api/spotify/tracks?ids=${missing.join(",")}`);
-          const enrichData = await enrichRes.json();
-          const imageMap: Record<string, { image: string | null; artist: string }> = {};
-          for (const t of enrichData.tracks ?? []) {
-            imageMap[t.id] = { image: t.image, artist: t.artist };
-          }
-          for (const item of items) {
-            if (!item.track_image) {
-              const parts = item.track_uri.split(":");
-              const trackId = parts[parts.length - 1];
-              if (imageMap[trackId]) {
-                item.track_image = imageMap[trackId].image;
-                if (!item.track_artist) item.track_artist = imageMap[trackId].artist;
-              }
-            }
-          }
-        } catch { /* enrich failed, show without images */ }
-      }
-
-      setTracksMap((prev) => ({ ...prev, [id]: items }));
+      setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
     } catch {
       setTracksMap((prev) => ({ ...prev, [id]: [] }));
     } finally {
