@@ -79,7 +79,7 @@ export default function Topbar() {
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <span className="text-red-500 text-xl">🎵</span>
+            <Image src="/icon-48.png" alt="Jokerly" width={28} height={28} className="rounded-lg" />
             <span className="text-white font-bold text-lg tracking-tight">Jokerly</span>
           </Link>
 
