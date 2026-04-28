@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { Pin, ChevronDown, Music, Play, Loader2, PlayCircle } from "lucide-react";
 import { PinnedPlaylist } from "@/types";
@@ -25,6 +25,25 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
   const { setQueueAndPlay, isPlayerReady } = usePlayerStore();
   const { toast } = useToastStore();
+
+  // Prefetch all pinned playlist tracks in background so clicks feel instant
+  useEffect(() => {
+    if (!pinned.length) return;
+    const controller = new AbortController();
+    const prefetch = async () => {
+      for (const pl of pinned) {
+        if (controller.signal.aborted) break;
+        try {
+          const res = await fetch(`/api/spotify/playlists/${encodeURIComponent(pl.playlist_id)}`, { signal: controller.signal });
+          if (!res.ok) continue;
+          const data = await res.json();
+          setTracks((prev) => prev[pl.playlist_id] ? prev : { ...prev, [pl.playlist_id]: data.items ?? [] });
+        } catch { /* ignore abort / errors */ }
+      }
+    };
+    prefetch();
+    return () => controller.abort();
+  }, [pinned]);
 
   const toggle = useCallback(
     async (playlistId: string) => {
