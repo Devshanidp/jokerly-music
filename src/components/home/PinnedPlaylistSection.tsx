@@ -108,7 +108,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
             className="rounded-2xl overflow-hidden border transition-all duration-200"
             style={{
               background: "var(--card)",
-              borderColor: isOpen ? "rgba(10,132,255,0.22)" : "rgba(255,255,255,0.06)",
+              borderColor: isOpen ? "rgba(240,165,0,0.22)" : "rgba(255,255,255,0.06)",
             }}
           >
             {/* ── Header row — entire row is clickable ── */}
@@ -136,7 +136,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
                   </div>
                 )}
                 {/* Pinned dot */}
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#0a84ff] border-2"
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#f0a500] border-2"
                   style={{ borderColor: "var(--card)" }} />
               </div>
 
@@ -156,7 +156,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
                     disabled={!isPlayerReady}
                     title="Play all"
                     className="p-1.5 rounded-xl transition-colors disabled:opacity-40"
-                    style={{ color: "#0a84ff" }}
+                    style={{ color: "#f0a500" }}
                   >
                     <PlayCircle size={17} />
                   </button>
@@ -190,7 +190,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
                         {/* Number / play indicator */}
                         <div className="w-5 shrink-0 flex items-center justify-center">
                           <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{i + 1}</span>
-                          <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#0a84ff]" />
+                          <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#f0a500]" />
                         </div>
 
                         {/* Album art */}
