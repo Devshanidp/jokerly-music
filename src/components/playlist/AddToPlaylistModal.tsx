@@ -84,6 +84,8 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
         throw new Error(body.error ?? `Failed (${res.status})`);
       }
       setAdded((prev) => new Set(prev).add(playlist.id));
+      // Notify playlist views to refresh immediately
+      window.dispatchEvent(new CustomEvent("playlist-updated", { detail: { playlistId: playlist.id } }));
       setTimeout(onClose, 500);
     } catch (e) {
       setAddError((e as Error).message ?? "Could not add track");

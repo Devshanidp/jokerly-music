@@ -137,6 +137,27 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
 
+  // Listen for tracks added via AddToPlaylistModal and refresh immediately
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { playlistId } = (e as CustomEvent<{ playlistId: string }>).detail;
+      if (expanded === playlistId) {
+        // Playlist is open — refetch live
+        fetch(`/api/spotify/playlists/${encodeURIComponent(playlistId)}?_t=${Date.now()}`)
+          .then((r) => r.ok ? r.json() : null)
+          .then((data) => {
+            if (data) setTracksMap((prev) => ({ ...prev, [playlistId]: data.items ?? [] }));
+          })
+          .catch(() => {});
+      } else {
+        // Clear stale cache so next expand fetches fresh
+        setTracksMap((prev) => { const n = { ...prev }; delete n[playlistId]; return n; });
+      }
+    };
+    window.addEventListener("playlist-updated", handler);
+    return () => window.removeEventListener("playlist-updated", handler);
+  }, [expanded]);
+
   // Prefetch all pinned playlist tracks in background
   useEffect(() => {
     if (!pinned.length) return;

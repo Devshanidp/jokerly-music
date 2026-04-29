@@ -177,6 +177,28 @@ export default function PlaylistsClient() {
 
   useEffect(() => { load(); }, []);
 
+  // Listen for tracks being added via AddToPlaylistModal and refresh immediately
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { playlistId } = (e as CustomEvent<{ playlistId: string }>).detail;
+      // Update track count in header
+      setPlaylists((prev) =>
+        prev.map((p) =>
+          p.id === playlistId ? { ...p, tracks: { total: (p.tracks?.total ?? 0) + 1 } } : p
+        )
+      );
+      // If this playlist is currently expanded, refetch its tracks right away
+      if (expandedId === playlistId) {
+        fetchTracks(playlistId);
+      } else {
+        // Clear stale cache so next expand fetches fresh
+        setTracksMap((prev) => { const n = { ...prev }; delete n[playlistId]; return n; });
+      }
+    };
+    window.addEventListener("playlist-updated", handler);
+    return () => window.removeEventListener("playlist-updated", handler);
+  }, [expandedId]);
+
   const fetchTracks = async (id: string) => {
     // Always refetch on expand — cache-bust so browser never serves stale data
     setLoadingTracks(id);
