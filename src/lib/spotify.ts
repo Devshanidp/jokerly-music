@@ -106,11 +106,33 @@ export async function getArtist(artistId: string, accessToken: string) {
 }
 
 export async function getArtistTopTracks(artistId: string, accessToken: string) {
-  return spotifyFetch(`${SPOTIFY_BASE}/artists/${artistId}/top-tracks?market=US`, accessToken);
+  // market=from_token uses the authenticated user's market (US was too restrictive)
+  return spotifyFetch(`${SPOTIFY_BASE}/artists/${artistId}/top-tracks?market=from_token`, accessToken, 5000);
 }
 
-export async function getRelatedArtists(artistId: string, accessToken: string) {
-  return spotifyFetch(`${SPOTIFY_BASE}/artists/${artistId}/related-artists`, accessToken);
+// /artists/{id}/related-artists was deprecated by Spotify in Dec 2024.
+// Replace with a genre/name search to find similar artists.
+export async function getRelatedArtists(
+  artistId: string,
+  accessToken: string,
+  genres: string[] = [],
+  artistName = ""
+): Promise<{ artists: any[] }> {
+  // Build a search query from the artist's genres if available, else the name
+  const q = genres.length > 0 ? `genre:"${genres[0]}"` : `"${artistName}"`;
+  try {
+    const data = await spotifyFetch(
+      `${SPOTIFY_BASE}/search?q=${encodeURIComponent(q)}&type=artist&limit=10&market=from_token`,
+      accessToken,
+      5000
+    );
+    const artists = (data.artists?.items ?? [])
+      .filter((a: any) => a.id !== artistId)
+      .slice(0, 8);
+    return { artists };
+  } catch {
+    return { artists: [] };
+  }
 }
 
 export async function getTracksByIds(ids: string[], accessToken: string) {
