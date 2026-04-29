@@ -5,7 +5,6 @@ import { SpotifyArtist, SpotifyTrack, artistImage } from "@/types/spotify";
 import { X, Loader2, ExternalLink } from "lucide-react";
 import Image from "next/image";
 import SpotifyTrackCard from "./SpotifyTrackCard";
-import SpotifyArtistCard from "./SpotifyArtistCard";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 
 interface Props {
@@ -26,7 +25,7 @@ function toPlayable(t: SpotifyTrack): PlayableTrack {
 export default function ArtistSheet({ artist, onClose }: Props) {
   const [info, setInfo] = useState<SpotifyArtist | null>(null);
   const [topTracks, setTopTracks] = useState<SpotifyTrack[]>([]);
-  const [related, setRelated] = useState<SpotifyArtist[]>([]);
+  const [moreTracks, setMoreTracks] = useState<SpotifyTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const { setQueueAndPlay } = usePlayerStore();
 
@@ -36,18 +35,19 @@ export default function ArtistSheet({ artist, onClose }: Props) {
       .then((d) => {
         setInfo(d.info ?? null);
         setTopTracks(d.topTracks ?? []);
-        setRelated(d.related ?? []);
+        setMoreTracks(d.moreTracks ?? []);
       })
       .catch((e) => console.error("ArtistSheet fetch failed:", e))
       .finally(() => setLoading(false));
   }, [artist.id]);
 
   const image = artistImage(info ?? artist);
+  const allTracks = [...topTracks, ...moreTracks];
 
   const handlePlay = (track: SpotifyTrack) => {
-    const index = topTracks.findIndex((t) => t.id === track.id);
+    const index = allTracks.findIndex((t) => t.id === track.id);
     if (index === -1) return;
-    setQueueAndPlay(topTracks.map(toPlayable), index);
+    setQueueAndPlay(allTracks.map(toPlayable), index);
   };
 
   return (
@@ -115,12 +115,12 @@ export default function ArtistSheet({ artist, onClose }: Props) {
                 </section>
               )}
 
-              {related.length > 0 && (
+              {moreTracks.length > 0 && (
                 <section>
-                  <h3 className="text-white font-semibold mb-2">Related Artists</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {related.map((a) => (
-                      <SpotifyArtistCard key={a.id} artist={a} />
+                  <h3 className="text-white font-semibold mb-2">More Songs</h3>
+                  <div className="space-y-1">
+                    {moreTracks.map((t, i) => (
+                      <SpotifyTrackCard key={t.id} track={t} rank={topTracks.length + i + 1} onPlay={handlePlay} />
                     ))}
                   </div>
                 </section>
