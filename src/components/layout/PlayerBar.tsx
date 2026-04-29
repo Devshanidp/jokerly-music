@@ -141,8 +141,6 @@ export default function PlayerBar() {
 
   const prevIndex = getPrevIndex();
   const nextIndex = getNextIndex();
-  const hasPrev = prevIndex !== null;
-  const hasNext = nextIndex !== null;
   const progressRatio = durationMs > 0 ? Math.min(progressMs / durationMs, 1) : 0;
   const noTrackUri = currentTrack.uri === null;
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
@@ -234,8 +232,8 @@ export default function PlayerBar() {
                     className={`p-3 rounded-2xl transition-colors ${shuffleEnabled ? "text-[#ef4444] bg-[#ef4444]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
                     <Shuffle size={18} />
                   </button>
-                  <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)} disabled={!hasPrev} title="Previous"
-                    className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
+                  <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)} title="Previous"
+                    className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
                     <SkipBack size={22} fill="currentColor" />
                   </button>
                   <button onClick={togglePlay} disabled={playDisabled} title={isPlaying ? "Pause" : "Play"}
@@ -247,8 +245,8 @@ export default function PlayerBar() {
                         : <Play size={24} fill="white" className="text-white" />
                     }
                   </button>
-                  <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)} disabled={!hasNext} title="Next"
-                    className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
+                  <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)} title="Next"
+                    className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
                     <SkipForward size={22} fill="currentColor" />
                   </button>
                   <button onClick={cycleRepeatMode} title="Repeat"
@@ -299,8 +297,8 @@ export default function PlayerBar() {
 
           {/* Playback controls — centred */}
           <div className="flex items-center gap-1 shrink-0">
-            <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)} disabled={!hasPrev}
-              className="p-2 rounded-xl text-white/40 hover:text-white disabled:opacity-20 transition-colors">
+            <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)}
+              className="p-2 rounded-xl text-white/40 hover:text-white transition-colors">
               <SkipBack size={18} fill="currentColor" />
             </button>
             <button onClick={togglePlay} disabled={playDisabled}
@@ -311,8 +309,8 @@ export default function PlayerBar() {
                   ? <Pause size={18} fill="white" className="text-white" />
                   : <Play size={18} fill="white" className="text-white ml-0.5" />}
             </button>
-            <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)} disabled={!hasNext}
-              className="p-2 rounded-xl text-white/40 hover:text-white disabled:opacity-20 transition-colors">
+            <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)}
+              className="p-2 rounded-xl text-white/40 hover:text-white transition-colors">
               <SkipForward size={18} fill="currentColor" />
             </button>
           </div>
