@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, ChevronDown, Music, Play, Trash, PlayCircle, GripVertical } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, ChevronDown, Music, Play, Trash, PlayCircle, GripVertical, ListPlus } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -15,6 +15,7 @@ import { SpotifyPlaylist } from "@/types";
 import Image from "next/image";
 import { useToastStore } from "@/store/toast";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
+import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 
 interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
@@ -22,13 +23,14 @@ interface PlaylistTrack { id: string; track_uri: string; track_name: string; tra
 
 // ── Sortable track row ──────────────────────────────────────────────────────
 function SortableTrackRow({
-  track, index, playlistId, onPlay, onRemove, removingKey,
+  track, index, playlistId, onPlay, onRemove, onAddToPlaylist, removingKey,
 }: {
   track: PlaylistTrack;
   index: number;
   playlistId: string;
   onPlay: () => void;
   onRemove: () => void;
+  onAddToPlaylist: () => void;
   removingKey: string | null;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -87,11 +89,20 @@ function SortableTrackRow({
         )}
       </div>
 
+      {/* Add to another playlist */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
+        title="Add to playlist"
+        className="shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all text-[#ef4444]/50 hover:text-[#ef4444] hover:bg-[#ef4444]/10"
+      >
+        <ListPlus size={13} />
+      </button>
+
       {/* Remove */}
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
         disabled={removingKey === rmKey}
-        title="Remove"
+        title="Remove from this playlist"
         className="shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
         style={{ color: "rgba(255,255,255,0.25)" }}
       >
@@ -117,6 +128,7 @@ export default function PlaylistsClient() {
   const [tracksMap, setTracksMap] = useState<Record<string, PlaylistTrack[]>>({});
   const [loadingTracks, setLoadingTracks] = useState<string | null>(null);
   const [removingTrack, setRemovingTrack] = useState<string | null>(null);
+  const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const { toast } = useToastStore();
   const { setQueueAndPlay } = usePlayerStore();
 
@@ -521,6 +533,7 @@ export default function PlaylistsClient() {
                                 playlistId={pl.id}
                                 onPlay={() => playTrack(tracks, i)}
                                 onRemove={() => removeTrack(pl.id, t.track_uri)}
+                                onAddToPlaylist={() => setAddModal({ name: t.track_name, uri: t.track_uri, image: t.track_image, artist: t.track_artist })}
                                 removingKey={removingTrack}
                               />
                             ))}
@@ -534,6 +547,10 @@ export default function PlaylistsClient() {
             );
           })}
         </div>
+      )}
+
+      {addModal && (
+        <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />
       )}
     </div>
   );
