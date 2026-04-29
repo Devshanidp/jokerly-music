@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { X, Check, Loader2, Music, ListMusic, AlertCircle } from "lucide-react";
@@ -139,9 +139,9 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
 
         {/* Duplicate confirm banner */}
         {confirmPlaylist && (
-          <div className="mx-3 mt-3 rounded-2xl border border-[#e53935]/25 bg-[#e53935]/08 p-3.5 flex flex-col gap-3">
+          <div className="mx-3 mt-3 rounded-2xl border border-[#ef4444]/25 bg-[#ef4444]/08 p-3.5 flex flex-col gap-3">
             <div className="flex items-start gap-2.5">
-              <AlertCircle size={16} className="text-[#e53935]/80 shrink-0 mt-0.5" />
+              <AlertCircle size={16} className="text-[#ef4444]/80 shrink-0 mt-0.5" />
               <p className="text-white/70 text-sm leading-snug">
                 <span className="text-white font-medium">&ldquo;{track.name}&rdquo;</span> is already in{" "}
                 <span className="text-white font-medium">{confirmPlaylist.name}</span>. Add it again?
@@ -169,7 +169,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
         <div className="px-2 py-2 max-h-72 overflow-y-auto space-y-0.5">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
-              <Loader2 size={22} className="animate-spin text-[#e53935]/60" />
+              <Loader2 size={22} className="animate-spin text-[#ef4444]/60" />
               <p className="text-white/25 text-xs">Loading playlists…</p>
             </div>
           ) : playlists.length === 0 ? (
@@ -190,9 +190,9 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
                   disabled={isAdded || !!adding}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all border ${
                     isAdded
-                      ? "bg-[#e53935]/10 border-[#e53935]/20"
+                      ? "bg-[#ef4444]/10 border-[#ef4444]/20"
                       : isPendingConfirm
-                        ? "bg-[#e53935]/08 border-[#e53935]/20"
+                        ? "bg-[#ef4444]/08 border-[#ef4444]/20"
                         : "hover:bg-white/[0.05] border-transparent"
                   } disabled:cursor-default`}
                 >
@@ -204,23 +204,23 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
                         <Image src={pl.images[0].url} alt={pl.name} fill unoptimized sizes="36px" className="object-cover" />
                       </div>
                     ) : (
-                      <ListMusic size={15} className={isAdded ? "text-[#e53935]/70" : "text-white/25"} />
+                      <ListMusic size={15} className={isAdded ? "text-[#ef4444]/70" : "text-white/25"} />
                     )}
                   </div>
 
-                  <span className={`flex-1 text-sm font-medium truncate ${isAdded || isPendingConfirm ? "text-[#e53935]" : "text-white"}`}>
+                  <span className={`flex-1 text-sm font-medium truncate ${isAdded || isPendingConfirm ? "text-[#ef4444]" : "text-white"}`}>
                     {pl.name}
                   </span>
 
                   {/* Right badge */}
                   {isAdded ? (
-                    <div className="shrink-0 w-6 h-6 rounded-full bg-[#e53935] flex items-center justify-center shadow-md shadow-[#e53935]/40">
+                    <div className="shrink-0 w-6 h-6 rounded-full bg-[#ef4444] flex items-center justify-center shadow-md shadow-[#ef4444]/40">
                       <Check size={13} className="text-white" strokeWidth={2.5} />
                     </div>
                   ) : isAdding ? (
-                    <Loader2 size={16} className="animate-spin text-[#e53935]/50 shrink-0" />
+                    <Loader2 size={16} className="animate-spin text-[#ef4444]/50 shrink-0" />
                   ) : isDuplicate ? (
-                    <span className="text-[10px] font-semibold text-[#e53935]/60 bg-[#e53935]/10 border border-[#e53935]/20 px-2 py-0.5 rounded-full shrink-0">
+                    <span className="text-[10px] font-semibold text-[#ef4444]/60 bg-[#ef4444]/10 border border-[#ef4444]/20 px-2 py-0.5 rounded-full shrink-0">
                       Added
                     </span>
                   ) : null}

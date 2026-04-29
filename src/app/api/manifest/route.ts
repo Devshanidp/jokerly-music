@@ -1,4 +1,4 @@
-export const dynamic = "force-static";
+﻿export const dynamic = "force-static";
 
 export function GET() {
   const manifest = {
@@ -7,8 +7,8 @@ export function GET() {
     description: "Discover, search, and play your music",
     start_url: "/",
     display: "standalone",
-    background_color: "#07051a",
-    theme_color: "#07051a",
+    background_color: "#000000",
+    theme_color: "#000000",
     orientation: "portrait",
     icons: [
       { src: "/icon-72.png",  sizes: "72x72",   type: "image/png", purpose: "any" },

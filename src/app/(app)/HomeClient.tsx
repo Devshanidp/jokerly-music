@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -327,7 +327,7 @@ export default function HomeClient() {
           onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); if (e.key === "Escape") setShowSuggestions(false); }}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           placeholder="Search tracks, artists, albums…"
-          className="w-full border border-white/[0.08] text-white placeholder-white/25 rounded-2xl pl-11 pr-24 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#e53935]/60 focus:border-[#e53935]/40 transition-all"
+          className="w-full border border-white/[0.08] text-white placeholder-white/25 rounded-2xl pl-11 pr-24 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#ef4444]/60 focus:border-[#ef4444]/40 transition-all"
           style={{ background: "var(--card)" }} autoComplete="off"
         />
         <button onClick={handleSearch} disabled={!query.trim()}
@@ -360,7 +360,7 @@ export default function HomeClient() {
                           </div>
                         </button>
                         <button onClick={(e) => { e.stopPropagation(); if (s.uri) setModalTrack({ name: s.name, uri: s.uri, image: s.image, artist: s.sub }); }}
-                          className="shrink-0 p-1.5 rounded-lg text-[#e53935]/60 hover:text-[#e53935] hover:bg-[#e53935]/10 transition-colors opacity-0 group-hover:opacity-100" title="Add to playlist">
+                          className="shrink-0 p-1.5 rounded-lg text-[#ef4444]/60 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors opacity-0 group-hover:opacity-100" title="Add to playlist">
                           <ListPlus size={14} />
                         </button>
                       </div>
@@ -399,7 +399,7 @@ export default function HomeClient() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <Pin size={14} className="text-[#e53935]" /> Pinned
+            <Pin size={14} className="text-[#ef4444]" /> Pinned
           </h3>
           <Link href="/pinned" className="text-xs text-white/30 hover:text-white transition-colors">View all</Link>
         </div>
@@ -422,13 +422,13 @@ export default function HomeClient() {
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Personalize */}
             <button onClick={() => setShowPersonalize(true)}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[#e53935]/40 transition-all"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[#ef4444]/40 transition-all"
               style={{ background: "var(--card)" }}>
               <SlidersHorizontal size={12} /> Edit
             </button>
             {/* Refresh */}
             <button onClick={handleRefresh} disabled={isRefreshBusy} title="Refresh feed"
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[#e53935]/40 transition-all disabled:opacity-40"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[#ef4444]/40 transition-all disabled:opacity-40"
               style={{ background: "var(--card)" }}>
               <RefreshCw size={12} className={isRefreshBusy ? "animate-spin" : ""} />
               {isRefreshBusy ? "Refreshing…" : "Refresh"}
@@ -441,7 +441,7 @@ export default function HomeClient() {
       {(forYouTracks.length > 0 || forYouLoading) && (
         <section className="space-y-3">
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <Sparkles size={15} className="text-[#e53935]" /> For You
+            <Sparkles size={15} className="text-[#ef4444]" /> For You
           </h3>
           {forYouLoading ? (
             <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>
@@ -467,7 +467,7 @@ export default function HomeClient() {
                     <p className="text-white/35 text-xs truncate">{artistNames(track)}</p>
                   </div>
                   <button onClick={(e) => { e.stopPropagation(); track.uri && setModalTrack({ name: track.name, uri: track.uri, image: trackImage(track), artist: artistNames(track) }); }}
-                    className="p-1.5 rounded-lg text-[#e53935]/60 hover:text-[#e53935] hover:bg-[#e53935]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                    className="p-1.5 rounded-lg text-[#ef4444]/60 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
                     <ListPlus size={14} />
                   </button>
                 </div>
@@ -503,7 +503,7 @@ export default function HomeClient() {
                       <p className="text-white/35 text-xs truncate">{artistNames(track)}</p>
                     </div>
                     <button onClick={(e) => { e.stopPropagation(); track.uri && setModalTrack({ name: track.name, uri: track.uri, image: trackImage(track), artist: artistNames(track) }); }}
-                      className="p-1.5 rounded-lg text-[#e53935]/60 hover:text-[#e53935] hover:bg-[#e53935]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                      className="p-1.5 rounded-lg text-[#ef4444]/60 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
                       <ListPlus size={14} />
                     </button>
                   </div>
@@ -516,7 +516,7 @@ export default function HomeClient() {
                 {section.artists.slice(0, 6).map((artist) => (
                   <button key={artist.id} onClick={() => setSelectedArtist(artist)}
                     className="flex flex-col items-center gap-2 group">
-                    <div className="relative w-full aspect-square rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#e53935]/30 transition-all">
+                    <div className="relative w-full aspect-square rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#ef4444]/30 transition-all">
                       {artistImage(artist)
                         ? <Image src={artistImage(artist)!} alt={artist.name} fill unoptimized sizes="80px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                         : <div className="w-full h-full flex items-center justify-center"><Mic2 size={20} className="text-white/20" /></div>}
@@ -534,7 +534,7 @@ export default function HomeClient() {
       {!forYouLoading && forYouTracks.length === 0 && favoriteArtists.length === 0 && feedSections.length > 0 && (
         <div className="rounded-2xl border border-white/[0.07] p-4 flex items-center gap-3"
           style={{ background: "var(--card)" }}>
-          <Sparkles size={22} className="text-[#e53935]/60 shrink-0" />
+          <Sparkles size={22} className="text-[#ef4444]/60 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-semibold">Personalise your feed</p>
             <p className="text-white/35 text-xs mt-0.5">Add favourite artists for a &ldquo;For You&rdquo; section</p>

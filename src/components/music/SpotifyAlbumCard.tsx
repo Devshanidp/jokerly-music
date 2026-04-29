@@ -1,4 +1,4 @@
-import { SpotifyAlbum, albumImage } from "@/types/spotify";
+﻿import { SpotifyAlbum, albumImage } from "@/types/spotify";
 import { Disc3 } from "lucide-react";
 import Image from "next/image";
 
@@ -28,7 +28,7 @@ export default function SpotifyAlbumCard({ album }: Props) {
         )}
       </div>
       <div>
-        <p className="text-white text-sm font-semibold truncate group-hover:text-[#e53935] transition-colors">
+        <p className="text-white text-sm font-semibold truncate group-hover:text-[#ef4444] transition-colors">
           {album.name}
         </p>
         <p className="text-white/40 text-xs truncate mt-0.5">{artists}</p>

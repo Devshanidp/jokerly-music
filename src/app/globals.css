@@ -1,31 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  /* ── Layer system — deep indigo/purple ── */
-  --background:  #07051a;   /* deepest — near-black purple    */
-  --surface:     #0f0a28;   /* layer 1 — sheets, modals       */
-  --card:        #160f35;   /* layer 2 — cards, rows          */
-  --card-raised: #1f1648;   /* layer 3 — hovered / elevated   */
+  /* ── Layer system — pure black / zinc ── */
+  --background:   #000000;   /* deepest — pure black            */
+  --surface:      #0c0c0c;   /* layer 1 — sheets, modals        */
+  --card:         #111111;   /* layer 2 — cards, rows           */
+  --card-raised:  #1a1a1a;   /* layer 3 — hovered / elevated    */
 
-  /* ── Accent — glossy red ── */
-  --accent:      #e53935;
-  --accent-dim:  rgba(229, 57, 53, 0.14);
-  --accent-glow: rgba(229, 57, 53, 0.28);
-  --accent-btn:  linear-gradient(160deg, #ff5252 0%, #e53935 50%, #c62828 100%);
-  --accent-btn-hover: linear-gradient(160deg, #ff6e6e 0%, #f44336 50%, #d32f2f 100%);
-
-  /* ── Secondary — violet ── */
-  --violet:      #9333ea;
-  --violet-dim:  rgba(147, 51, 234, 0.18);
+  /* ── Accent — warm red (matches login page) ── */
+  --accent:       #ef4444;
+  --accent-dim:   rgba(239, 68, 68, 0.12);
+  --accent-glow:  rgba(239, 68, 68, 0.25);
+  --accent-btn:         linear-gradient(160deg, #f87171 0%, #ef4444 55%, #dc2626 100%);
+  --accent-btn-hover:   linear-gradient(160deg, #fca5a5 0%, #f87171 55%, #ef4444 100%);
 
   /* ── Text ── */
   --foreground:      #ffffff;
-  --text-secondary:  rgba(255,255,255,0.60);
-  --text-muted:      rgba(255,255,255,0.30);
+  --text-secondary:  rgba(255, 255, 255, 0.60);
+  --text-muted:      rgba(255, 255, 255, 0.30);
 
   /* ── Borders ── */
-  --border:       rgba(147, 51, 234, 0.14);
-  --border-red:   rgba(229, 57, 53, 0.20);
+  --border:      rgba(255, 255, 255, 0.07);
+  --border-red:  rgba(239, 68, 68, 0.22);
 }
 
 body {
@@ -33,26 +29,27 @@ body {
   color: var(--foreground);
 }
 
-/* Purple nebula glow from top */
+/* Single centered red ambient glow — mirrors the login page orb */
 body::before {
   content: "";
   position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 60vh;
-  background:
-    radial-gradient(ellipse 90% 50% at 20% -10%, rgba(147,51,234,0.18) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 40% at 80% -5%,  rgba(229,57,53,0.10) 0%, transparent 55%);
+  top: -10%; left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.09) 0%, transparent 65%);
+  border-radius: 50%;
   pointer-events: none;
   z-index: 0;
 }
 
-/* Gold shimmer from bottom */
+/* Subtle bottom warmth */
 body::after {
   content: "";
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 35vh;
-  background: radial-gradient(ellipse 80% 50% at 50% 115%, rgba(147,51,234,0.12) 0%, transparent 70%);
+  height: 28vh;
+  background: radial-gradient(ellipse 60% 50% at 50% 120%, rgba(239, 68, 68, 0.05) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -60,24 +57,24 @@ body::after {
 /* Glossy red button — use via className="btn-red" */
 .btn-red {
   background: var(--accent-btn);
-  box-shadow: 0 2px 12px rgba(229,57,53,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
-  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  box-shadow: 0 2px 14px rgba(239, 68, 68, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.10s;
 }
 .btn-red:hover {
   background: var(--accent-btn-hover);
-  box-shadow: 0 4px 18px rgba(229,57,53,0.45), inset 0 1px 0 rgba(255,255,255,0.22);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 .btn-red:active {
   transform: scale(0.97);
-  box-shadow: 0 1px 6px rgba(229,57,53,0.30);
+  box-shadow: 0 1px 6px rgba(239, 68, 68, 0.30);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2e1a5e transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 
-*::-webkit-scrollbar { width: 4px; }
-*::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb { background: #2e1a5e; border-radius: 99px; }
-*::-webkit-scrollbar-thumb:hover { background: #4a2d8a; }
+*::-webkit-scrollbar        { width: 4px; }
+*::-webkit-scrollbar-track  { background: transparent; }
+*::-webkit-scrollbar-thumb  { background: #2a2a2a; border-radius: 99px; }
+*::-webkit-scrollbar-thumb:hover { background: #3f3f3f; }
