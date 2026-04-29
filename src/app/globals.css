@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  /* ── Layer system — pure black / zinc ── */
-  --background:   #000000;   /* deepest — pure black            */
-  --surface:      #0c0c0c;   /* layer 1 — sheets, modals        */
-  --card:         #111111;   /* layer 2 — cards, rows           */
-  --card-raised:  #1a1a1a;   /* layer 3 — hovered / elevated    */
+  /* ── Layer system — deep red-black ── */
+  --background:   #080000;   /* deepest — near-black with red warmth  */
+  --surface:      #100404;   /* layer 1 — sheets, modals              */
+  --card:         #160606;   /* layer 2 — cards, rows                 */
+  --card-raised:  #200a0a;   /* layer 3 — hovered / elevated          */
 
-  /* ── Accent — warm red (matches login page) ── */
+  /* ── Accent — warm red ── */
   --accent:       #ef4444;
-  --accent-dim:   rgba(239, 68, 68, 0.12);
-  --accent-glow:  rgba(239, 68, 68, 0.25);
+  --accent-dim:   rgba(239, 68, 68, 0.15);
+  --accent-glow:  rgba(239, 68, 68, 0.30);
   --accent-btn:         linear-gradient(160deg, #f87171 0%, #ef4444 55%, #dc2626 100%);
   --accent-btn-hover:   linear-gradient(160deg, #fca5a5 0%, #f87171 55%, #ef4444 100%);
 
@@ -19,9 +19,9 @@
   --text-secondary:  rgba(255, 255, 255, 0.60);
   --text-muted:      rgba(255, 255, 255, 0.30);
 
-  /* ── Borders ── */
-  --border:      rgba(255, 255, 255, 0.07);
-  --border-red:  rgba(239, 68, 68, 0.22);
+  /* ── Borders — red-tinted ── */
+  --border:      rgba(239, 68, 68, 0.10);
+  --border-red:  rgba(239, 68, 68, 0.28);
 }
 
 body {
@@ -29,40 +29,47 @@ body {
   color: var(--foreground);
 }
 
-/* Single centered red ambient glow — mirrors the login page orb */
+/* Large top-center red orb — prominent like the login page */
 body::before {
   content: "";
   position: fixed;
-  top: -10%; left: 50%;
+  top: -15%; left: 50%;
   transform: translateX(-50%);
-  width: 700px;
-  height: 700px;
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.09) 0%, transparent 65%);
+  width: 900px;
+  height: 900px;
+  background: radial-gradient(circle,
+    rgba(239, 68, 68, 0.18) 0%,
+    rgba(185, 28, 28, 0.10) 35%,
+    transparent 65%
+  );
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
 }
 
-/* Subtle bottom warmth */
+/* Bottom warmth glow */
 body::after {
   content: "";
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 28vh;
-  background: radial-gradient(ellipse 60% 50% at 50% 120%, rgba(239, 68, 68, 0.05) 0%, transparent 70%);
+  height: 35vh;
+  background: radial-gradient(ellipse 70% 60% at 50% 120%,
+    rgba(239, 68, 68, 0.10) 0%,
+    transparent 70%
+  );
   pointer-events: none;
   z-index: 0;
 }
 
-/* Glossy red button — use via className="btn-red" */
+/* Glossy red button */
 .btn-red {
   background: var(--accent-btn);
-  box-shadow: 0 2px 14px rgba(239, 68, 68, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 16px rgba(239, 68, 68, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   transition: background 0.15s, box-shadow 0.15s, transform 0.10s;
 }
 .btn-red:hover {
   background: var(--accent-btn-hover);
-  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  box-shadow: 0 4px 24px rgba(239, 68, 68, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 .btn-red:active {
   transform: scale(0.97);
@@ -71,10 +78,10 @@ body::after {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2a2a2a transparent;
+  scrollbar-color: rgba(239, 68, 68, 0.20) transparent;
 }
 
 *::-webkit-scrollbar        { width: 4px; }
 *::-webkit-scrollbar-track  { background: transparent; }
-*::-webkit-scrollbar-thumb  { background: #2a2a2a; border-radius: 99px; }
-*::-webkit-scrollbar-thumb:hover { background: #3f3f3f; }
+*::-webkit-scrollbar-thumb  { background: rgba(239, 68, 68, 0.20); border-radius: 99px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(239, 68, 68, 0.40); }
