@@ -2,6 +2,7 @@
 
 export function GET() {
   const manifest = {
+    id: "/",
     name: "Jokerly",
     short_name: "Jokerly",
     description: "Discover, search, and play your music",
@@ -13,17 +14,18 @@ export function GET() {
     orientation: "portrait",
     categories: ["music", "entertainment"],
     lang: "en",
+    dir: "ltr",
     icons: [
-      { src: "/api/icon?size=72",  sizes: "72x72",   type: "image/png", purpose: "any" },
-      { src: "/api/icon?size=96",  sizes: "96x96",   type: "image/png", purpose: "any" },
-      { src: "/api/icon?size=128", sizes: "128x128", type: "image/png", purpose: "any" },
-      { src: "/api/icon?size=144", sizes: "144x144", type: "image/png", purpose: "any" },
-      { src: "/api/icon?size=152", sizes: "152x152", type: "image/png", purpose: "any" },
-      { src: "/api/icon?size=192", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/api/icon?size=192", sizes: "192x192", type: "image/png", purpose: "maskable" },
-      { src: "/api/icon?size=384", sizes: "384x384", type: "image/png", purpose: "any" },
-      { src: "/api/icon?size=512", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/api/icon?size=512", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icon-72.png",  sizes: "72x72",   type: "image/png", purpose: "any" },
+      { src: "/icon-96.png",  sizes: "96x96",   type: "image/png", purpose: "any" },
+      { src: "/icon-128.png", sizes: "128x128", type: "image/png", purpose: "any" },
+      { src: "/icon-144.png", sizes: "144x144", type: "image/png", purpose: "any" },
+      { src: "/icon-152.png", sizes: "152x152", type: "image/png", purpose: "any" },
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/icon-384.png", sizes: "384x384", type: "image/png", purpose: "any" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 

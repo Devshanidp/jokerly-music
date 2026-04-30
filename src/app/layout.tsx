@@ -12,15 +12,15 @@ export const metadata: Metadata = {
   description: "Discover, search, and play your music",
   icons: {
     icon: [
-      { url: "/api/icon?size=96",  sizes: "96x96",   type: "image/png" },
-      { url: "/api/icon?size=192", sizes: "192x192", type: "image/png" },
-      { url: "/api/icon?size=512", sizes: "512x512", type: "image/png" },
+      { url: "/icon-96.png",  sizes: "96x96",   type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/api/icon?size=152", sizes: "152x152", type: "image/png" },
-      { url: "/api/icon?size=192", sizes: "192x192", type: "image/png" },
+      { url: "/icon-152.png", sizes: "152x152", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
-    shortcut: "/api/icon?size=96",
+    shortcut: "/icon-96.png",
   },
   appleWebApp: {
     capable: true,
@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#000000" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link rel="apple-touch-icon" href="/api/icon?size=192" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className={`${inter.className} antialiased h-full`}>
         <ThemeProvider>
