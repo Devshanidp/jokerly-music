@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import SessionWrapper from "@/components/layout/SessionWrapper";
 import ThemeProvider from "@/components/layout/ThemeProvider";
+import ServiceWorkerRegister from "@/components/layout/ServiceWorkerRegister";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -11,9 +12,7 @@ export const metadata: Metadata = {
   description: "Discover, search, and play your music",
   icons: {
     icon: [
-      { url: "/icon-16.png",  sizes: "16x16",   type: "image/png" },
-      { url: "/icon-32.png",  sizes: "32x32",   type: "image/png" },
-      { url: "/icon-48.png",  sizes: "48x48",   type: "image/png" },
+      { url: "/icon-96.png",  sizes: "96x96",   type: "image/png" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
@@ -21,7 +20,7 @@ export const metadata: Metadata = {
       { url: "/icon-152.png", sizes: "152x152", type: "image/png" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
-    shortcut: "/icon-32.png",
+    shortcut: "/icon-96.png",
   },
   appleWebApp: {
     capable: true,
@@ -50,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <SessionWrapper>{children}</SessionWrapper>
         </ThemeProvider>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

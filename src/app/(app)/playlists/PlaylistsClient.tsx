@@ -1,16 +1,122 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
+<<<<<<< HEAD
 import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, ChevronDown, Music, Play, Trash, PlayCircle } from "lucide-react";
+=======
+import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, ChevronDown, Music, Play, Trash, PlayCircle, GripVertical, ListPlus } from "lucide-react";
+import {
+  DndContext, closestCenter, PointerSensor, TouchSensor,
+  useSensor, useSensors, DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, verticalListSortingStrategy,
+  useSortable, arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
 import { SpotifyPlaylist } from "@/types";
 import Image from "next/image";
 import { useToastStore } from "@/store/toast";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
+import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 
 interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
-interface PlaylistTrack { track_uri: string; track_name: string; track_image?: string | null; track_artist?: string | null; added_at: string; }
+interface PlaylistTrack { id: string; track_uri: string; track_name: string; track_image?: string | null; track_artist?: string | null; added_at: string; position: number; }
 
+// ── Sortable track row ──────────────────────────────────────────────────────
+function SortableTrackRow({
+  track, index, playlistId, onPlay, onRemove, onAddToPlaylist, removingKey,
+}: {
+  track: PlaylistTrack;
+  index: number;
+  playlistId: string;
+  onPlay: () => void;
+  onRemove: () => void;
+  onAddToPlaylist: () => void;
+  removingKey: string | null;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: track.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    position: "relative",
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  const rmKey = `${playlistId}::${track.track_uri}`;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 px-2 py-2.5 group transition-colors cursor-pointer"
+      onClick={onPlay}
+    >
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+        className="shrink-0 p-1 rounded cursor-grab active:cursor-grabbing text-white/20 hover:text-white/50 transition-colors touch-none"
+        title="Drag to reorder"
+      >
+        <GripVertical size={14} />
+      </button>
+
+      {/* Track number / play indicator */}
+      <div className="w-5 shrink-0 flex items-center justify-center">
+        <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{index + 1}</span>
+        <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#ef4444]" />
+      </div>
+
+      {/* Album art */}
+      <div className="relative w-9 h-9 rounded-lg shrink-0 overflow-hidden" style={{ background: "var(--card)" }}>
+        {track.track_image ? (
+          <Image src={track.track_image} alt={track.track_name} fill unoptimized sizes="36px" className="object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Music size={12} style={{ color: "var(--text-muted)" }} />
+          </div>
+        )}
+      </div>
+
+      {/* Track info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-white text-sm font-medium truncate leading-tight">{track.track_name}</p>
+        {track.track_artist && (
+          <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-muted)" }}>{track.track_artist}</p>
+        )}
+      </div>
+
+      {/* Add to another playlist */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
+        title="Add to playlist"
+        className="shrink-0 p-1.5 rounded-lg transition-all text-[#ef4444]/50 hover:text-[#ef4444] hover:bg-[#ef4444]/10 sm:opacity-0 sm:group-hover:opacity-100"
+      >
+        <ListPlus size={13} />
+      </button>
+
+      {/* Remove */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        disabled={removingKey === rmKey}
+        title="Remove from this playlist"
+        className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
+        style={{ color: "rgba(255,255,255,0.25)" }}
+      >
+        {removingKey === rmKey ? <Loader2 size={12} className="animate-spin" /> : <Trash size={12} />}
+      </button>
+    </div>
+  );
+}
+
+// ── Main component ──────────────────────────────────────────────────────────
 export default function PlaylistsClient() {
   const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,8 +132,32 @@ export default function PlaylistsClient() {
   const [tracksMap, setTracksMap] = useState<Record<string, PlaylistTrack[]>>({});
   const [loadingTracks, setLoadingTracks] = useState<string | null>(null);
   const [removingTrack, setRemovingTrack] = useState<string | null>(null);
+  const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const { toast } = useToastStore();
   const { setQueueAndPlay } = usePlayerStore();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+  );
+
+  const handleDragEnd = (event: DragEndEvent, playlistId: string) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const tracks = tracksMap[playlistId] ?? [];
+    const oldIdx = tracks.findIndex((t) => t.id === active.id);
+    const newIdx = tracks.findIndex((t) => t.id === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
+    const reordered = arrayMove(tracks, oldIdx, newIdx);
+    // Optimistic update
+    setTracksMap((prev) => ({ ...prev, [playlistId]: reordered }));
+    // Persist to server
+    fetch(`/api/spotify/playlists/${playlistId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order: reordered.map((t) => t.id) }),
+    }).catch(() => toast("Could not save order"));
+  };
 
   const load = async () => {
     setLoading(true);
@@ -51,11 +181,33 @@ export default function PlaylistsClient() {
 
   useEffect(() => { load(); }, []);
 
+  // Listen for tracks being added via AddToPlaylistModal and refresh immediately
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { playlistId } = (e as CustomEvent<{ playlistId: string }>).detail;
+      // Update track count in header
+      setPlaylists((prev) =>
+        prev.map((p) =>
+          p.id === playlistId ? { ...p, tracks: { total: (p.tracks?.total ?? 0) + 1 } } : p
+        )
+      );
+      // If this playlist is currently expanded, refetch its tracks right away
+      if (expandedId === playlistId) {
+        fetchTracks(playlistId);
+      } else {
+        // Clear stale cache so next expand fetches fresh
+        setTracksMap((prev) => { const n = { ...prev }; delete n[playlistId]; return n; });
+      }
+    };
+    window.addEventListener("playlist-updated", handler);
+    return () => window.removeEventListener("playlist-updated", handler);
+  }, [expandedId]);
+
   const fetchTracks = async (id: string) => {
-    if (tracksMap[id]) return;
+    // Always refetch on expand — cache-bust so browser never serves stale data
     setLoadingTracks(id);
     try {
-      const res = await fetch(`/api/spotify/playlists/${id}`);
+      const res = await fetch(`/api/spotify/playlists/${id}?_t=${Date.now()}`);
       const data = await res.json();
       setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
     } catch {
@@ -207,7 +359,11 @@ export default function PlaylistsClient() {
         <button
           onClick={() => setCreating(true)}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg"
+<<<<<<< HEAD
           style={{ background: "#c0392b", boxShadow: "0 4px 16px rgba(240,165,0,0.30)" }}
+=======
+          style={{ background: "#ef4444", boxShadow: "0 4px 16px rgba(240,165,0,0.30)" }}
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
         >
           <Plus size={15} /> New
         </button>
@@ -220,19 +376,31 @@ export default function PlaylistsClient() {
           <input
             autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
             placeholder="Playlist name"
+<<<<<<< HEAD
             className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]/60 transition-all"
+=======
+            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#ef4444]/60 transition-all"
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
             style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
           />
           <input
             value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
             placeholder="Description (optional)"
+<<<<<<< HEAD
             className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]/60 transition-all"
+=======
+            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#ef4444]/60 transition-all"
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
             style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
           />
           <div className="flex gap-2">
             <button
               onClick={createPlaylist} disabled={saving || !newName.trim()}
+<<<<<<< HEAD
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#c0392b] hover:bg-[#a93226] disabled:opacity-40 text-white font-semibold text-sm transition-colors"
+=======
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ef4444] hover:bg-[#a93226] disabled:opacity-40 text-white font-semibold text-sm transition-colors"
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
             >
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Create
             </button>
@@ -299,7 +467,11 @@ export default function PlaylistsClient() {
                       </div>
                     )}
                     {isPinned && (
+<<<<<<< HEAD
                       <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#c0392b] border-2 border-[var(--card)]" />
+=======
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#ef4444] border-2 border-[var(--card)]" />
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                     )}
                   </div>
 
@@ -309,11 +481,19 @@ export default function PlaylistsClient() {
                       <input
                         autoFocus value={edit.name}
                         onChange={(e) => setEdit({ ...edit, name: e.target.value })}
+<<<<<<< HEAD
                         className="flex-1 min-w-0 border text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[#c0392b]/60 transition-all"
                         style={{ background: "var(--surface)", borderColor: "rgba(255,255,255,0.08)" }}
                       />
                       <button onClick={saveEdit} disabled={saving}
                         className="shrink-0 px-3 py-1.5 rounded-xl bg-[#c0392b] hover:bg-[#a93226] text-white text-sm font-medium transition-colors">
+=======
+                        className="flex-1 min-w-0 border text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[#ef4444]/60 transition-all"
+                        style={{ background: "var(--surface)", borderColor: "rgba(255,255,255,0.08)" }}
+                      />
+                      <button onClick={saveEdit} disabled={saving}
+                        className="shrink-0 px-3 py-1.5 rounded-xl bg-[#ef4444] hover:bg-[#a93226] text-white text-sm font-medium transition-colors">
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                         {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                       </button>
                       <button onClick={() => setEdit(null)}
@@ -339,7 +519,11 @@ export default function PlaylistsClient() {
                         onClick={(e) => { e.stopPropagation(); playTrack(tracks, 0); }}
                         title="Play all"
                         className="p-1.5 rounded-xl transition-colors"
+<<<<<<< HEAD
                         style={{ color: "#c0392b" }}
+=======
+                        style={{ color: "#ef4444" }}
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                       >
                         <PlayCircle size={17} />
                       </button>
@@ -358,7 +542,11 @@ export default function PlaylistsClient() {
                       title={isPinned ? "Unpin" : "Pin"}
                       className="p-1.5 rounded-xl transition-colors"
                       style={{
+<<<<<<< HEAD
                         color: isPinned ? "#c0392b" : "rgba(255,255,255,0.28)",
+=======
+                        color: isPinned ? "#ef4444" : "rgba(255,255,255,0.28)",
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                         background: isPinned ? "rgba(147,51,234,0.12)" : "transparent",
                       }}
                     >
@@ -392,6 +580,7 @@ export default function PlaylistsClient() {
                     ) : tracks.length === 0 ? (
                       <p className="text-center py-8 text-sm" style={{ color: "var(--text-muted)" }}>No tracks yet.</p>
                     ) : (
+<<<<<<< HEAD
                       <div>
                         {tracks.map((t, i) => {
                           const rmKey = `${pl.id}::${t.track_uri}`;
@@ -443,6 +632,30 @@ export default function PlaylistsClient() {
                           );
                         })}
                       </div>
+=======
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={(e) => handleDragEnd(e, pl.id)}
+                      >
+                        <SortableContext items={tracks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                          <div>
+                            {tracks.map((t, i) => (
+                              <SortableTrackRow
+                                key={t.id}
+                                track={t}
+                                index={i}
+                                playlistId={pl.id}
+                                onPlay={() => playTrack(tracks, i)}
+                                onRemove={() => removeTrack(pl.id, t.track_uri)}
+                                onAddToPlaylist={() => setAddModal({ name: t.track_name, uri: t.track_uri, image: t.track_image, artist: t.track_artist })}
+                                removingKey={removingTrack}
+                              />
+                            ))}
+                          </div>
+                        </SortableContext>
+                      </DndContext>
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                     )}
                   </div>
                 )}
@@ -450,6 +663,10 @@ export default function PlaylistsClient() {
             );
           })}
         </div>
+      )}
+
+      {addModal && (
+        <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />
       )}
     </div>
   );

@@ -7,6 +7,7 @@ export class SpotifyError extends Error {
   }
 }
 
+<<<<<<< HEAD
 async function spotifyFetch(url: string, accessToken: string): Promise<any> {
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -14,30 +15,61 @@ async function spotifyFetch(url: string, accessToken: string): Promise<any> {
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new SpotifyError(res.status, `Spotify API ${res.status}: ${body}`);
+=======
+async function spotifyFetch(url: string, accessToken: string, timeoutMs = 8000): Promise<any> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new SpotifyError(res.status, `Spotify API ${res.status}: ${body}`);
+    }
+    return res.json();
+  } catch (e) {
+    clearTimeout(timer);
+    if ((e as Error).name === "AbortError") throw new SpotifyError(504, "Spotify request timed out");
+    throw e;
+>>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
   }
-  return res.json();
 }
 
-export async function searchSpotify(query: string, type: string, accessToken: string, limit = 20) {
-  const safeLimit = Math.max(1, Math.min(limit, 50));
-  const q = encodeURIComponent(query);
+function buildSearchUrl(query: string, type: string, limit: number, offset = 0) {
+  // Use encodeURIComponent (%20) — Spotify rejects URLSearchParams + encoding
+  const safeLimit = Math.floor(Math.max(1, Math.min(limit, 50)));
+  let url = `${SPOTIFY_BASE}/search?q=${encodeURIComponent(query)}&type=${type}&limit=${safeLimit}&market=IN`;
+  if (offset > 0) url += `&offset=${Math.min(Math.floor(offset), 100)}`;
+  return url;
+}
+
+export async function searchSpotify(query: string, type: string, accessToken: string, limit = 20, offset = 0) {
+  // 5s per-call timeout — tight enough to fit 3 parallel calls + cold-start within a 10s function budget
+  const T = 5000;
 
   if (type !== "all") {
-    const url = `${SPOTIFY_BASE}/search?q=${q}&type=${type}&limit=${safeLimit}`;
-    return spotifyFetch(url, accessToken);
+    return spotifyFetch(buildSearchUrl(query, type, limit, offset), accessToken, T);
   }
 
-  // For "all", make three separate requests to avoid Spotify rejecting multi-type queries
-  const [tracksData, artistsData, albumsData] = await Promise.all([
-    spotifyFetch(`${SPOTIFY_BASE}/search?q=${q}&type=track&limit=${safeLimit}`, accessToken),
-    spotifyFetch(`${SPOTIFY_BASE}/search?q=${q}&type=artist&limit=${safeLimit}`, accessToken),
-    spotifyFetch(`${SPOTIFY_BASE}/search?q=${q}&type=album&limit=${safeLimit}`, accessToken),
+  // Three parallel requests — allSettled so one failure doesn't crash the rest
+  const [tracksResult, artistsResult, albumsResult] = await Promise.allSettled([
+    spotifyFetch(buildSearchUrl(query, "track", limit, offset), accessToken, T),
+    spotifyFetch(buildSearchUrl(query, "artist", limit, offset), accessToken, T),
+    spotifyFetch(buildSearchUrl(query, "album", limit, offset), accessToken, T),
   ]);
 
+  // Only throw if ALL three failed
+  if (tracksResult.status === "rejected" && artistsResult.status === "rejected" && albumsResult.status === "rejected") {
+    throw tracksResult.reason;
+  }
+
   return {
-    tracks: tracksData.tracks,
-    artists: artistsData.artists,
-    albums: albumsData.albums,
+    tracks: tracksResult.status === "fulfilled" ? tracksResult.value.tracks : { items: [] },
+    artists: artistsResult.status === "fulfilled" ? artistsResult.value.artists : { items: [] },
+    albums: albumsResult.status === "fulfilled" ? albumsResult.value.albums : { items: [] },
   };
 }
 
@@ -80,11 +112,7 @@ export async function getArtist(artistId: string, accessToken: string) {
 }
 
 export async function getArtistTopTracks(artistId: string, accessToken: string) {
-  return spotifyFetch(`${SPOTIFY_BASE}/artists/${artistId}/top-tracks?market=US`, accessToken);
-}
-
-export async function getRelatedArtists(artistId: string, accessToken: string) {
-  return spotifyFetch(`${SPOTIFY_BASE}/artists/${artistId}/related-artists`, accessToken);
+  return spotifyFetch(`${SPOTIFY_BASE}/artists/${artistId}/top-tracks?market=IN`, accessToken, 5000);
 }
 
 export async function getTracksByIds(ids: string[], accessToken: string) {
