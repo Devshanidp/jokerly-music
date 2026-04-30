@@ -93,7 +93,7 @@ function SortableTrackRow({
       <button
         onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
         title="Add to playlist"
-        className="shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all text-[#ef4444]/50 hover:text-[#ef4444] hover:bg-[#ef4444]/10"
+        className="shrink-0 p-1.5 rounded-lg transition-all text-[#ef4444]/50 hover:text-[#ef4444] hover:bg-[#ef4444]/10 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <ListPlus size={13} />
       </button>
@@ -103,7 +103,7 @@ function SortableTrackRow({
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
         disabled={removingKey === rmKey}
         title="Remove from this playlist"
-        className="shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
+        className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
         style={{ color: "rgba(255,255,255,0.25)" }}
       >
         {removingKey === rmKey ? <Loader2 size={12} className="animate-spin" /> : <Trash size={12} />}
