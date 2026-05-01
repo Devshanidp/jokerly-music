@@ -2,9 +2,6 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
-<<<<<<< HEAD
-import { Pin, ChevronDown, Music, Play, Loader2, PlayCircle } from "lucide-react";
-=======
 import { Pin, ChevronDown, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
@@ -15,7 +12,6 @@ import {
   useSortable, arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
 import { PinnedPlaylist } from "@/types";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import { useToastStore } from "@/store/toast";
@@ -136,9 +132,6 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   const { setQueueAndPlay, isPlayerReady } = usePlayerStore();
   const { toast } = useToastStore();
 
-<<<<<<< HEAD
-  // Prefetch all pinned playlist tracks in background so clicks feel instant
-=======
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
@@ -166,7 +159,6 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   }, [expanded]);
 
   // Prefetch all pinned playlist tracks in background
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
   useEffect(() => {
     if (!pinned.length) return;
     const controller = new AbortController();
@@ -174,12 +166,6 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
       for (const pl of pinned) {
         if (controller.signal.aborted) break;
         try {
-<<<<<<< HEAD
-          const res = await fetch(`/api/spotify/playlists/${encodeURIComponent(pl.playlist_id)}`, { signal: controller.signal });
-          if (!res.ok) continue;
-          const data = await res.json();
-          setTracks((prev) => prev[pl.playlist_id] ? prev : { ...prev, [pl.playlist_id]: data.items ?? [] });
-=======
           const res = await fetch(
             `/api/spotify/playlists/${encodeURIComponent(pl.playlist_id)}?_t=${Date.now()}`,
             { signal: controller.signal }
@@ -187,7 +173,6 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
           if (!res.ok) continue;
           const data = await res.json();
           setTracksMap((prev) => prev[pl.playlist_id] ? prev : { ...prev, [pl.playlist_id]: data.items ?? [] });
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
         } catch { /* ignore abort / errors */ }
       }
     };
@@ -213,20 +198,12 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
         setLoading(null);
       }
     },
-<<<<<<< HEAD
-    [expanded, tracks, toast]
-=======
     [expanded, toast]
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
   );
 
   const playAll = useCallback(
     (playlistId: string, startIndex = 0) => {
-<<<<<<< HEAD
-      const list = tracks[playlistId] ?? [];
-=======
       const list = tracksMap[playlistId] ?? [];
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
       if (!list.length) return;
       const queue: PlayableTrack[] = list.map((t) => ({
         name: t.track_name,
@@ -236,11 +213,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
       }));
       setQueueAndPlay(queue, startIndex);
     },
-<<<<<<< HEAD
-    [tracks, setQueueAndPlay]
-=======
     [tracksMap, setQueueAndPlay]
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
   );
 
   const removeTrack = async (playlistId: string, trackUri: string) => {
@@ -291,140 +264,6 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   }
 
   return (
-<<<<<<< HEAD
-    <div className="space-y-3">
-      {pinned.map((pl) => {
-        const isOpen = expanded === pl.playlist_id;
-        const isLoading = loading === pl.playlist_id;
-        const list = tracks[pl.playlist_id] ?? [];
-
-        return (
-          <div
-            key={pl.id}
-            className="rounded-2xl overflow-hidden border transition-all duration-200"
-            style={{
-              background: "var(--card)",
-              borderColor: isOpen ? "rgba(240,165,0,0.22)" : "rgba(255,255,255,0.06)",
-            }}
-          >
-            {/* ── Header row — entire row is clickable ── */}
-            <div
-              className="flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors"
-              style={{ background: "transparent" }}
-              onClick={() => toggle(pl.playlist_id)}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.025)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-            >
-              {/* Cover art */}
-              <div className="relative shrink-0 w-12 h-12">
-                {pl.playlist_image ? (
-                  <Image
-                    src={pl.playlist_image}
-                    alt={pl.playlist_name}
-                    fill
-                    unoptimized
-                    sizes="48px"
-                    className="rounded-xl object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "var(--surface)" }}>
-                    <Pin size={18} style={{ color: "var(--text-muted)" }} />
-                  </div>
-                )}
-                {/* Pinned dot */}
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#c0392b] border-2"
-                  style={{ borderColor: "var(--card)" }} />
-              </div>
-
-              {/* Name + meta */}
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-semibold truncate leading-tight">{pl.playlist_name}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                  {isLoading ? "Loading…" : list.length > 0 ? `${list.length} tracks` : isOpen ? "No tracks" : "Tap to expand"}
-                </p>
-              </div>
-
-              {/* Right: play all (when open) + chevron */}
-              <div className="flex items-center gap-1 shrink-0">
-                {isOpen && list.length > 0 && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); playAll(pl.playlist_id, 0); }}
-                    disabled={!isPlayerReady}
-                    title="Play all"
-                    className="p-1.5 rounded-xl transition-colors disabled:opacity-40"
-                    style={{ color: "#c0392b" }}
-                  >
-                    <PlayCircle size={17} />
-                  </button>
-                )}
-                {isLoading ? (
-                  <Loader2 size={15} className="animate-spin" style={{ color: "var(--text-muted)" }} />
-                ) : (
-                  <div className="pointer-events-none" style={{ color: "rgba(255,255,255,0.25)" }}>
-                    <ChevronDown size={15} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ── Track list ── */}
-            {isOpen && !isLoading && (
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", background: "var(--surface)" }}>
-                {list.length === 0 ? (
-                  <p className="text-center py-8 text-sm" style={{ color: "var(--text-muted)" }}>No tracks in this playlist yet.</p>
-                ) : (
-                  <div>
-                    {list.map((track, i) => (
-                      <div
-                        key={track.track_uri}
-                        className="flex items-center gap-2.5 px-3 py-2.5 group cursor-pointer transition-colors"
-                        style={{ borderBottom: i < list.length - 1 ? "1px solid rgba(255,255,255,0.03)" : "none" }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "var(--card)"; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                        onClick={() => playAll(pl.playlist_id, i)}
-                      >
-                        {/* Number / play indicator */}
-                        <div className="w-5 shrink-0 flex items-center justify-center">
-                          <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{i + 1}</span>
-                          <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#c0392b]" />
-                        </div>
-
-                        {/* Album art */}
-                        <div className="relative w-9 h-9 rounded-lg shrink-0 overflow-hidden" style={{ background: "var(--card)" }}>
-                          {track.track_image ? (
-                            <Image
-                              src={track.track_image}
-                              alt={track.track_name}
-                              fill
-                              unoptimized
-                              sizes="36px"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Music size={12} style={{ color: "var(--text-muted)" }} />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Name + artist */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-medium truncate leading-tight">{track.track_name}</p>
-                          {track.track_artist && (
-                            <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-muted)" }}>{track.track_artist}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-=======
     <>
       <div className="space-y-3">
         {pinned.map((pl) => {
@@ -529,6 +368,5 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
         <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />
       )}
     </>
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
   );
 }

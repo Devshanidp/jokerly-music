@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -338,23 +338,11 @@ export default function HomeClient() {
           onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); if (e.key === "Escape") setShowSuggestions(false); }}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           placeholder="Search tracks, artists, albums…"
-<<<<<<< HEAD
-          className="w-full border border-white/[0.08] text-white placeholder-white/25 rounded-2xl pl-11 pr-24 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#c0392b]/60 focus:border-[#c0392b]/40 transition-all"
-          style={{ background: "var(--card)" }}
-          autoComplete="off"
-        />
-        <button
-          onClick={handleSearch}
-          disabled={!query.trim()}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-[#c0392b] hover:bg-[#a93226] disabled:opacity-30 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-colors"
-        >
-=======
           className="w-full border border-white/[0.08] text-white placeholder-white/25 rounded-2xl pl-11 pr-24 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#ef4444]/60 focus:border-[#ef4444]/40 transition-all"
           style={{ background: "var(--card)" }} autoComplete="off"
         />
         <button onClick={handleSearch} disabled={!query.trim()}
           className="btn-red absolute right-2.5 top-1/2 -translate-y-1/2 disabled:opacity-30 text-white font-semibold text-xs px-4 py-2 rounded-xl">
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
           Search
         </button>
 
@@ -383,11 +371,7 @@ export default function HomeClient() {
                           </div>
                         </button>
                         <button onClick={(e) => { e.stopPropagation(); if (s.uri) setModalTrack({ name: s.name, uri: s.uri, image: s.image, artist: s.sub }); }}
-<<<<<<< HEAD
-                          className="shrink-0 p-1.5 rounded-lg text-white/25 hover:text-[#c0392b] hover:bg-white/[0.07] transition-colors opacity-0 group-hover:opacity-100" title="Add to playlist">
-=======
                           className="shrink-0 p-1.5 rounded-lg text-[#ef4444]/60 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors opacity-0 group-hover:opacity-100" title="Add to playlist">
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                           <ListPlus size={14} />
                         </button>
                       </div>
@@ -426,11 +410,7 @@ export default function HomeClient() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-<<<<<<< HEAD
-            <Pin size={14} className="text-[#c0392b]" /> Pinned
-=======
             <Pin size={14} className="text-[#ef4444]" /> Pinned
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
           </h3>
           <Link href="/pinned" className="text-xs text-white/30 hover:text-white transition-colors">View all</Link>
         </div>
@@ -533,15 +513,8 @@ export default function HomeClient() {
                       <p className="text-white text-sm font-medium truncate">{track.name}</p>
                       <p className="text-white/35 text-xs truncate">{artistNames(track)}</p>
                     </div>
-<<<<<<< HEAD
-                    <button
-                      onClick={(e) => { e.stopPropagation(); track.uri && setModalTrack({ name: track.name, uri: track.uri, image: trackImage(track), artist: artistNames(track) }); }}
-                      className="p-1.5 rounded-lg text-white/20 hover:text-[#c0392b] hover:bg-white/[0.07] transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-                      title="Add to playlist">
-=======
                     <button onClick={(e) => { e.stopPropagation(); track.uri && setModalTrack({ name: track.name, uri: track.uri, image: trackImage(track), artist: artistNames(track) }); }}
                       className="p-1.5 rounded-lg text-[#ef4444]/60 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                       <ListPlus size={14} />
                     </button>
                   </div>
@@ -554,21 +527,10 @@ export default function HomeClient() {
                 {section.artists.slice(0, 6).map((artist) => (
                   <button key={artist.id} onClick={() => setSelectedArtist(artist)}
                     className="flex flex-col items-center gap-2 group">
-<<<<<<< HEAD
-                    <div className="relative w-full aspect-square rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#c0392b]/30 transition-all">
-                      {artistImage(artist) ? (
-                        <Image src={artistImage(artist)!} alt={artist.name} fill unoptimized sizes="80px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Mic2 size={20} className="text-white/20" />
-                        </div>
-                      )}
-=======
                     <div className="relative w-full aspect-square rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#ef4444]/30 transition-all">
                       {artistImage(artist)
                         ? <Image src={artistImage(artist)!} alt={artist.name} fill unoptimized sizes="80px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                         : <div className="w-full h-full flex items-center justify-center"><Mic2 size={20} className="text-white/20" /></div>}
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                     </div>
                     <p className="text-xs text-white/40 group-hover:text-white transition-colors text-center truncate w-full">{artist.name}</p>
                   </button>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { SpotifyTrack, trackImage, artistNames } from "@/types/spotify";
 import { Music, ExternalLink, Sparkles, Play, Pause, ListPlus } from "lucide-react";
@@ -28,21 +28,13 @@ export default function SpotifyTrackCard({ track, onGetSimilar, onPlay, onAddToP
         onPlay ? "cursor-pointer" : ""
       } ${
         isCurrentlyPlaying
-<<<<<<< HEAD
-          ? "bg-[#c0392b]/10 border border-[#c0392b]/20"
-=======
           ? "bg-[#ef4444]/10 border border-[#ef4444]/20"
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
           : "hover:bg-white/[0.05] border border-transparent hover:border-white/[0.07]"
       }`}
       onClick={handleRowClick}
     >
       {rank !== undefined && (
-<<<<<<< HEAD
-        <span className={`text-xs w-5 text-right shrink-0 tabular-nums font-medium ${isCurrentlyPlaying ? "text-[#c0392b]" : "text-white/25"}`}>
-=======
         <span className={`text-xs w-5 text-right shrink-0 tabular-nums font-medium ${isCurrentlyPlaying ? "text-[#ef4444]" : "text-white/25"}`}>
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
           {rank}
         </span>
       )}
@@ -68,11 +60,7 @@ export default function SpotifyTrackCard({ track, onGetSimilar, onPlay, onAddToP
       </div>
 
       <div className="flex-1 min-w-0">
-<<<<<<< HEAD
-        <p className={`text-sm font-medium truncate ${isCurrentlyPlaying ? "text-[#c0392b]" : "text-white"}`}>
-=======
         <p className={`text-sm font-medium truncate ${isCurrentlyPlaying ? "text-[#ef4444]" : "text-white"}`}>
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
           {track.name}
         </p>
         <p className="text-xs text-white/40 truncate">{artist}</p>
@@ -83,11 +71,7 @@ export default function SpotifyTrackCard({ track, onGetSimilar, onPlay, onAddToP
           <button
             onClick={(e) => { e.stopPropagation(); onAddToPlaylist(track); }}
             title="Add to playlist"
-<<<<<<< HEAD
-            className="p-1.5 rounded-lg text-white/40 hover:text-[#c0392b] hover:bg-white/[0.07] transition-colors"
-=======
             className="p-1.5 rounded-lg text-[#ef4444]/60 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
           >
             <ListPlus size={15} />
           </button>

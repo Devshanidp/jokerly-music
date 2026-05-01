@@ -7,15 +7,6 @@ export class SpotifyError extends Error {
   }
 }
 
-<<<<<<< HEAD
-async function spotifyFetch(url: string, accessToken: string): Promise<any> {
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new SpotifyError(res.status, `Spotify API ${res.status}: ${body}`);
-=======
 async function spotifyFetch(url: string, accessToken: string, timeoutMs = 8000): Promise<any> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -34,7 +25,6 @@ async function spotifyFetch(url: string, accessToken: string, timeoutMs = 8000):
     clearTimeout(timer);
     if ((e as Error).name === "AbortError") throw new SpotifyError(504, "Spotify request timed out");
     throw e;
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
   }
 }
 

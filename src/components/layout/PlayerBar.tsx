@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useCallback, useState, useRef } from "react";
 import { usePlayerStore } from "@/store/player";
@@ -126,17 +126,10 @@ export default function PlayerBar() {
     return (
       <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 border-t border-white/[0.07] px-4 py-3 flex items-center justify-between gap-3"
         style={{ background: "rgba(7,5,18,0.97)", backdropFilter: "blur(20px)" }}>
-<<<<<<< HEAD
-        <p className="text-[#c0392b] text-sm truncate">{sdkError}</p>
-        {sdkError.includes("Premium") || sdkError.includes("auth") ? null : (
-          <button onClick={() => signOut({ callbackUrl: "/login" })}
-            className="shrink-0 text-xs bg-[#c0392b] text-white px-3 py-1.5 rounded-xl font-medium">
-=======
         <p className="text-[#ef4444] text-sm truncate">{sdkError}</p>
         {sdkError.includes("Premium") || sdkError.includes("auth") ? null : (
           <button onClick={() => signOut({ callbackUrl: "/login" })}
             className="shrink-0 text-xs bg-[#ef4444] text-white px-3 py-1.5 rounded-xl font-medium">
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
             Re-login
           </button>
         )}
@@ -205,11 +198,7 @@ export default function PlayerBar() {
                     <p className="mt-0.5 truncate text-sm text-white/40">{currentTrack.artist}</p>
                   </div>
                   <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
-<<<<<<< HEAD
-                    className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-[#c0392b] hover:bg-[#c0392b]/10 transition-colors disabled:opacity-40">
-=======
                     className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors disabled:opacity-40">
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                     {resolvingAdd ? <Loader2 size={20} className="animate-spin" /> : <ListPlus size={20} />}
                   </button>
                 </div>
@@ -227,11 +216,7 @@ export default function PlayerBar() {
                 {/* Progress */}
                 <div className="space-y-1.5">
                   <div className="group h-1.5 cursor-pointer rounded-full bg-white/[0.08]" onClick={handleSeek}>
-<<<<<<< HEAD
-                    <div className="relative h-full rounded-full bg-[#c0392b]" style={{ width: `${progressRatio * 100}%` }}>
-=======
                     <div className="relative h-full rounded-full bg-[#ef4444]" style={{ width: `${progressRatio * 100}%` }}>
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                       <div className="absolute right-0 top-1/2 h-3.5 w-3.5 translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 transition-opacity group-hover:opacity-100 shadow-md" />
                     </div>
                   </div>
@@ -244,17 +229,6 @@ export default function PlayerBar() {
                 {/* Controls */}
                 <div className="flex items-center justify-between px-2">
                   <button onClick={toggleShuffle} title="Shuffle"
-<<<<<<< HEAD
-                    className={`p-3 rounded-2xl transition-colors ${shuffleEnabled ? "text-[#c0392b] bg-[#c0392b]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
-                    <Shuffle size={18} />
-                  </button>
-                  <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)} disabled={!hasPrev} title="Previous"
-                    className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
-                    <SkipBack size={22} fill="currentColor" />
-                  </button>
-                  <button onClick={togglePlay} disabled={playDisabled} title={isPlaying ? "Pause" : "Play"}
-                    className="p-5 rounded-full bg-[#c0392b] hover:bg-[#a93226] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#c0392b]/30">
-=======
                     className={`p-3 rounded-2xl transition-colors ${shuffleEnabled ? "text-[#ef4444] bg-[#ef4444]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
                     <Shuffle size={18} />
                   </button>
@@ -264,7 +238,6 @@ export default function PlayerBar() {
                   </button>
                   <button onClick={togglePlay} disabled={playDisabled} title={isPlaying ? "Pause" : "Play"}
                     className="btn-red p-5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                     {playBusy
                       ? <Loader2 size={24} className="text-white animate-spin" />
                       : isPlaying
@@ -272,21 +245,12 @@ export default function PlayerBar() {
                         : <Play size={24} fill="white" className="text-white" />
                     }
                   </button>
-<<<<<<< HEAD
-                  <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)} disabled={!hasNext} title="Next"
-                    className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
-                    <SkipForward size={22} fill="currentColor" />
-                  </button>
-                  <button onClick={cycleRepeatMode} title="Repeat"
-                    className={`p-3 rounded-2xl transition-colors ${repeatMode !== "off" ? "text-[#c0392b] bg-[#c0392b]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
-=======
                   <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)} title="Next"
                     className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
                     <SkipForward size={22} fill="currentColor" />
                   </button>
                   <button onClick={cycleRepeatMode} title="Repeat"
                     className={`p-3 rounded-2xl transition-colors ${repeatMode !== "off" ? "text-[#ef4444] bg-[#ef4444]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                     <RepeatIcon size={18} />
                   </button>
                 </div>
@@ -299,14 +263,6 @@ export default function PlayerBar() {
       )}
 
       {/* ── Compact bar ── */}
-<<<<<<< HEAD
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#c0392b]/[0.18]"
-        style={{ background: "rgba(7,5,18,0.98)", backdropFilter: "blur(24px)" }}>
-        {/* Progress line */}
-        <div className="h-[2px] bg-white/[0.06] cursor-pointer group" onClick={handleSeek}>
-          <div className="h-full bg-[#c0392b] relative" style={{ width: `${progressRatio * 100}%` }}>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity translate-x-1/2" />
-=======
       <div className="fixed bottom-0 left-0 right-0 z-40"
         style={{ background: "rgba(9,6,22,0.97)", backdropFilter: "blur(28px)", borderTop: "1px solid rgba(239, 68, 68,0.15)" }}>
 
@@ -314,7 +270,6 @@ export default function PlayerBar() {
         <div className="h-[3px] cursor-pointer group relative" style={{ background: "rgba(255,255,255,0.06)" }} onClick={handleSeek}>
           <div className="h-full transition-all relative" style={{ width: `${progressRatio * 100}%`, background: "linear-gradient(90deg, #c62828, #ef4444, #ff5252)" }}>
             <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md shadow-[#ef4444]/40" />
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
           </div>
         </div>
 
@@ -332,68 +287,14 @@ export default function PlayerBar() {
                 : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={16} className="text-white/25" /></div>
               }
             </div>
-<<<<<<< HEAD
-            <div className="min-w-0">
-              <p className="text-white text-sm font-semibold truncate leading-tight">{currentTrack.name}</p>
-              <p className="text-white/40 text-xs truncate">
-                {playBusy && !noTrackUri
-                  ? (fetching ? "Loading…" : "Connecting…")
-                  : currentTrack.artist
-                }
-=======
             <div className="min-w-0 flex-1">
               <p className="text-white text-sm font-semibold truncate leading-snug group-hover/info:text-[#ef4444]/90 transition-colors">{currentTrack.name}</p>
               <p className="text-white/40 text-xs truncate mt-0.5">
                 {playBusy && !noTrackUri ? (fetching ? "Loading…" : "Connecting…") : currentTrack.artist}
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
               </p>
             </div>
           </button>
 
-<<<<<<< HEAD
-          {/* Controls */}
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button onClick={toggleShuffle}
-              className={`hidden sm:flex p-2 rounded-xl transition-colors ${shuffleEnabled ? "text-[#c0392b]" : "text-white/25 hover:text-white/70"}`}>
-              <Shuffle size={14} />
-            </button>
-            <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)} disabled={!hasPrev}
-              className="p-2 rounded-xl text-white/50 hover:text-white disabled:opacity-20 transition-colors">
-              <SkipBack size={17} />
-            </button>
-            <button onClick={togglePlay} disabled={playDisabled}
-              className="p-2.5 rounded-full bg-[#c0392b] hover:bg-[#a93226] active:scale-95 disabled:opacity-40 transition-all">
-              {playBusy
-                ? <Loader2 size={17} className="text-white animate-spin" />
-                : isPlaying
-                  ? <Pause size={17} fill="white" className="text-white" />
-                  : <Play size={17} fill="white" className="text-white" />
-              }
-            </button>
-            <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)} disabled={!hasNext}
-              className="p-2 rounded-xl text-white/50 hover:text-white disabled:opacity-20 transition-colors">
-              <SkipForward size={17} />
-            </button>
-            <button onClick={cycleRepeatMode}
-              className={`hidden sm:flex p-2 rounded-xl transition-colors ${repeatMode !== "off" ? "text-[#c0392b]" : "text-white/25 hover:text-white/70"}`}>
-              <RepeatIcon size={14} />
-            </button>
-          </div>
-
-          {/* Right side */}
-          <div className="flex items-center gap-0.5 shrink-0">
-            {noTrackUri && (
-              <span className="text-white/20 text-xs hidden sm:block">Not on Spotify</span>
-            )}
-            {isPlayerReady && !noTrackUri && !sdkError && (
-              <span className="text-white/25 text-xs tabular-nums whitespace-nowrap hidden sm:block">
-                {formatTime(progressMs / 1000)} / {formatTime(durationMs / 1000)}
-              </span>
-            )}
-            <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
-              className="p-1.5 rounded-xl text-white/25 hover:text-[#c0392b] transition-colors disabled:opacity-40">
-              {resolvingAdd ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
-=======
           {/* Playback controls — centred */}
           <div className="flex items-center gap-1 shrink-0">
             <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)}
@@ -419,7 +320,6 @@ export default function PlayerBar() {
             <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
               className="p-2 rounded-xl text-[#ef4444]/50 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors disabled:opacity-30">
               {resolvingAdd ? <Loader2 size={16} className="animate-spin" /> : <ListPlus size={16} />}
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
             </button>
             <button onClick={stop} title="Close"
               className="p-2 rounded-xl text-white/25 hover:text-white/70 hover:bg-white/[0.06] transition-colors">

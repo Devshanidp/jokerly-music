@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { SpotifyArtist, artistImage } from "@/types/spotify";
 import { Mic2 } from "lucide-react";
@@ -22,11 +22,7 @@ export default function SpotifyArtistCard({ artist, onSelect }: Props) {
     >
       <div className="relative w-20 h-20 shrink-0">
         {image ? (
-<<<<<<< HEAD
-          <Image src={image} alt={artist.name} fill unoptimized className="rounded-full object-cover ring-2 ring-white/10 group-hover:ring-[#c0392b]/40 transition-all" sizes="80px" />
-=======
           <Image src={image} alt={artist.name} fill unoptimized className="rounded-full object-cover ring-2 ring-white/10 group-hover:ring-[#ef4444]/40 transition-all" sizes="80px" />
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
         ) : (
           <div className="w-20 h-20 rounded-full bg-white/[0.06] flex items-center justify-center ring-2 ring-white/[0.06]">
             <Mic2 size={28} className="text-white/25" />
@@ -35,11 +31,7 @@ export default function SpotifyArtistCard({ artist, onSelect }: Props) {
       </div>
 
       <div className="text-center w-full">
-<<<<<<< HEAD
-        <p className="text-white text-sm font-semibold truncate group-hover:text-[#c0392b] transition-colors">
-=======
         <p className="text-white text-sm font-semibold truncate group-hover:text-[#ef4444] transition-colors">
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
           {artist.name}
         </p>
         {artist.followers?.total != null && (
