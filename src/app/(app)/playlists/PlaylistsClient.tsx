@@ -487,11 +487,7 @@ export default function PlaylistsClient() {
                         onClick={(e) => { e.stopPropagation(); playTrack(tracks, 0); }}
                         title="Play all"
                         className="p-1.5 rounded-xl transition-colors"
-<<<<<<< HEAD
-                        style={{ color: "#c0392b" }}
-=======
                         style={{ color: "#ef4444" }}
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                       >
                         <PlayCircle size={17} />
                       </button>
@@ -510,11 +506,7 @@ export default function PlaylistsClient() {
                       title={isPinned ? "Unpin" : "Pin"}
                       className="p-1.5 rounded-xl transition-colors"
                       style={{
-<<<<<<< HEAD
-                        color: isPinned ? "#c0392b" : "rgba(255,255,255,0.28)",
-=======
                         color: isPinned ? "#ef4444" : "rgba(255,255,255,0.28)",
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                         background: isPinned ? "rgba(147,51,234,0.12)" : "transparent",
                       }}
                     >
@@ -548,59 +540,6 @@ export default function PlaylistsClient() {
                     ) : tracks.length === 0 ? (
                       <p className="text-center py-8 text-sm" style={{ color: "var(--text-muted)" }}>No tracks yet.</p>
                     ) : (
-<<<<<<< HEAD
-                      <div>
-                        {tracks.map((t, i) => {
-                          const rmKey = `${pl.id}::${t.track_uri}`;
-                          return (
-                            <div
-                              key={t.track_uri}
-                              className="flex items-center gap-2.5 px-3 py-2.5 group transition-colors cursor-pointer"
-                              style={{ borderBottom: i < tracks.length - 1 ? "1px solid rgba(255,255,255,0.03)" : "none" }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--card)")}
-                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                              onClick={() => playTrack(tracks, i)}
-                            >
-                              {/* Number / play on hover */}
-                              <div className="w-5 shrink-0 flex items-center justify-center">
-                                <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{i + 1}</span>
-                                <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#c0392b]" />
-                              </div>
-
-                              {/* Album art */}
-                              <div className="relative w-9 h-9 rounded-lg shrink-0 overflow-hidden" style={{ background: "var(--card)" }}>
-                                {t.track_image ? (
-                                  <Image src={t.track_image} alt={t.track_name} fill unoptimized sizes="36px" className="object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <Music size={12} style={{ color: "var(--text-muted)" }} />
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Track info */}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-white text-sm font-medium truncate leading-tight">{t.track_name}</p>
-                                {t.track_artist && (
-                                  <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-muted)" }}>{t.track_artist}</p>
-                                )}
-                              </div>
-
-                              {/* Remove */}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); removeTrack(pl.id, t.track_uri); }}
-                                disabled={removingTrack === rmKey}
-                                title="Remove"
-                                className="shrink-0 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
-                                style={{ color: "rgba(255,255,255,0.25)" }}
-                              >
-                                {removingTrack === rmKey ? <Loader2 size={12} className="animate-spin" /> : <Trash size={12} />}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-=======
                       <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
@@ -623,7 +562,6 @@ export default function PlaylistsClient() {
                           </div>
                         </SortableContext>
                       </DndContext>
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                     )}
                   </div>
                 )}
