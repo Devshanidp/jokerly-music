@@ -20,14 +20,15 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q");
   const type = searchParams.get("type") ?? "track";
-  const rawLimit = parseInt(searchParams.get("limit") ?? "20", 10);
-  // Spotify max is 50 per type; clamp and default to 20 on invalid input
-  const limit = isNaN(rawLimit) || rawLimit < 1 ? 20 : Math.min(rawLimit, 50);
+  const rawLimit = parseInt(searchParams.get("limit") ?? "10", 10);
+  const limit = isNaN(rawLimit) || rawLimit < 1 ? 10 : Math.min(rawLimit, 10);
 
   if (!q) return NextResponse.json({ error: "Missing query" }, { status: 400 });
 
   try {
-    const data = await searchSpotify(q, type, session.accessToken, limit);
+    const token = session.accessToken as string;
+    console.log("[search] token prefix:", token?.slice(0, 20), "len:", token?.length, "q:", q, "type:", type, "limit:", limit);
+    const data = await searchSpotify(q, type, token, limit);
     return NextResponse.json({
       tracks: data.tracks?.items ?? [],
       artists: data.artists?.items ?? [],

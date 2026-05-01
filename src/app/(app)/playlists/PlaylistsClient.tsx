@@ -112,7 +112,41 @@ function SortableTrackRow({
   );
 }
 
-// ── Main component ──────────────────────────────────────────────────────────
+// ── Playlist cover: 2x2 grid if track images available, else single image ──
+function PlaylistCover({ pl, tracks }: { pl: SpotifyPlaylist; tracks?: PlaylistTrack[] }) {
+  const trackImgs = (tracks ?? []).map((t) => t.track_image).filter(Boolean) as string[];
+  const grid = [...new Set(trackImgs)].slice(0, 4);
+  const single = pl.images?.[0]?.url ?? null;
+
+  if (grid.length >= 2) {
+    const cells = [...grid, ...Array(4).fill(null)].slice(0, 4);
+    return (
+      <div className="w-12 h-12 rounded-xl overflow-hidden grid grid-cols-2 shrink-0">
+        {cells.map((img, i) => (
+          <div key={i} className="relative w-6 h-6" style={{ background: "var(--surface)" }}>
+            {img && <Image src={img} alt="" fill unoptimized sizes="24px" className="object-cover" />}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (single) {
+    return (
+      <div className="relative shrink-0 w-12 h-12">
+        <Image src={single} alt={pl.name} fill unoptimized className="rounded-xl object-cover" sizes="48px" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center" style={{ background: "var(--surface)" }}>
+      <ListMusic size={18} style={{ color: "var(--text-muted)" }} />
+    </div>
+  );
+}
+
+
 export default function PlaylistsClient() {
   const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -417,7 +451,6 @@ export default function PlaylistsClient() {
             const isExpanded = expandedId === pl.id;
             const isPinned = pinned.has(pl.id);
             const tracks = tracksMap[pl.id] ?? [];
-            const coverUrl = pl.images?.[0]?.url ?? tracksMap[pl.id]?.find((t) => t.track_image)?.track_image ?? null;
 
             return (
               <div
@@ -438,14 +471,8 @@ export default function PlaylistsClient() {
                 >
 
                   {/* Cover art */}
-                  <div className="relative shrink-0 w-12 h-12">
-                    {coverUrl ? (
-                      <Image src={coverUrl} alt={pl.name} fill unoptimized className="rounded-xl object-cover" sizes="48px" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "var(--surface)" }}>
-                        <ListMusic size={18} style={{ color: "var(--text-muted)" }} />
-                      </div>
-                    )}
+                  <div className="relative shrink-0">
+                    <PlaylistCover pl={pl} tracks={tracksMap[pl.id]} />
                     {isPinned && (
                       <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#E8282B] border-2 border-[var(--card)]" />
                     )}

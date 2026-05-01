@@ -8,6 +8,7 @@ export class SpotifyError extends Error {
 }
 
 async function spotifyFetch(url: string, accessToken: string, timeoutMs = 8000): Promise<any> {
+  console.log("[spotifyFetch] url:", url, "token:", accessToken?.slice(0, 15), "tokenLen:", accessToken?.length);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -30,8 +31,8 @@ async function spotifyFetch(url: string, accessToken: string, timeoutMs = 8000):
 
 function buildSearchUrl(query: string, type: string, limit: number, offset = 0) {
   // Use encodeURIComponent (%20) — Spotify rejects URLSearchParams + encoding
-  const safeLimit = Math.floor(Math.max(1, Math.min(limit, 50)));
-  let url = `${SPOTIFY_BASE}/search?q=${encodeURIComponent(query)}&type=${type}&limit=${safeLimit}&market=IN`;
+  const safeLimit = Math.floor(Math.max(1, Math.min(limit, 10)));
+  let url = `${SPOTIFY_BASE}/search?q=${encodeURIComponent(query)}&type=${type}&limit=${safeLimit}`;
   if (offset > 0) url += `&offset=${Math.min(Math.floor(offset), 100)}`;
   return url;
 }

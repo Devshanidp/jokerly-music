@@ -43,24 +43,14 @@ function toPlayable(t: SpotifyTrack): PlayableTrack {
   return { name: t.name, artist: artistNames(t), image: trackImage(t), uri: t.uri, durationMs: t.duration_ms };
 }
 
-// Call Spotify directly — bypasses the server route entirely, avoids 400/502 issues
-async function fetchType(q: string, type: "track" | "artist" | "album", accessToken: string, limit = 20) {
+async function fetchType(q: string, type: "track" | "artist" | "album", _accessToken: string, limit = 20) {
   const safeLimit = Math.max(1, Math.min(Math.floor(limit), 50));
-  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=${type}&limit=${safeLimit}`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(q)}&type=${type}&limit=${safeLimit}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw { status: res.status, message: body.error?.message ?? `Search failed (${res.status})` };
+    throw { status: res.status, message: body.error ?? `Search failed (${res.status})` };
   }
-  const data = await res.json();
-  // Normalize: return flat arrays just like the old server route did
-  return {
-    tracks: data.tracks?.items ?? [],
-    artists: data.artists?.items ?? [],
-    albums: data.albums?.items ?? [],
-  };
+  return res.json();
 }
 
 export default function SearchClient() {
