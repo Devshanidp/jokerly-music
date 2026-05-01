@@ -1,9 +1,6 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-<<<<<<< HEAD
-import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, ChevronDown, Music, Play, Trash, PlayCircle } from "lucide-react";
-=======
 import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, ChevronDown, Music, Play, Trash, PlayCircle, GripVertical, ListPlus } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
@@ -14,7 +11,6 @@ import {
   useSortable, arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
 import { SpotifyPlaylist } from "@/types";
 import Image from "next/image";
 import { useToastStore } from "@/store/toast";
@@ -359,11 +355,7 @@ export default function PlaylistsClient() {
         <button
           onClick={() => setCreating(true)}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg"
-<<<<<<< HEAD
-          style={{ background: "#c0392b", boxShadow: "0 4px 16px rgba(240,165,0,0.30)" }}
-=======
           style={{ background: "#ef4444", boxShadow: "0 4px 16px rgba(240,165,0,0.30)" }}
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
         >
           <Plus size={15} /> New
         </button>
@@ -376,31 +368,19 @@ export default function PlaylistsClient() {
           <input
             autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
             placeholder="Playlist name"
-<<<<<<< HEAD
-            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]/60 transition-all"
-=======
             className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#ef4444]/60 transition-all"
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
             style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
           />
           <input
             value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
             placeholder="Description (optional)"
-<<<<<<< HEAD
-            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#c0392b]/60 transition-all"
-=======
             className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#ef4444]/60 transition-all"
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
             style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
           />
           <div className="flex gap-2">
             <button
               onClick={createPlaylist} disabled={saving || !newName.trim()}
-<<<<<<< HEAD
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#c0392b] hover:bg-[#a93226] disabled:opacity-40 text-white font-semibold text-sm transition-colors"
-=======
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ef4444] hover:bg-[#a93226] disabled:opacity-40 text-white font-semibold text-sm transition-colors"
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
             >
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Create
             </button>
@@ -467,11 +447,7 @@ export default function PlaylistsClient() {
                       </div>
                     )}
                     {isPinned && (
-<<<<<<< HEAD
-                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#c0392b] border-2 border-[var(--card)]" />
-=======
                       <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#ef4444] border-2 border-[var(--card)]" />
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                     )}
                   </div>
 
@@ -481,19 +457,11 @@ export default function PlaylistsClient() {
                       <input
                         autoFocus value={edit.name}
                         onChange={(e) => setEdit({ ...edit, name: e.target.value })}
-<<<<<<< HEAD
-                        className="flex-1 min-w-0 border text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[#c0392b]/60 transition-all"
-                        style={{ background: "var(--surface)", borderColor: "rgba(255,255,255,0.08)" }}
-                      />
-                      <button onClick={saveEdit} disabled={saving}
-                        className="shrink-0 px-3 py-1.5 rounded-xl bg-[#c0392b] hover:bg-[#a93226] text-white text-sm font-medium transition-colors">
-=======
                         className="flex-1 min-w-0 border text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[#ef4444]/60 transition-all"
                         style={{ background: "var(--surface)", borderColor: "rgba(255,255,255,0.08)" }}
                       />
                       <button onClick={saveEdit} disabled={saving}
                         className="shrink-0 px-3 py-1.5 rounded-xl bg-[#ef4444] hover:bg-[#a93226] text-white text-sm font-medium transition-colors">
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
                         {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                       </button>
                       <button onClick={() => setEdit(null)}
