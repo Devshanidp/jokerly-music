@@ -18,11 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ items: data ?? [] }, {
-<<<<<<< HEAD
-    headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=120" },
-=======
     headers: { "Cache-Control": "no-store" },
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
   });
 }
 

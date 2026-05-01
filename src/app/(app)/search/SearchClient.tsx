@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
@@ -348,7 +348,7 @@ export default function SearchClient() {
                           </button>
                           {s.uri && (
                             <button onClick={() => handleSuggestionAdd(s)} disabled={isResolving} title="Add to playlist"
-                              className="shrink-0 p-1.5 rounded-lg text-[#ef4444]/60 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors">
+                              className="shrink-0 p-1.5 rounded-lg text-[#E8282B]/60 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors">
                               {isResolving ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
                             </button>
                           )}

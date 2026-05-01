@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { X, Search, Check, Loader2, Music2, Mic2, Plus } from "lucide-react";
@@ -135,16 +135,16 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                     <button key={lang.id} onClick={() => toggleLang(lang.id)}
                       className={`flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-left border transition-all ${
                         selected
-                          ? "border-[#ef4444]/40 bg-[#ef4444]/10"
+                          ? "border-[#E8282B]/40 bg-[#E8282B]/10"
                           : "border-white/[0.07] hover:border-white/[0.15]"
                       }`}
                       style={!selected ? { background: "var(--card)" } : {}}>
                       <span className="text-lg leading-none">{lang.emoji}</span>
-                      <span className={`text-sm font-medium flex-1 ${selected ? "text-[#ef4444]" : "text-white/70"}`}>
+                      <span className={`text-sm font-medium flex-1 ${selected ? "text-[#E8282B]" : "text-white/70"}`}>
                         {lang.label}
                       </span>
                       {selected && (
-                        <div className="w-5 h-5 rounded-full bg-[#ef4444] flex items-center justify-center shrink-0">
+                        <div className="w-5 h-5 rounded-full bg-[#E8282B] flex items-center justify-center shrink-0">
                           <Check size={11} className="text-white" strokeWidth={2.5} />
                         </div>
                       )}
@@ -153,7 +153,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                 })}
               </div>
               {selectedLangs.length === 0 && (
-                <p className="text-center text-[#ef4444]/70 text-xs py-2">Select at least one language</p>
+                <p className="text-center text-[#E8282B]/70 text-xs py-2">Select at least one language</p>
               )}
             </div>
           )}
@@ -167,14 +167,14 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                   <p className="text-white/30 text-xs px-1">Your favourite artists ({selectedArtists.length})</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedArtists.map((a) => (
-                      <div key={a.id} className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-full border border-[#ef4444]/30 bg-[#ef4444]/10">
+                      <div key={a.id} className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-full border border-[#E8282B]/30 bg-[#E8282B]/10">
                         <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 bg-white/[0.08]">
                           {a.image
                             ? <Image src={a.image} alt={a.name} width={24} height={24} unoptimized className="object-cover w-full h-full" />
                             : <div className="w-full h-full flex items-center justify-center"><Mic2 size={10} className="text-white/30" /></div>}
                         </div>
-                        <span className="text-[#ef4444] text-xs font-medium">{a.name}</span>
-                        <button onClick={() => removeArtist(a.id)} className="text-[#ef4444]/50 hover:text-[#ef4444] transition-colors ml-0.5">
+                        <span className="text-[#E8282B] text-xs font-medium">{a.name}</span>
+                        <button onClick={() => removeArtist(a.id)} className="text-[#E8282B]/50 hover:text-[#E8282B] transition-colors ml-0.5">
                           <X size={12} />
                         </button>
                       </div>
@@ -191,7 +191,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                   value={artistQuery}
                   onChange={(e) => setArtistQuery(e.target.value)}
                   placeholder="Search artists…"
-                  className="w-full pl-9 pr-4 py-3 rounded-2xl border border-white/[0.08] text-white placeholder-white/25 text-sm focus:outline-none focus:ring-1 focus:ring-[#ef4444]/50 transition-all"
+                  className="w-full pl-9 pr-4 py-3 rounded-2xl border border-white/[0.08] text-white placeholder-white/25 text-sm focus:outline-none focus:ring-1 focus:ring-[#E8282B]/50 transition-all"
                   style={{ background: "var(--card)" }}
                   autoComplete="off"
                 />
@@ -221,7 +221,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                           )}
                         </div>
                         {already
-                          ? <Check size={15} className="text-[#ef4444] shrink-0" />
+                          ? <Check size={15} className="text-[#E8282B] shrink-0" />
                           : <Plus size={15} className="text-white/30 shrink-0" />}
                       </button>
                     );

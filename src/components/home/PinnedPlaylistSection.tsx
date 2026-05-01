@@ -77,7 +77,7 @@ function SortableTrackRow({
       {/* Track number / play indicator */}
       <div className="w-5 shrink-0 flex items-center justify-center">
         <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{index + 1}</span>
-        <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#ef4444]" />
+        <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#E8282B]" />
       </div>
 
       {/* Album art */}
@@ -103,7 +103,7 @@ function SortableTrackRow({
       <button
         onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
         title="Add to playlist"
-        className="shrink-0 p-1.5 rounded-lg transition-all text-[#ef4444]/50 hover:text-[#ef4444] hover:bg-[#ef4444]/10 sm:opacity-0 sm:group-hover:opacity-100"
+        className="shrink-0 p-1.5 rounded-lg transition-all text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <ListPlus size={13} />
       </button>
@@ -296,7 +296,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
                       <Pin size={18} style={{ color: "var(--text-muted)" }} />
                     </div>
                   )}
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#ef4444] border-2" style={{ borderColor: "var(--card)" }} />
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#E8282B] border-2" style={{ borderColor: "var(--card)" }} />
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -313,7 +313,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
                       disabled={!isPlayerReady}
                       title="Play all"
                       className="p-1.5 rounded-xl transition-colors disabled:opacity-40"
-                      style={{ color: "#ef4444" }}
+                      style={{ color: "#E8282B" }}
                     >
                       <PlayCircle size={17} />
                     </button>

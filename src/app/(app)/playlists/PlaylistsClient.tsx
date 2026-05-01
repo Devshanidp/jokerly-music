@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, ChevronDown, Music, Play, Trash, PlayCircle, GripVertical, ListPlus } from "lucide-react";
@@ -67,7 +67,7 @@ function SortableTrackRow({
       {/* Track number / play indicator */}
       <div className="w-5 shrink-0 flex items-center justify-center">
         <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{index + 1}</span>
-        <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#ef4444]" />
+        <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#E8282B]" />
       </div>
 
       {/* Album art */}
@@ -93,7 +93,7 @@ function SortableTrackRow({
       <button
         onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
         title="Add to playlist"
-        className="shrink-0 p-1.5 rounded-lg transition-all text-[#ef4444]/50 hover:text-[#ef4444] hover:bg-[#ef4444]/10 sm:opacity-0 sm:group-hover:opacity-100"
+        className="shrink-0 p-1.5 rounded-lg transition-all text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <ListPlus size={13} />
       </button>
@@ -355,7 +355,7 @@ export default function PlaylistsClient() {
         <button
           onClick={() => setCreating(true)}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg"
-          style={{ background: "#ef4444", boxShadow: "0 4px 16px rgba(240,165,0,0.30)" }}
+          style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
         >
           <Plus size={15} /> New
         </button>
@@ -368,19 +368,19 @@ export default function PlaylistsClient() {
           <input
             autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
             placeholder="Playlist name"
-            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#ef4444]/60 transition-all"
+            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
             style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
           />
           <input
             value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
             placeholder="Description (optional)"
-            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#ef4444]/60 transition-all"
+            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
             style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
           />
           <div className="flex gap-2">
             <button
               onClick={createPlaylist} disabled={saving || !newName.trim()}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ef4444] hover:bg-[#a93226] disabled:opacity-40 text-white font-semibold text-sm transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#E8282B] hover:bg-[#c0201f] disabled:opacity-40 text-white font-semibold text-sm transition-colors"
             >
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Create
             </button>
@@ -447,7 +447,7 @@ export default function PlaylistsClient() {
                       </div>
                     )}
                     {isPinned && (
-                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#ef4444] border-2 border-[var(--card)]" />
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#E8282B] border-2 border-[var(--card)]" />
                     )}
                   </div>
 
@@ -457,11 +457,11 @@ export default function PlaylistsClient() {
                       <input
                         autoFocus value={edit.name}
                         onChange={(e) => setEdit({ ...edit, name: e.target.value })}
-                        className="flex-1 min-w-0 border text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[#ef4444]/60 transition-all"
+                        className="flex-1 min-w-0 border text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
                         style={{ background: "var(--surface)", borderColor: "rgba(255,255,255,0.08)" }}
                       />
                       <button onClick={saveEdit} disabled={saving}
-                        className="shrink-0 px-3 py-1.5 rounded-xl bg-[#ef4444] hover:bg-[#a93226] text-white text-sm font-medium transition-colors">
+                        className="shrink-0 px-3 py-1.5 rounded-xl bg-[#E8282B] hover:bg-[#c0201f] text-white text-sm font-medium transition-colors">
                         {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                       </button>
                       <button onClick={() => setEdit(null)}
@@ -487,7 +487,7 @@ export default function PlaylistsClient() {
                         onClick={(e) => { e.stopPropagation(); playTrack(tracks, 0); }}
                         title="Play all"
                         className="p-1.5 rounded-xl transition-colors"
-                        style={{ color: "#ef4444" }}
+                        style={{ color: "#E8282B" }}
                       >
                         <PlayCircle size={17} />
                       </button>
@@ -506,7 +506,7 @@ export default function PlaylistsClient() {
                       title={isPinned ? "Unpin" : "Pin"}
                       className="p-1.5 rounded-xl transition-colors"
                       style={{
-                        color: isPinned ? "#ef4444" : "rgba(255,255,255,0.28)",
+                        color: isPinned ? "#E8282B" : "rgba(255,255,255,0.28)",
                         background: isPinned ? "rgba(147,51,234,0.12)" : "transparent",
                       }}
                     >
