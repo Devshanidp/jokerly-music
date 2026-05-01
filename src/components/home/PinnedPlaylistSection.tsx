@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
-import { Pin, ChevronDown, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash } from "lucide-react";
+import { Pin, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash, ArrowLeft, ListMusic } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -31,17 +31,40 @@ interface Props {
   pinned: PinnedPlaylist[];
 }
 
+// ── Cover art ──────────────────────────────────────────────────────────────
+function CoverArt({ tracks, imageUrl, name, size = 130 }: { tracks?: PlaylistTrack[]; imageUrl?: string | null; name: string; size?: number }) {
+  const imgs = [...new Set(
+    (tracks ?? []).map((t) => t.track_image).filter(Boolean) as string[]
+  )].slice(0, 4);
+
+  if (imgs.length >= 2) {
+    const cells = [...imgs, ...Array(4).fill(null)].slice(0, 4);
+    return (
+      <div className="w-full h-full overflow-hidden grid grid-cols-2">
+        {cells.map((img, i) => (
+          <div key={i} className="relative" style={{ background: "var(--surface)" }}>
+            {img && <Image src={img} alt="" fill unoptimized sizes={`${size / 2}px`} className="object-cover" />}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (imageUrl) {
+    return <Image src={imageUrl} alt={name} fill unoptimized className="object-cover" sizes={`${size}px`} />;
+  }
+  return (
+    <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--surface)" }}>
+      <ListMusic size={size / 4} style={{ color: "var(--text-muted)", opacity: 0.4 }} />
+    </div>
+  );
+}
+
 // ── Sortable track row ─────────────────────────────────────────────────────
 function SortableTrackRow({
   track, index, playlistId, onPlay, onRemove, onAddToPlaylist, removingKey,
 }: {
-  track: PlaylistTrack;
-  index: number;
-  playlistId: string;
-  onPlay: () => void;
-  onRemove: () => void;
-  onAddToPlaylist: () => void;
-  removingKey: string | null;
+  track: PlaylistTrack; index: number; playlistId: string;
+  onPlay: () => void; onRemove: () => void; onAddToPlaylist: () => void; removingKey: string | null;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: track.id });
@@ -57,30 +80,18 @@ function SortableTrackRow({
   const rmKey = `${playlistId}::${track.id}`;
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-2 px-2 py-2.5 group transition-colors cursor-pointer"
+    <div ref={setNodeRef} style={style}
+      className="flex items-center gap-2 px-3 py-2.5 group transition-colors cursor-pointer hover:bg-white/[0.03]"
       onClick={onPlay}
     >
-      {/* Drag handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        onClick={(e) => e.stopPropagation()}
-        className="shrink-0 p-1 rounded cursor-grab active:cursor-grabbing text-white/20 hover:text-white/50 transition-colors touch-none"
-        title="Drag to reorder"
-      >
+      <button {...attributes} {...listeners} onClick={(e) => e.stopPropagation()}
+        className="shrink-0 p-1 rounded cursor-grab active:cursor-grabbing text-white/20 hover:text-white/50 transition-colors touch-none">
         <GripVertical size={14} />
       </button>
-
-      {/* Track number / play indicator */}
       <div className="w-5 shrink-0 flex items-center justify-center">
         <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{index + 1}</span>
         <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#E8282B]" />
       </div>
-
-      {/* Album art */}
       <div className="relative w-9 h-9 rounded-lg shrink-0 overflow-hidden" style={{ background: "var(--card)" }}>
         {track.track_image ? (
           <Image src={track.track_image} alt={track.track_name} fill unoptimized sizes="36px" className="object-cover" />
@@ -90,32 +101,20 @@ function SortableTrackRow({
           </div>
         )}
       </div>
-
-      {/* Track info */}
       <div className="flex-1 min-w-0">
         <p className="text-white text-sm font-medium truncate leading-tight">{track.track_name}</p>
         {track.track_artist && (
           <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-muted)" }}>{track.track_artist}</p>
         )}
       </div>
-
-      {/* Add to another playlist */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
-        title="Add to playlist"
-        className="shrink-0 p-1.5 rounded-lg transition-all text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 sm:opacity-0 sm:group-hover:opacity-100"
-      >
+      <button onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
+        className="shrink-0 p-1.5 rounded-lg transition-all text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 sm:opacity-0 sm:group-hover:opacity-100">
         <ListPlus size={13} />
       </button>
-
-      {/* Remove */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+      <button onClick={(e) => { e.stopPropagation(); onRemove(); }}
         disabled={removingKey === rmKey}
-        title="Remove from playlist"
         className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
-        style={{ color: "rgba(255,255,255,0.25)" }}
-      >
+        style={{ color: "rgba(255,255,255,0.25)" }}>
         {removingKey === rmKey ? <Loader2 size={12} className="animate-spin" /> : <Trash size={12} />}
       </button>
     </div>
@@ -124,7 +123,7 @@ function SortableTrackRow({
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function PinnedPlaylistSection({ pinned }: Props) {
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tracksMap, setTracksMap] = useState<Record<string, PlaylistTrack[]>>({});
   const [loading, setLoading] = useState<string | null>(null);
   const [removingTrack, setRemovingTrack] = useState<string | null>(null);
@@ -137,28 +136,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
 
-  // Listen for tracks added via AddToPlaylistModal and refresh immediately
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const { playlistId } = (e as CustomEvent<{ playlistId: string }>).detail;
-      if (expanded === playlistId) {
-        // Playlist is open — refetch live
-        fetch(`/api/spotify/playlists/${encodeURIComponent(playlistId)}?_t=${Date.now()}`)
-          .then((r) => r.ok ? r.json() : null)
-          .then((data) => {
-            if (data) setTracksMap((prev) => ({ ...prev, [playlistId]: data.items ?? [] }));
-          })
-          .catch(() => {});
-      } else {
-        // Clear stale cache so next expand fetches fresh
-        setTracksMap((prev) => { const n = { ...prev }; delete n[playlistId]; return n; });
-      }
-    };
-    window.addEventListener("playlist-updated", handler);
-    return () => window.removeEventListener("playlist-updated", handler);
-  }, [expanded]);
-
-  // Prefetch all pinned playlist tracks in background
+  // Prefetch all pinned playlist tracks for cover art
   useEffect(() => {
     if (!pinned.length) return;
     const controller = new AbortController();
@@ -166,70 +144,65 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
       for (const pl of pinned) {
         if (controller.signal.aborted) break;
         try {
-          const res = await fetch(
-            `/api/spotify/playlists/${encodeURIComponent(pl.playlist_id)}?_t=${Date.now()}`,
-            { signal: controller.signal }
-          );
+          const res = await fetch(`/api/spotify/playlists/${encodeURIComponent(pl.playlist_id)}`, { signal: controller.signal });
           if (!res.ok) continue;
           const data = await res.json();
           setTracksMap((prev) => prev[pl.playlist_id] ? prev : { ...prev, [pl.playlist_id]: data.items ?? [] });
-        } catch { /* ignore abort / errors */ }
+        } catch { /* ignore */ }
       }
     };
     prefetch();
     return () => controller.abort();
   }, [pinned]);
 
-  const toggle = useCallback(
-    async (playlistId: string) => {
-      if (expanded === playlistId) { setExpanded(null); return; }
-      setExpanded(playlistId);
-      // Always refetch on expand for freshness
-      setLoading(playlistId);
-      try {
-        const res = await fetch(`/api/spotify/playlists/${encodeURIComponent(playlistId)}?_t=${Date.now()}`);
-        if (!res.ok) throw new Error("Failed to load tracks");
-        const data = await res.json();
-        setTracksMap((prev) => ({ ...prev, [playlistId]: data.items ?? [] }));
-      } catch (e) {
-        toast((e as Error).message ?? "Could not load playlist tracks");
-        setTracksMap((prev) => ({ ...prev, [playlistId]: [] }));
-      } finally {
-        setLoading(null);
-      }
-    },
-    [expanded, toast]
-  );
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { playlistId } = (e as CustomEvent<{ playlistId: string }>).detail;
+      if (selectedId === playlistId) fetchTracks(playlistId);
+      else setTracksMap((prev) => { const n = { ...prev }; delete n[playlistId]; return n; });
+    };
+    window.addEventListener("playlist-updated", handler);
+    return () => window.removeEventListener("playlist-updated", handler);
+  }, [selectedId]);
 
-  const playAll = useCallback(
-    (playlistId: string, startIndex = 0) => {
-      const list = tracksMap[playlistId] ?? [];
-      if (!list.length) return;
-      const queue: PlayableTrack[] = list.map((t) => ({
-        name: t.track_name,
-        artist: t.track_artist ?? "",
-        image: t.track_image ?? undefined,
-        uri: t.track_uri,
-      }));
-      setQueueAndPlay(queue, startIndex);
-    },
-    [tracksMap, setQueueAndPlay]
-  );
+  const fetchTracks = useCallback(async (id: string) => {
+    setLoading(id);
+    try {
+      const res = await fetch(`/api/spotify/playlists/${encodeURIComponent(id)}?_t=${Date.now()}`);
+      if (!res.ok) throw new Error("Failed to load tracks");
+      const data = await res.json();
+      setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
+    } catch (e) {
+      toast((e as Error).message ?? "Could not load playlist tracks");
+    } finally {
+      setLoading(null);
+    }
+  }, [toast]);
+
+  const openPlaylist = (id: string) => {
+    setSelectedId(id);
+    fetchTracks(id);
+  };
+
+  const playAll = useCallback((playlistId: string, startIndex = 0) => {
+    const list = tracksMap[playlistId] ?? [];
+    if (!list.length) return;
+    const queue: PlayableTrack[] = list.map((t) => ({
+      name: t.track_name, artist: t.track_artist ?? "", image: t.track_image ?? undefined, uri: t.track_uri,
+    }));
+    setQueueAndPlay(queue, startIndex);
+  }, [tracksMap, setQueueAndPlay]);
 
   const removeTrack = async (playlistId: string, trackId: string) => {
     const key = `${playlistId}::${trackId}`;
     setRemovingTrack(key);
     try {
       const res = await fetch(`/api/spotify/playlists/${playlistId}/tracks`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        method: "DELETE", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trackId }),
       });
       if (!res.ok) throw new Error("Failed to remove track");
-      setTracksMap((prev) => ({
-        ...prev,
-        [playlistId]: (prev[playlistId] ?? []).filter((t) => t.id !== trackId),
-      }));
+      setTracksMap((prev) => ({ ...prev, [playlistId]: (prev[playlistId] ?? []).filter((t) => t.id !== trackId) }));
     } catch (e) {
       toast((e as Error).message ?? "Could not remove track");
     } finally {
@@ -247,8 +220,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     const reordered = arrayMove(tracks, oldIdx, newIdx);
     setTracksMap((prev) => ({ ...prev, [playlistId]: reordered }));
     fetch(`/api/spotify/playlists/${playlistId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order: reordered.map((t) => t.id) }),
     }).catch(() => toast("Could not save order"));
   };
@@ -263,128 +235,102 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     );
   }
 
+  // ── Detail view ──────────────────────────────────────────────────────────
+  const selectedPl = pinned.find((p) => p.playlist_id === selectedId);
+  if (selectedId && selectedPl) {
+    const tracks = tracksMap[selectedId] ?? [];
+    const isLoadingTracks = loading === selectedId;
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setSelectedId(null)}
+            className="flex items-center gap-1.5 text-sm font-medium transition-colors"
+            style={{ color: "rgba(255,255,255,0.55)" }}>
+            <ArrowLeft size={16} /> Back
+          </button>
+        </div>
+
+        <div className="flex items-end gap-4">
+          <div className="relative w-24 h-24 rounded-2xl overflow-hidden shrink-0 shadow-xl">
+            <CoverArt tracks={tracks} imageUrl={selectedPl.playlist_image || null} name={selectedPl.playlist_name} size={96} />
+          </div>
+          <div className="flex-1 min-w-0 pb-1">
+            <p className="text-white text-lg font-bold truncate">{selectedPl.playlist_name}</p>
+            <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>{tracks.length} tracks · Pinned</p>
+          </div>
+        </div>
+
+        {tracks.length > 0 && (
+          <button onClick={() => playAll(selectedId, 0)} disabled={!isPlayerReady}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-40"
+            style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}>
+            <PlayCircle size={16} /> Play all
+          </button>
+        )}
+
+        <div className="rounded-2xl overflow-hidden border" style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.06)" }}>
+          {isLoadingTracks ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={20} className="animate-spin" style={{ color: "rgba(255,255,255,0.2)" }} />
+            </div>
+          ) : tracks.length === 0 ? (
+            <p className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>No tracks yet.</p>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, selectedId)}>
+              <SortableContext items={tracks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                <div>
+                  {tracks.map((track, i) => (
+                    <SortableTrackRow key={track.id} track={track} index={i} playlistId={selectedId}
+                      onPlay={() => playAll(selectedId, i)}
+                      onRemove={() => removeTrack(selectedId, track.id)}
+                      onAddToPlaylist={() => setAddModal({ name: track.track_name, uri: track.track_uri, image: track.track_image, artist: track.track_artist })}
+                      removingKey={removingTrack} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
+
+        {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
+      </div>
+    );
+  }
+
+  // ── Grid view ────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-2">
         {pinned.map((pl) => {
-          const isOpen = expanded === pl.playlist_id;
-          const isLoading = loading === pl.playlist_id;
-          const list = tracksMap[pl.playlist_id] ?? [];
-
+          const tracks = tracksMap[pl.playlist_id];
           return (
-            <div
-              key={pl.id}
-              className="rounded-2xl overflow-hidden border transition-all duration-200"
-              style={{
-                background: "var(--card)",
-                borderColor: isOpen ? "rgba(239,68,68,0.22)" : "rgba(255,255,255,0.06)",
-              }}
+            <div key={pl.id}
+              onClick={() => openPlaylist(pl.playlist_id)}
+              className="rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 active:scale-[0.97] hover:border-white/[0.12]"
+              style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.07)" }}
             >
-              {/* ── Header row ── */}
-              <div
-                className="flex items-center gap-3 px-3 py-3 cursor-pointer transition-colors"
-                style={{ background: "transparent" }}
-                onClick={() => toggle(pl.playlist_id)}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.025)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-              >
-                <div className="relative shrink-0">
-                  {(() => {
-                    const imgs = [...new Set(
-                      (tracksMap[pl.playlist_id] ?? []).map((t) => t.track_image).filter(Boolean) as string[]
-                    )].slice(0, 4);
-                    if (imgs.length >= 2) {
-                      const cells = [...imgs, ...Array(4).fill(null)].slice(0, 4);
-                      return (
-                        <div className="w-12 h-12 rounded-xl overflow-hidden grid grid-cols-2 shrink-0">
-                          {cells.map((img, i) => (
-                            <div key={i} className="relative w-6 h-6" style={{ background: "var(--surface)" }}>
-                              {img && <Image src={img} alt="" fill unoptimized sizes="24px" className="object-cover" />}
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }
-                    if (pl.playlist_image) {
-                      return <Image src={pl.playlist_image} alt={pl.playlist_name} width={48} height={48} unoptimized className="rounded-xl object-cover w-12 h-12" />;
-                    }
-                    return (
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "var(--surface)" }}>
-                        <Pin size={18} style={{ color: "var(--text-muted)" }} />
-                      </div>
-                    );
-                  })()}
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#E8282B] border-2" style={{ borderColor: "var(--card)" }} />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-semibold truncate leading-tight">{pl.playlist_name}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                    {isLoading ? "Loading…" : list.length > 0 ? `${list.length} tracks` : isOpen ? "No tracks" : "Tap to expand"}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-1 shrink-0">
-                  {isOpen && list.length > 0 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); playAll(pl.playlist_id, 0); }}
-                      disabled={!isPlayerReady}
-                      title="Play all"
-                      className="p-1.5 rounded-xl transition-colors disabled:opacity-40"
-                      style={{ color: "#E8282B" }}
-                    >
-                      <PlayCircle size={17} />
-                    </button>
-                  )}
-                  {isLoading ? (
-                    <Loader2 size={15} className="animate-spin" style={{ color: "var(--text-muted)" }} />
-                  ) : (
-                    <div className="pointer-events-none" style={{ color: "rgba(255,255,255,0.25)" }}>
-                      <ChevronDown size={15} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
-                    </div>
-                  )}
+              <div className="relative aspect-square w-full overflow-hidden" style={{ background: "var(--surface)" }}>
+                <CoverArt tracks={tracks} imageUrl={pl.playlist_image || null} name={pl.playlist_name} size={130} />
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity" style={{ background: "rgba(0,0,0,0.35)" }}>
+                  <div className="w-8 h-8 rounded-full bg-[#E8282B] flex items-center justify-center shadow-lg">
+                    <Play size={13} fill="white" className="text-white ml-0.5" />
+                  </div>
                 </div>
               </div>
-
-              {/* ── Track list ── */}
-              {isOpen && !isLoading && (
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", background: "var(--surface)" }}>
-                  {list.length === 0 ? (
-                    <p className="text-center py-8 text-sm" style={{ color: "var(--text-muted)" }}>No tracks yet.</p>
-                  ) : (
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={(e) => handleDragEnd(e, pl.playlist_id)}
-                    >
-                      <SortableContext items={list.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                        <div>
-                          {list.map((track, i) => (
-                            <SortableTrackRow
-                              key={track.id}
-                              track={track}
-                              index={i}
-                              playlistId={pl.playlist_id}
-                              onPlay={() => playAll(pl.playlist_id, i)}
-                              onRemove={() => removeTrack(pl.playlist_id, track.id)}
-                              onAddToPlaylist={() => setAddModal({ name: track.track_name, uri: track.track_uri, image: track.track_image, artist: track.track_artist })}
-                              removingKey={removingTrack}
-                            />
-                          ))}
-                        </div>
-                      </SortableContext>
-                    </DndContext>
-                  )}
-                </div>
-              )}
+              <div className="p-2">
+                <p className="text-white text-xs font-semibold truncate leading-tight">{pl.playlist_name}</p>
+                <p className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>
+                  {tracks ? `${tracks.length} tracks` : "Pinned"}
+                </p>
+              </div>
             </div>
           );
         })}
       </div>
 
-      {addModal && (
-        <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />
-      )}
+      {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
     </>
   );
 }

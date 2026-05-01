@@ -17,8 +17,9 @@ export const metadata: Metadata = {
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/icon-167.png", sizes: "167x167", type: "image/png" },
       { url: "/icon-152.png", sizes: "152x152", type: "image/png" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
     shortcut: "/icon-96.png",
   },
@@ -41,7 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#080406" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon-precomposed.png" />
       </head>
       <body className={`${inter.className} antialiased h-full`}>
         <ThemeProvider>

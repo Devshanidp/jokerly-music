@@ -77,3 +77,16 @@ body::after {
   transform: scale(0.97);
 }
 
+.btn-blue {
+  background: linear-gradient(135deg, #1D6FF0 0%, #3B9BFF 100%);
+  box-shadow: 0 2px 12px rgba(59,155,255,0.40);
+  transition: filter 0.15s, transform 0.1s;
+}
+.btn-blue:hover {
+  filter: brightness(1.12);
+}
+.btn-blue:active {
+  filter: brightness(0.92);
+  transform: scale(0.97);
+}
+

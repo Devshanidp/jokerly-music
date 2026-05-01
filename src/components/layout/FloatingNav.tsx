@@ -14,8 +14,8 @@ export default function FloatingNav() {
 
   return (
     <div className={`fixed left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${hasPlayer ? "bottom-[88px]" : "bottom-5"}`}>
-      <div className="flex items-center gap-1.5 p-1 rounded-full border border-[#E8282B]/[0.22] shadow-2xl shadow-black/70"
-        style={{ background: "rgba(10,6,24,0.95)", backdropFilter: "blur(24px)" }}>
+      <div className="flex items-center gap-1.5 p-1 rounded-full border border-[#3B9BFF]/[0.35] shadow-2xl shadow-black/70"
+        style={{ background: "rgba(8,18,55,0.95)", backdropFilter: "blur(24px)", boxShadow: "0 0 24px rgba(29,111,240,0.25)" }}>
         <Link href="/"
           className={`flex items-center gap-2 px-4 py-2.5 rounded-full font-semibold text-sm transition-all duration-200 ${
             pathname === "/"

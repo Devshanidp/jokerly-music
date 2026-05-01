@@ -2,7 +2,8 @@
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
-import { Loader2, Music2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginClient() {
   const [loading, setLoading] = useState(false);
@@ -24,9 +25,7 @@ export default function LoginClient() {
         {/* Logo */}
         <div className="space-y-3">
           <div className="flex items-center justify-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "#6B0F12", border: "1px solid rgba(232,40,43,0.30)" }}>
-              <Music2 size={32} style={{ color: "#F87171" }} />
-            </div>
+            <Image src="/logo.png" alt="Jokerly" width={80} height={80} className="rounded-2xl" unoptimized />
           </div>
           <h1 className="text-5xl font-bold text-white tracking-tight">Jokerly</h1>
           <p className="text-base" style={{ color: "rgba(255,255,255,0.45)" }}>Your personal music universe</p>

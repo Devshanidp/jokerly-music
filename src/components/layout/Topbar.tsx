@@ -70,7 +70,7 @@ export default function Topbar() {
         </div>
       )}
       <header className={`sticky z-30 shrink-0 ${sessionError ? "top-10" : "top-0"}`}
-        style={{ background: "rgba(7,5,18,0.92)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(147,51,234,0.12)" }}>
+        style={{ background: "rgba(8,18,55,0.93)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(59,155,255,0.18)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
 
           {/* Logo */}
