@@ -70,13 +70,13 @@ export default function Topbar() {
         </div>
       )}
       <header className={`sticky z-30 shrink-0 ${sessionError ? "top-10" : "top-0"}`}
-        style={{ background: "rgba(8,18,55,0.93)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(59,155,255,0.18)" }}>
+        style={{ background: "rgba(9,3,5,0.95)", backdropFilter: "blur(24px)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image src="/icon-48.png" alt="Jokerly" width={26} height={26} className="rounded-lg" />
-            <span className="text-white font-bold text-base tracking-tight">Jokerly</span>
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <Image src="/icon-96.png" alt="Jokerly" width={34} height={34} className="rounded-xl" />
+            <span className="text-[#E8282B] font-bold text-lg tracking-tight">Jokerly</span>
           </Link>
 
           {/* Right side */}

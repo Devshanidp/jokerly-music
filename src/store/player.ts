@@ -110,7 +110,9 @@ async function loadSpotifySdk(): Promise<SpotifyPlayerCtor | null> {
 
 function hydrateFromSdkState(state: SpotifyPlayerState | null) {
   if (!state) {
-    usePlayerStore.setState({ isPlaying: false });
+    // A null state fires transiently during device transfers and SDK init.
+    // Do NOT reset isPlaying here — the actual stopped/paused state arrives
+    // as a non-null state with paused:true which is handled below.
     return;
   }
 
@@ -194,24 +196,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       volume: 0.8,
     });
 
-    player.addListener("ready", async (payload) => {
+    player.addListener("ready", (payload) => {
       const ready = payload as { device_id: string };
       set({ deviceId: ready.device_id, isPlayerReady: true });
-
-      const token = get().accessToken;
-      if (!token) return;
-
-      try {
-        await spotifyApi("/me/player", token, {
-          method: "PUT",
-          body: JSON.stringify({
-            device_ids: [ready.device_id],
-            play: false,
-          }),
-        });
-      } catch {
-        // Transfer can fail temporarily if account/session is not fully ready.
-      }
+      // Do NOT call /me/player with play:false here — it pauses any currently
+      // active Spotify session on the user's account. The device_id is already
+      // embedded in every subsequent /me/player/play call, which activates this
+      // device automatically when the user first plays a track.
     });
 
     player.addListener("not_ready", () => {

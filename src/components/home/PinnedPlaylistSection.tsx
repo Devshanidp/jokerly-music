@@ -68,6 +68,8 @@ function SortableTrackRow({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: track.id });
+  const { currentTrack, isPlaying } = usePlayerStore((s) => ({ currentTrack: s.currentTrack, isPlaying: s.isPlaying }));
+  const isCurrentlyPlaying = isPlaying && !!currentTrack?.uri && currentTrack.uri === track.track_uri;
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -89,8 +91,16 @@ function SortableTrackRow({
         <GripVertical size={14} />
       </button>
       <div className="w-5 shrink-0 flex items-center justify-center">
-        <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{index + 1}</span>
-        <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#E8282B]" />
+        {isCurrentlyPlaying ? (
+          <div className="flex items-end gap-px h-4">
+            <span className="eq-bar" /><span className="eq-bar" /><span className="eq-bar" />
+          </div>
+        ) : (
+          <>
+            <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{index + 1}</span>
+            <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#E8282B]" />
+          </>
+        )}
       </div>
       <div className="relative w-9 h-9 rounded-lg shrink-0 overflow-hidden" style={{ background: "var(--card)" }}>
         {track.track_image ? (
@@ -102,7 +112,7 @@ function SortableTrackRow({
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium truncate leading-tight">{track.track_name}</p>
+        <p className={`text-sm font-medium truncate leading-tight ${isCurrentlyPlaying ? "text-[#E8282B]" : "text-white"}`}>{track.track_name}</p>
         {track.track_artist && (
           <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-muted)" }}>{track.track_artist}</p>
         )}

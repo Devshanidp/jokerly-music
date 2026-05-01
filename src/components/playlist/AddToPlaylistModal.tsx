@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Check, Loader2, Music, ListMusic, AlertCircle } from "lucide-react";
+import { X, Loader2, Music, ListMusic, AlertCircle } from "lucide-react";
 import { SpotifyPlaylist } from "@/types";
 import Image from "next/image";
 
@@ -27,8 +27,6 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
   const [adding, setAdding] = useState<string | null>(null);
   // IDs of playlists that already contain this track
   const [alreadyIn, setAlreadyIn] = useState<Set<string>>(new Set());
-  // Playlist pending a duplicate confirmation
-  const [confirmPlaylist, setConfirmPlaylist] = useState<SpotifyPlaylist | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
 
@@ -63,9 +61,8 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
   };
 
   const doAdd = async (playlist: SpotifyPlaylist) => {
-    if (adding || added.has(playlist.id)) return;
+    if (adding || added.has(playlist.id) || alreadyIn.has(playlist.id)) return;
     setAdding(playlist.id);
-    setConfirmPlaylist(null);
     setAddError(null);
 
     try {
@@ -95,12 +92,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
   };
 
   const handlePlaylistClick = (playlist: SpotifyPlaylist) => {
-    if (adding || added.has(playlist.id)) return;
-    // Already in this playlist — ask for confirmation
-    if (alreadyIn.has(playlist.id)) {
-      setConfirmPlaylist(playlist);
-      return;
-    }
+    if (adding || added.has(playlist.id) || alreadyIn.has(playlist.id)) return;
     doAdd(playlist);
   };
 
@@ -156,33 +148,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
           </div>
         )}
 
-        {/* Duplicate confirm banner */}
-        {confirmPlaylist && (
-          <div className="mx-3 mt-3 rounded-2xl border border-[#E8282B]/25 bg-[#E8282B]/08 p-3.5 flex flex-col gap-3">
-            <div className="flex items-start gap-2.5">
-              <AlertCircle size={16} className="text-[#E8282B]/80 shrink-0 mt-0.5" />
-              <p className="text-white/70 text-sm leading-snug">
-                <span className="text-white font-medium">&ldquo;{track.name}&rdquo;</span> is already in{" "}
-                <span className="text-white font-medium">{confirmPlaylist.name}</span>.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => doAdd(confirmPlaylist)}
-                className="btn-red flex-1 py-2 rounded-xl text-white text-sm font-semibold"
-              >
-                Add Anyway
-              </button>
-              <button
-                onClick={() => setConfirmPlaylist(null)}
-                className="flex-1 py-2 rounded-xl text-white/60 text-sm font-medium border border-white/[0.10] hover:text-white hover:border-white/20 transition-colors"
-                style={{ background: "var(--card)" }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Duplicate confirm banner removed — duplicates are blocked */}
 
         {/* Playlist list */}
         <div className="px-2 py-2 max-h-72 overflow-y-auto space-y-0.5">
@@ -200,20 +166,17 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
             playlists.map((pl) => {
               const isAdded = added.has(pl.id);
               const isAdding = adding === pl.id;
-              const isDuplicate = alreadyIn.has(pl.id) && !isAdded;
-              const isPendingConfirm = confirmPlaylist?.id === pl.id;
+              const isDuplicate = alreadyIn.has(pl.id) || isAdded;
               return (
                 <button
                   key={pl.id}
                   onClick={() => handlePlaylistClick(pl)}
-                  disabled={isAdded || !!adding}
+                  disabled={isDuplicate || !!adding}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all border ${
-                    isAdded
-                      ? "bg-[#E8282B]/10 border-[#E8282B]/20"
-                      : isPendingConfirm
-                        ? "bg-[#E8282B]/08 border-[#E8282B]/20"
-                        : "hover:bg-white/[0.05] border-transparent"
-                  } disabled:cursor-default`}
+                    isDuplicate
+                      ? "opacity-50 border-transparent cursor-not-allowed"
+                      : "hover:bg-white/[0.05] border-transparent"
+                  }`}
                 >
                   {/* Playlist cover */}
                   <div className="w-9 h-9 rounded-xl shrink-0 flex items-center justify-center border border-white/[0.07]"
@@ -223,25 +186,21 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
                         <Image src={pl.images[0].url} alt={pl.name} fill unoptimized sizes="36px" className="object-cover" />
                       </div>
                     ) : (
-                      <ListMusic size={15} className={isAdded ? "text-[#E8282B]/70" : "text-white/25"} />
+                      <ListMusic size={15} className="text-white/25" />
                     )}
                   </div>
 
-                  <span className={`flex-1 text-sm font-medium truncate ${isAdded || isPendingConfirm ? "text-[#E8282B]" : "text-white"}`}>
+                  <span className="flex-1 text-sm font-medium truncate text-white">
                     {pl.name}
                   </span>
 
                   {/* Right badge */}
-                  {isAdded ? (
-                    <div className="shrink-0 w-6 h-6 rounded-full bg-[#E8282B] flex items-center justify-center shadow-md shadow-[#E8282B]/40">
-                      <Check size={13} className="text-white" strokeWidth={2.5} />
-                    </div>
+                  {isDuplicate ? (
+                    <span className="text-[10px] font-semibold text-white/40 bg-white/[0.07] border border-white/10 px-2 py-0.5 rounded-full shrink-0">
+                      In playlist
+                    </span>
                   ) : isAdding ? (
                     <Loader2 size={16} className="animate-spin text-[#E8282B]/50 shrink-0" />
-                  ) : isDuplicate ? (
-                    <span className="text-[10px] font-semibold text-[#E8282B]/60 bg-[#E8282B]/10 border border-[#E8282B]/20 px-2 py-0.5 rounded-full shrink-0">
-                      Added
-                    </span>
                   ) : null}
                 </button>
               );

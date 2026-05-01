@@ -264,7 +264,7 @@ export default function PlayerBar() {
 
       {/* ── Compact bar ── */}
       <div className="fixed bottom-0 left-0 right-0 z-40"
-        style={{ background: "rgba(9,6,22,0.97)", backdropFilter: "blur(28px)", borderTop: "1px solid rgba(239, 68, 68,0.15)" }}>
+        style={{ background: "rgba(9,3,5,0.97)", backdropFilter: "blur(28px)" }}>
 
         {/* Progress bar */}
         <div className="h-[3px] cursor-pointer group relative" style={{ background: "rgba(255,255,255,0.06)" }} onClick={handleSeek}>
@@ -297,7 +297,11 @@ export default function PlayerBar() {
 
           {/* Playback controls — centred */}
           <div className="flex items-center gap-1 shrink-0">
-            <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)}
+            <button onClick={toggleShuffle} title="Shuffle"
+              className={`p-2 rounded-xl transition-colors ${shuffleEnabled ? "text-[#E8282B]" : "text-white/30 hover:text-white"}`}>
+              <Shuffle size={16} />
+            </button>
+            <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)} title="Previous"
               className="p-2 rounded-xl text-white/40 hover:text-white transition-colors">
               <SkipBack size={18} fill="currentColor" />
             </button>
@@ -309,9 +313,13 @@ export default function PlayerBar() {
                   ? <Pause size={18} fill="white" className="text-white" />
                   : <Play size={18} fill="white" className="text-white ml-0.5" />}
             </button>
-            <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)}
+            <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)} title="Next"
               className="p-2 rounded-xl text-white/40 hover:text-white transition-colors">
               <SkipForward size={18} fill="currentColor" />
+            </button>
+            <button onClick={cycleRepeatMode} title={repeatMode === "one" ? "Repeat one" : repeatMode === "all" ? "Repeat all" : "Repeat off"}
+              className={`p-2 rounded-xl transition-colors ${repeatMode !== "off" ? "text-[#E8282B]" : "text-white/30 hover:text-white"}`}>
+              <RepeatIcon size={16} />
             </button>
           </div>
 

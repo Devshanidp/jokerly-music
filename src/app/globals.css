@@ -2,10 +2,10 @@
 
 :root {
   /* ── Layer system — deep warm black ── */
-  --background:  #080406;   /* deepest — near-black, faint red warmth */
-  --surface:     #100A0C;   /* layer 1 — sheets, modals               */
-  --card:        #181014;   /* layer 2 — cards, rows                  */
-  --card-raised: #221620;   /* layer 3 — hovered / elevated           */
+  --background:  #0D0305;   /* deepest — near-black, stronger red warmth */
+  --surface:     #150608;   /* layer 1 — sheets, modals               */
+  --card:        #1E0A0D;   /* layer 2 — cards, rows                  */
+  --card-raised: #2B1015;   /* layer 3 — hovered / elevated           */
 
   /* ── Accent — vivid red ── */
   --accent:      #E8282B;   /* vibrant red (CTA / primary)            */
@@ -31,15 +31,15 @@ body {
   color: var(--foreground);
 }
 
-/* Subtle red glow from top */
+/* Red glow from top */
 body::before {
   content: "";
   position: fixed;
   top: 0; left: 0; right: 0;
-  height: 60vh;
+  height: 70vh;
   background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(232,40,43,0.10) 0%, transparent 65%),
-    radial-gradient(ellipse 60% 40% at 80% -10%, rgba(139,26,26,0.08) 0%, transparent 55%);
+    radial-gradient(ellipse 90% 55% at 50% -10%, rgba(232,40,43,0.22) 0%, transparent 65%),
+    radial-gradient(ellipse 70% 45% at 80% -5%, rgba(180,20,20,0.16) 0%, transparent 55%);
   pointer-events: none;
   z-index: 0;
 }
@@ -49,8 +49,8 @@ body::after {
   content: "";
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 35vh;
-  background: radial-gradient(ellipse 80% 50% at 50% 115%, rgba(232,40,43,0.12) 0%, transparent 70%);
+  height: 40vh;
+  background: radial-gradient(ellipse 90% 55% at 50% 115%, rgba(232,40,43,0.22) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -64,6 +64,22 @@ body::after {
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: #3a1010; border-radius: 99px; }
 *::-webkit-scrollbar-thumb:hover { background: #5a1818; }
+
+/* ── Equalizer bars (playing indicator) ── */
+@keyframes eq-bar {
+  0%, 100% { transform: scaleY(0.25); }
+  50%       { transform: scaleY(1); }
+}
+.eq-bar {
+  display: inline-block;
+  width: 3px;
+  background: #E8282B;
+  border-radius: 2px;
+  transform-origin: bottom;
+}
+.eq-bar:nth-child(1) { height: 12px; animation: eq-bar 0.75s ease-in-out infinite; }
+.eq-bar:nth-child(2) { height: 10px; animation: eq-bar 0.75s ease-in-out infinite 0.15s; }
+.eq-bar:nth-child(3) { height: 8px;  animation: eq-bar 0.75s ease-in-out infinite 0.3s; }
 
 .btn-red {
   background: #E8282B;
