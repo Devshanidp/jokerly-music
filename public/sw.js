@@ -1,11 +1,8 @@
 // Jokerly Service Worker
-const CACHE_NAME = "jokerly-v1";
+const CACHE_NAME = "jokerly-v2";
 
-// Core app shell — cached on install
-const PRECACHE = [
-  "/",
-  "/api/manifest",
-];
+// Only pre-cache the app shell root
+const PRECACHE = ["/"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -30,12 +27,34 @@ self.addEventListener("fetch", (event) => {
   // Only handle same-origin GET requests
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
-  // Skip API calls and auth routes — always network-first
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) {
+  // Never intercept API, auth or Next.js internal routes
+  if (
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/auth/") ||
+    url.pathname.startsWith("/_next/data/")
+  ) {
     return;
   }
 
-  // Network-first for navigation (HTML pages)
+  // Cache-first for Next.js static chunks (content-hashed, safe to cache forever)
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ??
+          fetch(request).then((res) => {
+            if (res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+            }
+            return res;
+          })
+      )
+    );
+    return;
+  }
+
+  // Network-first for navigation (HTML pages) — always fresh, fallback to cache
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -49,18 +68,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for static assets (JS, CSS, fonts, images)
+  // Network-first for everything else (images, fonts, icons)
   event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ??
-        fetch(request).then((res) => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(request, clone));
-          }
-          return res;
-        })
-    )
+    fetch(request)
+      .then((res) => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+        }
+        return res;
+      })
+      .catch(() => caches.match(request))
   );
 });
