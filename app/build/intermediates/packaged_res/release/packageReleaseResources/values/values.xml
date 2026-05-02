@@ -29,6 +29,6 @@
     <string name="launchUrl" translatable="false">https://jokerly-music.vercel.app/</string>
     <string name="launcherName" translatable="false">Jokerly</string>
     <string name="orientation" translatable="false">portrait</string>
-    <string name="providerAuthority" translatable="false">com.jokerly.app.fileprovider</string>
+    <string name="providerAuthority" translatable="false">com.shanid.jokerly.fileprovider</string>
     <string name="webManifestUrl" translatable="false">https://jokerly-music.vercel.app/manifest.json</string>
 </resources>

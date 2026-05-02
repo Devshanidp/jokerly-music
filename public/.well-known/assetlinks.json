@@ -3,10 +3,11 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "REPLACE_WITH_YOUR_PACKAGE_NAME",
+      "package_name": "com.shanid.jokerly",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_YOUR_SHA256_FINGERPRINT"
+        "DD:3E:B9:F6:F9:93:6C:98:E7:7F:22:78:63:43:33:3E:2A:A5:F5:91:50:53:FE:87:04:3A:01:C9:82:33:2C:E9"
       ]
     }
   }
 ]
+
