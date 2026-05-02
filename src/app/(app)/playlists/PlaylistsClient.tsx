@@ -168,7 +168,10 @@ export default function PlaylistsClient() {
   const load = async () => {
     setLoading(true);
     try {
-      const [plRes, pinRes] = await Promise.all([fetch("/api/spotify/playlists"), fetch("/api/pinned")]);
+      const [plRes, pinRes] = await Promise.all([
+        fetch("/api/spotify/playlists", { cache: "no-store" }),
+        fetch("/api/pinned", { cache: "no-store" }),
+      ]);
       if (!plRes.ok) throw new Error("Failed to load playlists");
       const plData = await plRes.json();
       const pinData = (await pinRes.json()) as PinnedRow[];

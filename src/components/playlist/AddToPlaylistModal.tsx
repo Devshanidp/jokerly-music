@@ -22,7 +22,7 @@ let playlistCache: SpotifyPlaylist[] | null = null;
 
 export default function AddToPlaylistModal({ track, onClose }: Props) {
   const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>(playlistCache ?? []);
-  const [loading, setLoading] = useState(!playlistCache);
+  const [loading, setLoading] = useState(true);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState<string | null>(null);
   // IDs of playlists that already contain this track
@@ -31,16 +31,20 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
   const backdropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Load playlists
-    const playlistsPromise = playlistCache
-      ? Promise.resolve(playlistCache)
-      : fetch("/api/spotify/playlists")
-          .then((r) => r.json())
-          .then((d) => {
-            const items: SpotifyPlaylist[] = d.items ?? [];
-            playlistCache = items;
-            return items;
-          });
+    if (playlistCache) {
+      setPlaylists(playlistCache);
+      setLoading(false);
+    }
+
+    // Always refresh from server so newly created playlists appear immediately
+    const playlistsPromise = fetch("/api/spotify/playlists", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        const items: SpotifyPlaylist[] = d.items ?? [];
+        playlistCache = items;
+        return items;
+      })
+      .catch(() => playlistCache ?? []);
 
     // Check which playlists already have this track
     const containsPromise = fetch(
