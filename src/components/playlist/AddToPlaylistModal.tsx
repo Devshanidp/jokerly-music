@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Loader2, Music, ListMusic, AlertCircle } from "lucide-react";
+import { X, Loader2, Music, ListMusic, AlertCircle, Plus, Check } from "lucide-react";
 import { SpotifyPlaylist } from "@/types";
 import Image from "next/image";
 
@@ -28,6 +28,9 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
   // IDs of playlists that already contain this track
   const [alreadyIn, setAlreadyIn] = useState<Set<string>>(new Set());
   const [addError, setAddError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [savingNew, setSavingNew] = useState(false);
   const backdropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,6 +101,30 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
     }
   };
 
+  const createAndAdd = async () => {
+    if (!newName.trim() || savingNew) return;
+    setSavingNew(true);
+    setAddError(null);
+    try {
+      const res = await fetch("/api/spotify/playlists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim(), description: "" }),
+      });
+      if (!res.ok) throw new Error("Failed to create playlist");
+      const created = (await res.json()) as SpotifyPlaylist;
+      playlistCache = null; // invalidate so next open re-fetches
+      setPlaylists((prev) => [created, ...prev]);
+      setNewName("");
+      setCreating(false);
+      await doAdd(created);
+    } catch {
+      setAddError("Could not create playlist. Please try again.");
+    } finally {
+      setSavingNew(false);
+    }
+  };
+
   const handlePlaylistClick = (playlist: SpotifyPlaylist) => {
     if (adding || added.has(playlist.id)) return;
     doAdd(playlist);
@@ -152,8 +179,47 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
 
         {/* Duplicates are allowed and shown as "Add again" */}
 
+        {/* New playlist inline form */}
+        <div className="px-3 pt-2 pb-1">
+          {creating ? (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") createAndAdd(); if (e.key === "Escape") { setCreating(false); setNewName(""); } }}
+                placeholder="Playlist name…"
+                className="flex-1 border text-white placeholder-white/25 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
+                style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
+              />
+              <button
+                onClick={createAndAdd}
+                disabled={savingNew || !newName.trim()}
+                className="shrink-0 w-8 h-8 rounded-xl bg-[#E8282B] flex items-center justify-center disabled:opacity-40 transition-opacity"
+              >
+                {savingNew ? <Loader2 size={13} className="animate-spin text-white" /> : <Check size={13} className="text-white" />}
+              </button>
+              <button
+                onClick={() => { setCreating(false); setNewName(""); }}
+                className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.08] transition-colors"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setCreating(true)}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors hover:bg-white/[0.05]"
+              style={{ color: "rgba(255,255,255,0.45)" }}
+            >
+              <Plus size={14} />
+              New playlist
+            </button>
+          )}
+        </div>
+
         {/* Playlist list */}
-        <div className="px-2 py-2 flex-1 overflow-y-auto min-h-0 space-y-0.5">
+        <div className="px-2 pb-2 flex-1 overflow-y-auto min-h-0 space-y-0.5">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <Loader2 size={22} className="animate-spin text-[#E8282B]/60" />

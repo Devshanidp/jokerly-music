@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -16,6 +16,7 @@ import Image from "next/image";
 import { useToastStore } from "@/store/toast";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
+import AddFromPlaylistModal from "@/components/playlist/AddFromPlaylistModal";
 
 interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
@@ -139,6 +140,7 @@ export default function PlaylistsClient() {
   const [loadingTracks, setLoadingTracks] = useState<string | null>(null);
   const [removingTrack, setRemovingTrack] = useState<string | null>(null);
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
+  const [addFromPlaylist, setAddFromPlaylist] = useState(false);
   const { toast } = useToastStore();
   const { setQueueAndPlay } = usePlayerStore();
 
@@ -342,13 +344,18 @@ export default function PlaylistsClient() {
         {/* Back + actions header */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { setSelectedId(null); setEdit(null); }}
+            onClick={() => { setSelectedId(null); setEdit(null); setAddFromPlaylist(false); }}
             className="flex items-center gap-1.5 text-sm font-medium transition-colors"
             style={{ color: "rgba(255,255,255,0.55)" }}
           >
             <ArrowLeft size={16} /> Back
           </button>
           <div className="flex-1" />
+          <button onClick={() => setAddFromPlaylist(true)}
+            title="Add tracks from another playlist"
+            className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
+            <FolderInput size={15} />
+          </button>
           <button onClick={() => setEdit({ id: pl.id, name: pl.name, description: pl.description ?? "" })}
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
             <Pencil size={15} />
@@ -436,6 +443,14 @@ export default function PlaylistsClient() {
         </div>
 
         {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
+        {addFromPlaylist && selectedPlaylist && (
+          <AddFromPlaylistModal
+            targetPlaylistId={selectedPlaylist.id}
+            targetPlaylistName={selectedPlaylist.name}
+            onClose={() => setAddFromPlaylist(false)}
+            onTracksAdded={() => fetchTracks(selectedPlaylist.id)}
+          />
+        )}
       </div>
     );
   }

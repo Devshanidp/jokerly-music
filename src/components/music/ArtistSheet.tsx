@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SpotifyArtist, SpotifyTrack, artistImage } from "@/types/spotify";
-import { X, Loader2, ExternalLink } from "lucide-react";
+import { SpotifyArtist, SpotifyTrack, artistImage, trackImage, artistNames } from "@/types/spotify";
+import { X, Loader2, ExternalLink, Music, Play, Pause, ListPlus } from "lucide-react";
 import Image from "next/image";
-import SpotifyTrackCard from "./SpotifyTrackCard";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
+import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 
 interface Props {
   artist: SpotifyArtist;
@@ -15,7 +15,7 @@ interface Props {
 function toPlayable(t: SpotifyTrack): PlayableTrack {
   return {
     name: t.name,
-    artist: t.artists.map((a) => a.name).join(", "),
+    artist: artistNames(t),
     image: t.album?.images?.[0]?.url,
     uri: t.uri,
     durationMs: t.duration_ms,
@@ -27,7 +27,8 @@ export default function ArtistSheet({ artist, onClose }: Props) {
   const [topTracks, setTopTracks] = useState<SpotifyTrack[]>([]);
   const [moreTracks, setMoreTracks] = useState<SpotifyTrack[]>([]);
   const [loading, setLoading] = useState(true);
-  const { setQueueAndPlay } = usePlayerStore();
+  const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
+  const { setQueueAndPlay, currentTrack, isPlaying } = usePlayerStore();
 
   useEffect(() => {
     fetch(`/api/spotify/artist?id=${encodeURIComponent(artist.id)}&name=${encodeURIComponent(artist.name)}`)
@@ -37,12 +38,13 @@ export default function ArtistSheet({ artist, onClose }: Props) {
         setTopTracks(d.topTracks ?? []);
         setMoreTracks(d.moreTracks ?? []);
       })
-      .catch((e) => console.error("ArtistSheet fetch failed:", e))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [artist.id]);
 
-  const image = artistImage(info ?? artist);
   const allTracks = [...topTracks, ...moreTracks];
+  const displayArtist = info ?? artist;
+  const image = artistImage(displayArtist);
 
   const handlePlay = (track: SpotifyTrack) => {
     const index = allTracks.findIndex((t) => t.id === track.id);
@@ -51,84 +53,191 @@ export default function ArtistSheet({ artist, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-zinc-800 shadow-2xl">
-        <div className="flex items-start gap-4 p-5 border-b border-zinc-800 shrink-0">
-          <div className="relative w-16 h-16 shrink-0">
+    <>
+      <div
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center"
+        style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
+      >
+        <div
+          className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border border-white/[0.08] flex flex-col"
+          style={{ background: "var(--surface)", maxHeight: "min(88vh, calc(100vh - 24px))" }}
+        >
+          {/* Hero */}
+          <div className="relative shrink-0">
             {image ? (
-              <Image src={image} alt={artist.name} fill unoptimized className="rounded-full object-cover" sizes="64px" />
+              <div className="relative w-full h-44 sm:h-52 overflow-hidden">
+                <Image src={image} alt={displayArtist.name} fill unoptimized className="object-cover object-top" sizes="512px" />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, var(--surface) 100%)" }} />
+              </div>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-zinc-800" />
+              <div className="w-full h-28 flex items-center justify-center" style={{ background: "var(--card)" }}>
+                <Music size={40} className="text-white/10" />
+              </div>
             )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold text-white">{artist.name}</h2>
-            {(info ?? artist).followers?.total != null && (
-              <p className="text-zinc-400 text-sm">
-                {((info ?? artist).followers.total).toLocaleString()} followers
-              </p>
-            )}
-            {(info ?? artist).genres?.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1.5">
-                {(info ?? artist).genres.slice(0, 4).map((g) => (
-                  <span key={g} className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full capitalize">
+
+            {/* Close + external */}
+            <div className="absolute top-3 right-3 flex items-center gap-1">
+              <a
+                href={displayArtist.external_urls?.spotify}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="p-2 rounded-xl text-white/60 hover:text-white transition-colors"
+                style={{ background: "rgba(0,0,0,0.45)" }}
+              >
+                <ExternalLink size={15} />
+              </a>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl text-white/60 hover:text-white transition-colors"
+                style={{ background: "rgba(0,0,0,0.45)" }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Artist info overlay */}
+            <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
+              <h2 className="text-2xl font-bold text-white leading-tight drop-shadow">{displayArtist.name}</h2>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                {displayArtist.followers?.total != null && (
+                  <span className="text-xs text-white/50">
+                    {displayArtist.followers.total.toLocaleString()} followers
+                  </span>
+                )}
+                {displayArtist.genres?.slice(0, 3).map((g) => (
+                  <span key={g} className="text-[10px] px-2 py-0.5 rounded-full capitalize text-white/50 border border-white/10"
+                    style={{ background: "rgba(255,255,255,0.06)" }}>
                     {g}
                   </span>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* Track list */}
+          <div className="flex-1 overflow-y-auto min-h-0 px-2 py-3 space-y-0.5">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-14 gap-3">
+                <Loader2 size={24} className="animate-spin text-[#E8282B]/60" />
+                <p className="text-xs text-white/25">Loading tracks…</p>
+              </div>
+            ) : allTracks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-14 gap-2">
+                <Music size={32} className="text-white/10" />
+                <p className="text-sm text-white/30">No tracks found</p>
+              </div>
+            ) : (
+              <>
+                {topTracks.length > 0 && (
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25 px-3 pb-1 pt-1">
+                    Top Tracks
+                  </p>
+                )}
+                {topTracks.map((track, i) => (
+                  <TrackRow
+                    key={track.id}
+                    track={track}
+                    rank={i + 1}
+                    isCurrentlyPlaying={isPlaying && currentTrack?.uri === track.uri}
+                    onPlay={() => handlePlay(track)}
+                    onAddToPlaylist={() => setAddModal({
+                      name: track.name,
+                      uri: track.uri ?? "",
+                      image: trackImage(track),
+                      artist: artistNames(track),
+                    })}
+                  />
+                ))}
+                {moreTracks.length > 0 && (
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25 px-3 pb-1 pt-3">
+                    More Songs
+                  </p>
+                )}
+                {moreTracks.map((track, i) => (
+                  <TrackRow
+                    key={track.id}
+                    track={track}
+                    rank={topTracks.length + i + 1}
+                    isCurrentlyPlaying={isPlaying && currentTrack?.uri === track.uri}
+                    onPlay={() => handlePlay(track)}
+                    onAddToPlaylist={() => setAddModal({
+                      name: track.name,
+                      uri: track.uri ?? "",
+                      image: trackImage(track),
+                      artist: artistNames(track),
+                    })}
+                  />
+                ))}
+              </>
             )}
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <a
-              href={(info ?? artist).external_urls.spotify}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-              title="Open on Spotify"
-            >
-              <ExternalLink size={16} />
-            </a>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-y-auto flex-1 p-5 space-y-6">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 size={28} className="animate-spin text-zinc-500" />
-            </div>
-          ) : (
-            <>
-              {topTracks.length > 0 && (
-                <section>
-                  <h3 className="text-white font-semibold mb-2">Top Tracks</h3>
-                  <div className="space-y-1">
-                    {topTracks.map((t, i) => (
-                      <SpotifyTrackCard key={t.id} track={t} rank={i + 1} onPlay={handlePlay} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {moreTracks.length > 0 && (
-                <section>
-                  <h3 className="text-white font-semibold mb-2">More Songs</h3>
-                  <div className="space-y-1">
-                    {moreTracks.map((t, i) => (
-                      <SpotifyTrackCard key={t.id} track={t} rank={topTracks.length + i + 1} onPlay={handlePlay} />
-                    ))}
-                  </div>
-                </section>
-              )}
-            </>
-          )}
         </div>
       </div>
+
+      {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
+    </>
+  );
+}
+
+function TrackRow({ track, rank, isCurrentlyPlaying, onPlay, onAddToPlaylist }: {
+  track: SpotifyTrack;
+  rank: number;
+  isCurrentlyPlaying: boolean;
+  onPlay: () => void;
+  onAddToPlaylist: () => void;
+}) {
+  const image = trackImage(track);
+  const artist = artistNames(track);
+
+  return (
+    <div
+      onClick={onPlay}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl group cursor-pointer transition-all border ${
+        isCurrentlyPlaying
+          ? "bg-[#E8282B]/10 border-[#E8282B]/20"
+          : "hover:bg-white/[0.05] border-transparent hover:border-white/[0.06]"
+      }`}
+    >
+      <span className={`text-xs w-5 text-right shrink-0 tabular-nums font-medium ${isCurrentlyPlaying ? "text-[#E8282B]" : "text-white/25"}`}>
+        {rank}
+      </span>
+
+      <div className="relative shrink-0 w-10 h-10">
+        {image ? (
+          <Image src={image} alt={track.name} fill unoptimized className="rounded-xl object-cover" sizes="40px" />
+        ) : (
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "var(--card)" }}>
+            <Music size={14} className="text-white/20" />
+          </div>
+        )}
+        <div
+          className={`absolute inset-0 rounded-xl flex items-center justify-center transition-opacity ${
+            isCurrentlyPlaying ? "opacity-100 bg-black/40" : "opacity-0 group-hover:opacity-100 bg-black/50"
+          }`}
+          onClick={(e) => { e.stopPropagation(); onPlay(); }}
+        >
+          {isCurrentlyPlaying
+            ? <Pause size={13} className="text-white" fill="white" />
+            : <Play size={13} className="text-white" fill="white" />
+          }
+        </div>
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-medium truncate leading-tight ${isCurrentlyPlaying ? "text-[#E8282B]" : "text-white"}`}>
+          {track.name}
+        </p>
+        <p className="text-xs text-white/40 truncate mt-0.5">{artist}</p>
+      </div>
+
+      <button
+        onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
+        className="shrink-0 p-1.5 rounded-lg text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+      >
+        <ListPlus size={14} />
+      </button>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
-import { Pin, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash, ArrowLeft, ListMusic } from "lucide-react";
+import { Pin, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash, ArrowLeft, ListMusic, FolderInput } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -16,6 +16,7 @@ import { PinnedPlaylist } from "@/types";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import { useToastStore } from "@/store/toast";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
+import AddFromPlaylistModal from "@/components/playlist/AddFromPlaylistModal";
 
 interface PlaylistTrack {
   id: string;
@@ -139,6 +140,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
   const [removingTrack, setRemovingTrack] = useState<string | null>(null);
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
+  const [addFromPlaylist, setAddFromPlaylist] = useState(false);
   const { setQueueAndPlay, isPlayerReady } = usePlayerStore();
   const { toast } = useToastStore();
 
@@ -255,10 +257,17 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <button onClick={() => setSelectedId(null)}
+          <button onClick={() => { setSelectedId(null); setAddFromPlaylist(false); }}
             className="flex items-center gap-1.5 text-sm font-medium transition-colors"
             style={{ color: "rgba(255,255,255,0.55)" }}>
             <ArrowLeft size={16} /> Back
+          </button>
+          <div className="flex-1" />
+          <button onClick={() => setAddFromPlaylist(true)}
+            title="Add tracks from another playlist"
+            className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors"
+            style={{ color: "rgba(255,255,255,0.4)" }}>
+            <FolderInput size={15} />
           </button>
         </div>
 
@@ -305,6 +314,14 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
         </div>
 
         {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
+        {addFromPlaylist && selectedPl && (
+          <AddFromPlaylistModal
+            targetPlaylistId={selectedPl.playlist_id}
+            targetPlaylistName={selectedPl.playlist_name}
+            onClose={() => setAddFromPlaylist(false)}
+            onTracksAdded={() => fetchTracks(selectedPl.playlist_id)}
+          />
+        )}
       </div>
     );
   }
