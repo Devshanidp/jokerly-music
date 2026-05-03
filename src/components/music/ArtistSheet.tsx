@@ -61,15 +61,17 @@ export default function ArtistSheet({ artist, onClose }: Props) {
     setPinning(true);
     try {
       if (isPinned) {
-        await fetch("/api/pinned-artists", {
+        const res = await fetch("/api/pinned-artists", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ artist_id: displayArtist.id }),
         });
-        setIsPinned(false);
-        window.dispatchEvent(new CustomEvent("pinned-artists-updated"));
+        if (res.ok) {
+          setIsPinned(false);
+          window.dispatchEvent(new CustomEvent("pinned-artists-updated"));
+        }
       } else {
-        await fetch("/api/pinned-artists", {
+        const res = await fetch("/api/pinned-artists", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -78,11 +80,15 @@ export default function ArtistSheet({ artist, onClose }: Props) {
             artist_image: image ?? "",
           }),
         });
-        setIsPinned(true);
-        window.dispatchEvent(new CustomEvent("pinned-artists-updated"));
+        if (res.ok) {
+          setIsPinned(true);
+          window.dispatchEvent(new CustomEvent("pinned-artists-updated"));
+        } else {
+          console.error("Pin failed:", await res.text());
+        }
       }
-    } catch {
-      // silently ignore
+    } catch (e) {
+      console.error("Pin error:", e);
     } finally {
       setPinning(false);
     }

@@ -270,6 +270,31 @@ export default function HomeClient() {
     });
   };
 
+  const toggleArtistPin = async (artist: SpotifyArtist) => {
+    const alreadyPinned = pinnedArtists.some((pa) => pa.artist_id === artist.id);
+    const img = artistImage(artist) ?? "";
+    if (alreadyPinned) {
+      const res = await fetch("/api/pinned-artists", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ artist_id: artist.id }),
+      });
+      if (res.ok) setPinnedArtists((prev) => prev.filter((pa) => pa.artist_id !== artist.id));
+    } else {
+      const res = await fetch("/api/pinned-artists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ artist_id: artist.id, artist_name: artist.name, artist_image: img }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPinnedArtists((prev) => [data, ...prev]);
+      } else {
+        console.error("Pin failed:", await res.text());
+      }
+    }
+  };
+
   // Save from personalize sheet
   const handlePersonalizeSave = (newLangs: string[], newArtists: FavoriteArtist[]) => {
     setLangs(newLangs);
@@ -573,17 +598,35 @@ export default function HomeClient() {
 
             {section.artists.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {section.artists.slice(0, 6).map((artist) => (
-                  <button key={artist.id} onClick={() => setSelectedArtist(artist)}
-                    className="flex flex-col items-center gap-2 group">
-                    <div className="relative w-full aspect-square rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/30 transition-all">
-                      {artistImage(artist)
-                        ? <Image src={artistImage(artist)!} alt={artist.name} fill unoptimized sizes="80px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                        : <div className="w-full h-full flex items-center justify-center"><Mic2 size={20} className="text-white/20" /></div>}
+                {section.artists.slice(0, 6).map((artist) => {
+                  const isArtistPinned = pinnedArtists.some((pa) => pa.artist_id === artist.id);
+                  return (
+                    <div key={artist.id} className="flex flex-col items-center gap-2 group">
+                      <div className="relative w-full aspect-square">
+                        <button onClick={() => setSelectedArtist(artist)} className="w-full h-full">
+                          <div className="relative w-full h-full rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/30 transition-all">
+                            {artistImage(artist)
+                              ? <Image src={artistImage(artist)!} alt={artist.name} fill unoptimized sizes="80px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                              : <div className="w-full h-full flex items-center justify-center"><Mic2 size={20} className="text-white/20" /></div>}
+                          </div>
+                        </button>
+                        {/* Pin button */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleArtistPin(artist); }}
+                          className={`absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center shadow-lg border border-black/20 transition-all ${
+                            isArtistPinned
+                              ? "bg-[#E8282B] opacity-100"
+                              : "bg-black/60 opacity-0 group-hover:opacity-100"
+                          }`}
+                          title={isArtistPinned ? "Unpin artist" : "Pin to home"}
+                        >
+                          <Pin size={10} fill={isArtistPinned ? "white" : "none"} className="text-white" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-white/40 group-hover:text-white transition-colors text-center truncate w-full">{artist.name}</p>
                     </div>
-                    <p className="text-xs text-white/40 group-hover:text-white transition-colors text-center truncate w-full">{artist.name}</p>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>

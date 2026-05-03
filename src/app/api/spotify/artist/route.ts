@@ -7,63 +7,84 @@ export const maxDuration = 30;
 const SPOTIFY = "https://api.spotify.com/v1";
 
 async function spotifyGet(url: string, token: string) {
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    signal: AbortSignal.timeout(6000),
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchTopTracks(artistId: string, token: string): Promise<any[]> {
+  // Try without market (Spotify uses user's country), then US fallback
+  const d = await spotifyGet(`${SPOTIFY}/artists/${artistId}/top-tracks`, token);
+  if (d?.tracks?.length) return d.tracks;
+  const fb = await spotifyGet(`${SPOTIFY}/artists/${artistId}/top-tracks?market=US`, token);
+  return fb?.tracks ?? [];
+}
+
+// Multi-page search using 3 query variations to maximise coverage
+async function searchAllTracks(name: string, artistId: string, token: string): Promise<any[]> {
+  const queries = [
+    `artist:"${name}"`,          // exact credited artist
+    `artist:${name}`,            // flexible artist field match
+    name,                        // anywhere (catches featured credits)
+  ];
+
+  const pages = await Promise.allSettled(
+    queries.map((q) =>
+      spotifyGet(`${SPOTIFY}/search?q=${encodeURIComponent(q)}&type=track&limit=50`, token)
+        .then((d) => d?.tracks?.items ?? [])
+    )
+  );
+
+  const seen = new Set<string>();
+  const result: any[] = [];
+
+  // Merge all pages, dedup
+  for (const p of pages) {
+    if (p.status !== "fulfilled") continue;
+    for (const t of p.value) {
+      if (!t?.id || seen.has(t.id)) continue;
+      seen.add(t.id);
+      result.push(t);
+    }
+  }
+
+  // Sort: directly credited tracks first
+  return result.sort((a, b) => {
+    const aD = a.artists?.some((ar: any) => ar.id === artistId) ? 0 : 1;
+    const bD = b.artists?.some((ar: any) => ar.id === artistId) ? 0 : 1;
+    return aD - bD;
   });
-  if (!res.ok) return null;
-  return res.json();
 }
 
-// Fetch top tracks — try without market first (uses user's country), fallback to IN
-async function fetchTopTracks(artistId: string, token: string) {
-  try {
-    const data = await spotifyGet(`${SPOTIFY}/artists/${artistId}/top-tracks`, token);
-    if (data?.tracks?.length) return data.tracks;
-    // fallback with explicit market
-    const fallback = await spotifyGet(`${SPOTIFY}/artists/${artistId}/top-tracks?market=US`, token);
-    return fallback?.tracks ?? [];
-  } catch {
-    return [];
-  }
-}
+// Fetch tracks from artist albums — capped at 5 albums fetched sequentially
+// to avoid bursting Spotify's rate limit
+async function fetchAlbumTracks(artistId: string, token: string): Promise<any[]> {
+  const albums = await spotifyGet(
+    `${SPOTIFY}/artists/${artistId}/albums?include_groups=album,single,appears_on&limit=10`,
+    token
+  );
+  const items: any[] = albums?.items ?? [];
+  if (!items.length) return [];
 
-// Search for tracks by artist name — broad match, no ID filter so film composers appear
-async function searchArtistTracks(artistName: string, artistId: string, token: string) {
-  try {
-    const q = encodeURIComponent(`artist:"${artistName}"`);
-    const data = await spotifyGet(`${SPOTIFY}/search?q=${q}&type=track&limit=50`, token);
-    const items = data?.tracks?.items ?? [];
-    // prefer tracks where this artist is directly credited, then include others
-    const direct = items.filter((t: any) => t.artists?.some((a: any) => a.id === artistId));
-    const indirect = items.filter((t: any) => !t.artists?.some((a: any) => a.id === artistId));
-    return [...direct, ...indirect];
-  } catch {
-    return [];
+  const tracks: any[] = [];
+  // Fetch up to 5 albums sequentially to avoid rate limiting
+  for (const album of items.slice(0, 5)) {
+    const d = await spotifyGet(`${SPOTIFY}/albums/${album.id}/tracks?limit=50`, token);
+    const albumTracks: any[] = (d?.items ?? []).map((t: any) => ({
+      ...t,
+      album: { id: album.id, name: album.name, images: album.images },
+    }));
+    tracks.push(...albumTracks);
+    if (tracks.length >= 150) break;
   }
-}
-
-// Get tracks from artist's own albums/singles (great for composers & solo artists)
-async function fetchAlbumTracks(artistId: string, token: string) {
-  try {
-    const albums = await spotifyGet(
-      `${SPOTIFY}/artists/${artistId}/albums?include_groups=album,single&limit=5`,
-      token
-    );
-    const albumItems: any[] = albums?.items ?? [];
-    const trackLists = await Promise.allSettled(
-      albumItems.slice(0, 3).map((album) =>
-        spotifyGet(`${SPOTIFY}/albums/${album.id}/tracks?limit=10`, token).then((d) =>
-          (d?.items ?? []).map((t: any) => ({ ...t, album }))
-        )
-      )
-    );
-    return trackLists
-      .filter((r): r is PromiseFulfilledResult<any[]> => r.status === "fulfilled")
-      .flatMap((r) => r.value);
-  } catch {
-    return [];
-  }
+  return tracks;
 }
 
 export async function GET(req: NextRequest) {
@@ -78,30 +99,32 @@ export async function GET(req: NextRequest) {
 
   const token = session.accessToken as string;
 
-  const [infoRes, topRes, searchRes, albumRes] = await Promise.allSettled([
+  // Stage 1: artist info + top tracks + search (controlled parallelism)
+  const [infoRes, topRes, searchRes] = await Promise.allSettled([
     getArtist(id, token),
     fetchTopTracks(id, token),
-    searchArtistTracks(name, id, token),
-    fetchAlbumTracks(id, token),
+    searchAllTracks(name, id, token),
   ]);
 
-  const info       = infoRes.status   === "fulfilled" ? infoRes.value   : null;
-  const topTracks  = topRes.status    === "fulfilled" ? topRes.value    : [];
+  const info      = infoRes.status  === "fulfilled" ? infoRes.value  : null;
+  const topTracks = topRes.status   === "fulfilled" ? topRes.value   : [];
   const searchMore = searchRes.status === "fulfilled" ? searchRes.value : [];
-  const albumMore  = albumRes.status  === "fulfilled" ? albumRes.value  : [];
 
   if (!info) return NextResponse.json({ error: "Artist not found" }, { status: 404 });
 
-  const topIds = new Set(topTracks.map((t: any) => t.id));
+  // Stage 2: album tracks (sequential, after stage 1 completes)
+  const albumMore = await fetchAlbumTracks(id, token);
 
-  // Merge search + album tracks, dedupe against topTracks
+  const topIds = new Set((topTracks as any[]).map((t: any) => t.id));
   const seen = new Set(topIds);
   const moreTracks: any[] = [];
-  for (const t of [...searchMore, ...albumMore]) {
+
+  // Album tracks first (richer data with images), then search results
+  for (const t of [...albumMore, ...searchMore]) {
     if (!t?.id || seen.has(t.id)) continue;
     seen.add(t.id);
     moreTracks.push(t);
-    if (moreTracks.length >= 20) break;
+    if (moreTracks.length >= 100) break;
   }
 
   return NextResponse.json({ info, topTracks, moreTracks });
