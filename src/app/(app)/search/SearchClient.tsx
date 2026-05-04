@@ -18,7 +18,6 @@ import Image from "next/image";
 type Tab = "track" | "artist" | "album";
 
 // Per-type cache — tracks/artists/albums stored independently
-interface TypeCache<T> { items: T[]; query: string }
 const trackCache = new Map<string, SpotifyTrack[]>();
 const artistCache = new Map<string, SpotifyArtist[]>();
 const albumCache = new Map<string, SpotifyAlbum[]>();
@@ -32,6 +31,15 @@ interface Suggestion {
   uri?: string;
   durationMs?: number;
 }
+
+interface IdentifiedMatch {
+  title: string;
+  artist: string;
+  uri: string | null;
+  imageUrl: string | null;
+  durationMs: number | null;
+}
+
 const suggestCache = new Map<string, Suggestion[]>();
 
 const TABS: { label: string; value: Tab }[] = [
@@ -86,8 +94,14 @@ export default function SearchClient() {
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [resolvingSuggestKey, setResolvingSuggestKey] = useState<string | null>(null);
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string } | null>(null);
+  const [listening, setListening] = useState(false);
+  const [identifying, setIdentifying] = useState(false);
+  const [identifyError, setIdentifyError] = useState<string | null>(null);
+  const [identifiedMatch, setIdentifiedMatch] = useState<IdentifiedMatch | null>(null);
 
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestBoxRef = useRef<HTMLDivElement>(null);
 
@@ -227,6 +241,101 @@ export default function SearchClient() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (recorderRef.current && recorderRef.current.state !== "inactive") {
+        recorderRef.current.stop();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleIdentifySong = async () => {
+    if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setIdentifyError("Microphone is not supported in this browser");
+      return;
+    }
+
+    if (listening || identifying) return;
+
+    setIdentifyError(null);
+    setIdentifiedMatch(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const chunks: Blob[] = [];
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+
+      recorder.onerror = () => {
+        setListening(false);
+        setIdentifying(false);
+        setIdentifyError("Microphone recording failed");
+      };
+
+      recorder.onstop = async () => {
+        try {
+          setListening(false);
+          const audioBlob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+          if (!audioBlob.size) {
+            setIdentifyError("No audio captured");
+            return;
+          }
+          setIdentifying(true);
+          const form = new FormData();
+          form.append("audio", audioBlob, "clip.webm");
+
+          const res = await fetch("/api/spotify/identify", { method: "POST", body: form });
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok) {
+            setIdentifyError(data.error ?? "Could not identify song");
+            return;
+          }
+
+          const match = data.match as IdentifiedMatch | undefined;
+          if (!match) {
+            setIdentifyError("No match found");
+            return;
+          }
+
+          setIdentifiedMatch(match);
+          setQuery(`${match.title} ${match.artist}`.trim());
+        } finally {
+          setIdentifying(false);
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
+          }
+          recorderRef.current = null;
+        }
+      };
+
+      recorder.start();
+      setListening(true);
+      window.setTimeout(() => {
+        if (recorder.state !== "inactive") {
+          recorder.stop();
+        }
+      }, 9000);
+    } catch {
+      setIdentifyError("Microphone permission denied");
+      setListening(false);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    }
+  };
+
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSearch();
     if (e.key === "Escape") setShowSuggestions(false);
@@ -302,9 +411,17 @@ export default function SearchClient() {
           onKeyDown={handleKey}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           placeholder="Search tracks, artists, albums..."
-          className="w-full bg-zinc-800 text-white placeholder-zinc-500 rounded-xl pl-12 pr-28 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition"
+          className="w-full bg-zinc-800 text-white placeholder-zinc-500 rounded-xl pl-12 pr-44 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition"
           autoComplete="off"
         />
+        <button
+          onClick={handleIdentifySong}
+          disabled={listening || identifying}
+          title="Identify song"
+          className="absolute right-24 top-1/2 -translate-y-1/2 text-zinc-200 hover:text-white disabled:opacity-40 p-2 rounded-lg hover:bg-zinc-700/60 transition-colors"
+        >
+          {listening || identifying ? <Loader2 size={15} className="animate-spin" /> : <Mic2 size={15} />}
+        </button>
         <button
           onClick={() => handleSearch()}
           disabled={loadingMain || !query.trim()}
@@ -392,6 +509,39 @@ export default function SearchClient() {
       </div>
 
       {/* Search error banner */}
+      {(identifyError || listening || identifying || identifiedMatch) && (
+        <div className="rounded-2xl border border-zinc-700 bg-zinc-900/70 p-4 flex flex-col gap-2">
+          {listening && <p className="text-sm text-zinc-200">Listening... hold your phone near the music source.</p>}
+          {identifying && <p className="text-sm text-zinc-200">Identifying song...</p>}
+          {identifyError && <p className="text-sm text-red-400">{identifyError}</p>}
+          {identifiedMatch && (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-semibold truncate">{identifiedMatch.title}</p>
+                <p className="text-zinc-400 text-xs truncate">{identifiedMatch.artist}</p>
+              </div>
+              {identifiedMatch.uri && (
+                <button
+                  onClick={() => {
+                    const playable: PlayableTrack = {
+                      name: identifiedMatch.title,
+                      artist: identifiedMatch.artist,
+                      image: identifiedMatch.imageUrl ?? undefined,
+                      uri: identifiedMatch.uri,
+                      durationMs: identifiedMatch.durationMs ?? undefined,
+                    };
+                    setQueueAndPlay([playable], 0);
+                  }}
+                  className="bg-red-500 hover:bg-red-400 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  Play
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {searchError && (
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 flex flex-col gap-3">
           <div className="flex items-start gap-3">
