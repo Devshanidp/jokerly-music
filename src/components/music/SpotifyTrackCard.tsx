@@ -85,7 +85,7 @@ export default function SpotifyTrackCard({ track, onGetSimilar, onPlay, onAddToP
           className={`p-1.5 rounded-lg transition-colors ${
             isLiked
               ? "text-[#E8282B]"
-              : "text-white/25 hover:text-[#E8282B] hover:bg-[#E8282B]/10 sm:opacity-0 sm:group-hover:opacity-100"
+              : "text-white/25 hover:text-[#E8282B] hover:bg-[#E8282B]/10"
           }`}
         >
           <Heart size={14} fill={isLiked ? "currentColor" : "none"} />

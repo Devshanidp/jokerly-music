@@ -327,8 +327,8 @@ function TrackRow({ track, rank, isCurrentlyPlaying, onPlay, onAddToPlaylist }: 
       <button
         onClick={handleLike}
         title={isLiked ? "Unlike" : "Like"}
-        className={`shrink-0 p-1.5 rounded-lg transition-colors sm:opacity-0 sm:group-hover:opacity-100 ${
-          isLiked ? "text-[#E8282B] opacity-100" : "text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10"
+        className={`shrink-0 p-1.5 rounded-lg transition-colors ${
+          isLiked ? "text-[#E8282B]" : "text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10"
         }`}
       >
         <Heart size={13} fill={isLiked ? "currentColor" : "none"} />
