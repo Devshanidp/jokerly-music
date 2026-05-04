@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postinstall": "node scripts/download-fpcalc.js",
     "start": "next start",
     "lint": "eslint",
     "web:dev": "next dev",
