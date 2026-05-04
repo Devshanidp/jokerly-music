@@ -3,10 +3,12 @@
 import { useEffect, useCallback, useState, useRef } from "react";
 import { usePlayerStore } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
-import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal } from "lucide-react";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
+import QueueSheet from "@/components/player/QueueSheet";
+import LyricsPanel from "@/components/player/LyricsPanel";
 
 function formatTime(seconds: number) {
   if (!isFinite(seconds)) return "0:00";
@@ -36,6 +38,8 @@ export default function PlayerBar() {
     volume,
     endedToken,
     isPlayerExpanded: expanded,
+    isQueueOpen,
+    sleepTimerEndsAt,
     initializePlayer,
     togglePlay,
     playIndex,
@@ -45,6 +49,7 @@ export default function PlayerBar() {
     setRepeatMode,
     toggleShuffle,
     setVolume,
+    setSleepTimer,
     getNextIndex,
     getPrevIndex,
   } = usePlayerStore();
@@ -58,6 +63,9 @@ export default function PlayerBar() {
   };
 
   const [fetching, setFetching] = useState(false);
+  const [showTimerPicker, setShowTimerPicker] = useState(false);
+  const [timerRemaining, setTimerRemaining] = useState<string | null>(null);
+  const [showLyrics, setShowLyrics] = useState(false);
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [resolvingAdd, setResolvingAdd] = useState(false);
   const fetchingRef = useRef(false);
@@ -208,6 +216,26 @@ export default function PlayerBar() {
       });
     };
   }, [togglePlay, fetchAndPlay]);
+
+  // Sleep timer countdown
+  useEffect(() => {
+    if (!sleepTimerEndsAt) { setTimerRemaining(null); return; }
+    const tick = () => {
+      const diff = sleepTimerEndsAt - Date.now();
+      if (diff <= 0) {
+        usePlayerStore.getState().togglePlay();
+        usePlayerStore.getState().setSleepTimer(null);
+        setTimerRemaining(null);
+        return;
+      }
+      const m = Math.floor(diff / 60_000);
+      const s = Math.floor((diff % 60_000) / 1000);
+      setTimerRemaining(`${m}:${String(s).padStart(2, "0")}`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [sleepTimerEndsAt]);
 
   if (sdkError && !currentTrack) {
     return (

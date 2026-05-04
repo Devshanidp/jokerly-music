@@ -10,6 +10,7 @@ import SpotifyArtistCard from "@/components/music/SpotifyArtistCard";
 import SpotifyAlbumCard from "@/components/music/SpotifyAlbumCard";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import ArtistSheet from "@/components/music/ArtistSheet";
+import AlbumSheet from "@/components/music/AlbumSheet";
 import { SpotifyTrack, SpotifyArtist, SpotifyAlbum, trackImage, artistImage, artistNames } from "@/types/spotify";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
@@ -84,6 +85,7 @@ export default function SearchClient() {
   const [searched, setSearched] = useState(false);
   const [searchError, setSearchError] = useState<{ message: string; status: number } | null>(null);
   const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = useState<SpotifyAlbum | null>(null);
   const [similarSeed, setSimilarSeed] = useState<SpotifyTrack | null>(null);
   const [similarTracks, setSimilarTracks] = useState<SpotifyTrack[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
@@ -626,7 +628,7 @@ export default function SearchClient() {
               ) : albums.length === 0 ? (
                 <p className="text-zinc-500 text-sm py-8 col-span-5 text-center">No albums found.</p>
               ) : (
-                albums.map((a) => <SpotifyAlbumCard key={a.id} album={a} />)
+                albums.map((a) => <SpotifyAlbumCard key={a.id} album={a} onSelect={setSelectedAlbum} />)
               )}
             </div>
           )}
@@ -654,6 +656,7 @@ export default function SearchClient() {
 
       {modalTrack && <AddToPlaylistModal track={modalTrack} onClose={() => setModalTrack(null)} />}
       {selectedArtist && <ArtistSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />}
+      {selectedAlbum && <AlbumSheet album={selectedAlbum} onClose={() => setSelectedAlbum(null)} />}
     </div>
   );
 }

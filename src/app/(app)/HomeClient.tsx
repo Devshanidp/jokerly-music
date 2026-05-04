@@ -32,6 +32,15 @@ interface PinnedArtist {
   artist_image: string;
 }
 
+interface RecentTrack {
+  id: number;
+  track_uri: string;
+  track_name: string;
+  track_artist: string;
+  track_image: string | null;
+  played_at: string;
+}
+
 interface FeedSection {
   langId: string;
   label: string;
@@ -141,17 +150,23 @@ export default function HomeClient() {
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
   const [pinnedArtists, setPinnedArtists] = useState<PinnedArtist[]>([]);
+  const [recentlyPlayed, setRecentlyPlayed] = useState<RecentTrack[]>([]);
 
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestBoxRef = useRef<HTMLDivElement>(null);
   const { setQueueAndPlay } = usePlayerStore();
 
-  // Always fetch pinned artists on mount — not gated by cache
+  // Always fetch pinned artists + recently played on mount
   useEffect(() => {
     fetch("/api/pinned-artists")
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setPinnedArtists(data); })
+      .catch(() => {});
+
+    fetch("/api/recently-played")
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d.data)) setRecentlyPlayed(d.data); })
       .catch(() => {});
   }, []);
 
@@ -458,6 +473,31 @@ export default function HomeClient() {
           </div>
         )}
       </div>
+
+      {/* Recently Played */}
+      {recentlyPlayed.length > 0 && (
+        <section className="space-y-3">
+          <h3 className="text-white font-bold text-base">Recently Played</h3>
+          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            {recentlyPlayed.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setQueueAndPlay([{ name: t.track_name, artist: t.track_artist, image: t.track_image ?? undefined, uri: t.track_uri }], 0)}
+                className="flex flex-col items-center gap-2 shrink-0 group"
+                style={{ width: 72 }}
+              >
+                <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/40 transition-all">
+                  {t.track_image
+                    ? <Image src={t.track_image} alt={t.track_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                    : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={18} className="text-white/20" /></div>
+                  }
+                </div>
+                <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{t.track_name}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Pinned Playlists */}
       <section className="space-y-3">
