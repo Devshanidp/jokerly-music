@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { Search, Loader2, Music, Mic2, Play, ListPlus, AlertCircle, RefreshCw, LogOut, ArrowLeft } from "lucide-react";
+import { Search, Loader2, Music, Mic2, Play, ListPlus, AlertCircle, RefreshCw, LogOut, ArrowLeft, Heart } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import SpotifyTrackCard from "@/components/music/SpotifyTrackCard";
@@ -12,6 +12,7 @@ import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import { SpotifyTrack, SpotifyArtist, SpotifyAlbum, trackImage, artistImage, artistNames } from "@/types/spotify";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
+import { useLikesStore } from "@/store/likes";
 import Image from "next/image";
 
 type Tab = "track" | "artist" | "album";
@@ -59,6 +60,7 @@ export default function SearchClient() {
   const router = useRouter();
   const { data: session } = useSession();
   const { setQueueAndPlay, currentTrack, isPlaying } = usePlayerStore();
+  const { load: loadLikes, songUris, toggleSong } = useLikesStore();
 
   const [query, setQuery] = useState(initialQ);
   const [tab, setTab] = useState<Tab>("track");
@@ -144,6 +146,8 @@ export default function SearchClient() {
     setAlbums([]);
     await doFetchType(q, "track");
   }, [query, doFetchType]);
+
+  useEffect(() => { loadLikes(); }, [loadLikes]);
 
   // Auto-search when ?q= URL param changes
   useEffect(() => {
@@ -323,13 +327,14 @@ export default function SearchClient() {
                     {suggestions.filter((s) => s.type === "track").map((s) => {
                       const isResolving = resolvingSuggestKey === s.id;
                       const isLoading = playingKey === s.id;
+                      const isSongLiked = songUris.has(s.uri ?? "");
                       return (
-                        <div key={s.id} className="flex items-center gap-2 px-3 py-2 hover:bg-white/[0.05] transition-colors group">
+                        <div key={s.id} className="flex items-center gap-2 px-3 py-2.5 hover:bg-white/[0.05] transition-colors group">
                           <button onClick={() => handleSuggestionPlay(s)} className="flex items-center gap-3 min-w-0 flex-1 text-left">
-                            <div className="relative w-9 h-9 shrink-0">
-                              {s.image ? <Image src={s.image} alt={s.name} fill unoptimized sizes="36px" className="rounded-md object-cover" /> : <div className="w-9 h-9 rounded-md flex items-center justify-center border border-white/[0.08]" style={{ background: "var(--card)" }}><Music size={13} className="text-white/30" /></div>}
-                              <div className="absolute inset-0 rounded-md bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                {isLoading ? <Loader2 size={13} className="text-white animate-spin" /> : <Play size={13} className="text-white" />}
+                            <div className="relative w-10 h-10 shrink-0">
+                              {s.image ? <Image src={s.image} alt={s.name} fill unoptimized sizes="40px" className="rounded-lg object-cover" /> : <div className="w-10 h-10 rounded-lg flex items-center justify-center border border-white/[0.08]" style={{ background: "var(--card)" }}><Music size={14} className="text-white/30" /></div>}
+                              <div className="absolute inset-0 rounded-lg bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                {isLoading ? <Loader2 size={13} className="text-white animate-spin" /> : <Play size={13} className="text-white" fill="white" />}
                               </div>
                             </div>
                             <div className="min-w-0">
@@ -338,9 +343,18 @@ export default function SearchClient() {
                             </div>
                           </button>
                           {s.uri && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleSong({ uri: s.uri!, name: s.name, image: s.image, artist: s.sub }); }}
+                              title={isSongLiked ? "Unlike" : "Like"}
+                              className={`shrink-0 p-2 rounded-xl transition-colors ${isSongLiked ? "text-[#E8282B]" : "text-white/35 hover:text-[#E8282B] hover:bg-[#E8282B]/10"}`}
+                            >
+                              <Heart size={15} fill={isSongLiked ? "currentColor" : "none"} />
+                            </button>
+                          )}
+                          {s.uri && (
                             <button onClick={() => handleSuggestionAdd(s)} disabled={isResolving} title="Add to playlist"
-                              className="shrink-0 p-1.5 rounded-lg text-[#E8282B]/60 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors">
-                              {isResolving ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
+                              className="shrink-0 p-2 rounded-xl text-white/35 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors">
+                              {isResolving ? <Loader2 size={15} className="animate-spin" /> : <ListPlus size={15} />}
                             </button>
                           )}
                         </div>
