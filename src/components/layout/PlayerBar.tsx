@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState, useRef } from "react";
 import { usePlayerStore } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
-import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX } from "lucide-react";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
@@ -33,6 +33,7 @@ export default function PlayerBar() {
     sdkError,
     repeatMode,
     shuffleEnabled,
+    volume,
     endedToken,
     isPlayerExpanded: expanded,
     initializePlayer,
@@ -43,6 +44,7 @@ export default function PlayerBar() {
     stop,
     setRepeatMode,
     toggleShuffle,
+    setVolume,
     getNextIndex,
     getPrevIndex,
   } = usePlayerStore();
@@ -235,6 +237,8 @@ export default function PlayerBar() {
   const playBusy = (!currentTrack || !isPlaying) && (fetching || isTransitioning || (!isPlayerReady && !sdkError));
   const playDisabled = noTrackUri || playBusy;
 
+  const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+
   const cycleRepeatMode = () => {
     if (repeatMode === "off") { setRepeatMode("all"); return; }
     if (repeatMode === "all") { setRepeatMode("one"); return; }
@@ -310,6 +314,20 @@ export default function PlayerBar() {
                     <span>{formatTime(progressMs / 1000)}</span>
                     <span>{formatTime(durationMs / 1000)}</span>
                   </div>
+                </div>
+
+                {/* Volume */}
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="shrink-0 text-white/30 hover:text-white transition-colors">
+                    <VolumeIcon size={16} />
+                  </button>
+                  <input
+                    type="range" min={0} max={1} step={0.02} value={volume}
+                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                    className="flex-1 h-1 rounded-full appearance-none cursor-pointer accent-[#E8282B]"
+                    style={{ background: `linear-gradient(to right, #E8282B ${volume * 100}%, rgba(255,255,255,0.12) ${volume * 100}%)` }}
+                  />
+                  <span className="text-xs tabular-nums text-white/25 w-7 text-right">{Math.round(volume * 100)}</span>
                 </div>
 
                 {/* Controls */}
@@ -427,6 +445,17 @@ export default function PlayerBar() {
               className="p-2 rounded-xl text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors disabled:opacity-30">
               {resolvingAdd ? <Loader2 size={16} className="animate-spin" /> : <ListPlus size={16} />}
             </button>
+            <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+              <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="p-2 rounded-xl text-white/30 hover:text-white transition-colors">
+                <VolumeIcon size={16} />
+              </button>
+              <input
+                type="range" min={0} max={1} step={0.02} value={volume}
+                onChange={(e) => setVolume(parseFloat(e.target.value))}
+                className="w-20 h-1 rounded-full appearance-none cursor-pointer accent-[#E8282B]"
+                style={{ background: `linear-gradient(to right, #E8282B ${volume * 100}%, rgba(255,255,255,0.12) ${volume * 100}%)` }}
+              />
+            </div>
             <button onClick={stop} title="Close"
               className="p-2 rounded-xl text-white/25 hover:text-white/70 hover:bg-white/[0.06] transition-colors">
               <X size={16} />

@@ -27,10 +27,12 @@ interface PlayerState {
   accessToken: string | null;
   repeatMode: RepeatMode;
   shuffleEnabled: boolean;
+  volume: number;
   endedToken: number;
   isPlayerExpanded: boolean;
 
   initializePlayer: (accessToken: string) => Promise<void>;
+  setVolume: (volume: number) => Promise<void>;
   setQueueAndPlay: (tracks: PlayableTrack[], index: number) => Promise<void>;
   updateTrackUri: (index: number, uri: string | null, imageUrl?: string | null, durationMs?: number) => void;
   playIndex: (index: number) => void;
@@ -65,6 +67,8 @@ interface SpotifyPlayer {
   togglePlay: () => Promise<void>;
   seek: (positionMs: number) => Promise<void>;
   pause: () => Promise<void>;
+  setVolume: (volume: number) => Promise<void>;
+  getVolume: () => Promise<number>;
 }
 
 interface SpotifyPlayerCtor {
@@ -201,6 +205,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   accessToken: null,
   repeatMode: "off",
   shuffleEnabled: false,
+  volume: 0.8,
   endedToken: 0,
   isPlayerExpanded: false,
 
@@ -283,6 +288,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     const connected = await player.connect();
     if (connected) {
       set({ player });
+      player.setVolume(get().volume).catch(() => {});
     }
   },
 
@@ -423,6 +429,13 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     await playerApi("shuffle", { deviceId, state: next }).catch(() => {});
   },
 
+  setVolume: async (volume) => {
+    const clamped = Math.max(0, Math.min(1, volume));
+    set({ volume: clamped });
+    const { player } = get();
+    if (player) await player.setVolume(clamped).catch(() => {});
+  },
+
   getNextIndex: () => {
     const { queue, queueIndex, repeatMode, shuffleEnabled } = get();
     if (queue.length === 0 || queueIndex < 0) return null;
@@ -480,6 +493,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     durationMs: state.durationMs,
     repeatMode: state.repeatMode,
     shuffleEnabled: state.shuffleEnabled,
+    volume: state.volume,
     isPlayerExpanded: false,
     endedToken: 0,
     isPlayerReady: false,
@@ -498,5 +512,6 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     toggleShuffle: state.toggleShuffle,
     getNextIndex: state.getNextIndex,
     getPrevIndex: state.getPrevIndex,
+    setVolume: state.setVolume,
   }),
 }));
