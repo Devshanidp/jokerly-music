@@ -43,8 +43,8 @@ export async function POST(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Trim to 20 most recent
-  await supabase.rpc("trim_recently_played", { p_user_id: session.spotifyId }).catch(() => {});
+  // Trim to 20 most recent (fire and forget)
+  void supabase.rpc("trim_recently_played", { p_user_id: session.spotifyId });
 
   return NextResponse.json({ ok: true });
 }
