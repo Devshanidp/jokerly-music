@@ -53,6 +53,20 @@ function toPlayable(t: SpotifyTrack): PlayableTrack {
   return { name: t.name, artist: artistNames(t), image: trackImage(t), uri: t.uri, durationMs: t.duration_ms };
 }
 
+function toAlbumFromTrack(track: SpotifyTrack): SpotifyAlbum {
+  return {
+    id: track.album.id,
+    name: track.album.name,
+    artists: track.artists,
+    images: track.album.images,
+    release_date: track.album.release_date,
+    total_tracks: 0,
+    external_urls: track.album.external_urls,
+    album_type: track.album.album_type,
+    uri: `spotify:album:${track.album.id}`,
+  };
+}
+
 async function fetchType(q: string, type: "track" | "artist" | "album", _accessToken: string, limit = 20) {
   const safeLimit = Math.max(1, Math.min(Math.floor(limit), 50));
   const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(q)}&type=${type}&limit=${safeLimit}`);
@@ -388,6 +402,10 @@ export default function SearchClient() {
     setModalTrack({ uri: track.uri, name: track.name });
   };
 
+  const handleAlbumSelectFromTrack = (track: SpotifyTrack) => {
+    setSelectedAlbum(toAlbumFromTrack(track));
+  };
+
   const loadingMain = loadingTracks && tab === "track";
 
   return (
@@ -603,7 +621,9 @@ export default function SearchClient() {
               ) : (
                 tracks.map((t, i) => (
                   <SpotifyTrackCard key={t.id} track={t} rank={i + 1} onGetSimilar={handleGetSimilar}
-                    onPlay={(track) => handlePlay(track, tracks)} onAddToPlaylist={handleAddToPlaylist} isCurrentlyPlaying={isTrackPlaying(t)} />
+                    onPlay={(track) => handlePlay(track, tracks)} onAddToPlaylist={handleAddToPlaylist}
+                    onAlbumSelect={() => handleAlbumSelectFromTrack(t)}
+                    isCurrentlyPlaying={isTrackPlaying(t)} />
                 ))
               )}
             </div>
@@ -645,7 +665,9 @@ export default function SearchClient() {
                 <div className="space-y-1">
                   {similarTracks.map((t, i) => (
                     <SpotifyTrackCard key={t.id} track={t} rank={i + 1} onGetSimilar={handleGetSimilar}
-                      onPlay={(track) => handlePlay(track, similarTracks)} onAddToPlaylist={handleAddToPlaylist} isCurrentlyPlaying={isTrackPlaying(t)} />
+                      onPlay={(track) => handlePlay(track, similarTracks)} onAddToPlaylist={handleAddToPlaylist}
+                      onAlbumSelect={() => handleAlbumSelectFromTrack(t)}
+                      isCurrentlyPlaying={isTrackPlaying(t)} />
                   ))}
                 </div>
               )}

@@ -27,6 +27,8 @@ interface PlayerState {
   accessToken: string | null;
   repeatMode: RepeatMode;
   shuffleEnabled: boolean;
+  crossfadeEnabled: boolean;
+  crossfadeSeconds: number;
   volume: number;
   endedToken: number;
   isPlayerExpanded: boolean;
@@ -45,6 +47,8 @@ interface PlayerState {
   stop: () => void;
   setRepeatMode: (mode: RepeatMode) => Promise<void>;
   toggleShuffle: () => Promise<void>;
+  setCrossfadeEnabled: (enabled: boolean) => void;
+  setCrossfadeSeconds: (seconds: number) => void;
   getNextIndex: () => number | null;
   getPrevIndex: () => number | null;
 }
@@ -224,6 +228,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   accessToken: null,
   repeatMode: "off",
   shuffleEnabled: false,
+  crossfadeEnabled: true,
+  crossfadeSeconds: 5,
   volume: 0.8,
   endedToken: 0,
   isPlayerExpanded: false,
@@ -450,6 +456,15 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     await playerApi("shuffle", { deviceId, state: next }).catch(() => {});
   },
 
+  setCrossfadeEnabled: (enabled) => {
+    set({ crossfadeEnabled: enabled });
+  },
+
+  setCrossfadeSeconds: (seconds) => {
+    const clamped = Math.max(1, Math.min(12, Math.floor(seconds)));
+    set({ crossfadeSeconds: clamped });
+  },
+
   setVolume: async (volume) => {
     const clamped = Math.max(0, Math.min(1, volume));
     set({ volume: clamped });
@@ -532,6 +547,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     durationMs: state.durationMs,
     repeatMode: state.repeatMode,
     shuffleEnabled: state.shuffleEnabled,
+    crossfadeEnabled: state.crossfadeEnabled,
+    crossfadeSeconds: state.crossfadeSeconds,
     volume: state.volume,
     isPlayerExpanded: false,
     isQueueOpen: false,
@@ -551,6 +568,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     stop: state.stop,
     setRepeatMode: state.setRepeatMode,
     toggleShuffle: state.toggleShuffle,
+    setCrossfadeEnabled: state.setCrossfadeEnabled,
+    setCrossfadeSeconds: state.setCrossfadeSeconds,
     getNextIndex: state.getNextIndex,
     getPrevIndex: state.getPrevIndex,
     setVolume: state.setVolume,

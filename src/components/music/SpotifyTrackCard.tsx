@@ -11,11 +11,12 @@ interface Props {
   onGetSimilar?: (track: SpotifyTrack) => void;
   onPlay?: (track: SpotifyTrack) => void;
   onAddToPlaylist?: (track: SpotifyTrack) => void;
+  onAlbumSelect?: (album: SpotifyTrack["album"]) => void;
   isCurrentlyPlaying?: boolean;
   rank?: number;
 }
 
-export default function SpotifyTrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist, isCurrentlyPlaying, rank }: Props) {
+export default function SpotifyTrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist, onAlbumSelect, isCurrentlyPlaying, rank }: Props) {
   const image = trackImage(track);
   const artist = artistNames(track);
   const { load: loadLikes, songUris, toggleSong } = useLikesStore();
@@ -76,6 +77,19 @@ export default function SpotifyTrackCard({ track, onGetSimilar, onPlay, onAddToP
           {track.name}
         </p>
         <p className="text-xs text-white/40 truncate">{artist}</p>
+        {track.album?.name && (
+          onAlbumSelect ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); onAlbumSelect(track.album); }}
+              className="text-[11px] text-white/30 hover:text-[#E8282B] transition-colors truncate text-left"
+              title={`Open album: ${track.album.name}`}
+            >
+              {track.album.name}
+            </button>
+          ) : (
+            <p className="text-[11px] text-white/25 truncate">{track.album.name}</p>
+          )
+        )}
       </div>
 
       <div className="flex items-center gap-0.5 shrink-0">

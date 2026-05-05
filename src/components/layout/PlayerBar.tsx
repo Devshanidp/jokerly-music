@@ -35,6 +35,8 @@ export default function PlayerBar() {
     sdkError,
     repeatMode,
     shuffleEnabled,
+    crossfadeEnabled,
+    crossfadeSeconds,
     volume,
     endedToken,
     isPlayerExpanded: expanded,
@@ -48,6 +50,8 @@ export default function PlayerBar() {
     stop,
     setRepeatMode,
     toggleShuffle,
+    setCrossfadeEnabled,
+    setCrossfadeSeconds,
     setVolume,
     setSleepTimer,
     getNextIndex,
@@ -69,6 +73,35 @@ export default function PlayerBar() {
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [resolvingAdd, setResolvingAdd] = useState(false);
   const fetchingRef = useRef(false);
+  const crossfadeGuardRef = useRef<string | null>(null);
+
+  const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
+  const fadePlayerVolumeTransient = useCallback(async (from: number, to: number, durationMs: number) => {
+    const player = usePlayerStore.getState().player;
+    if (!player) return;
+    const steps = 6;
+    for (let i = 1; i <= steps; i += 1) {
+      const t = i / steps;
+      const value = from + (to - from) * t;
+      await player.setVolume(Math.max(0, Math.min(1, value))).catch(() => {});
+      await wait(Math.max(20, Math.floor(durationMs / steps)));
+    }
+  }, []);
+
+  const playWithTransition = useCallback(async (index: number, smooth = false) => {
+    if (!smooth || !crossfadeEnabled || crossfadeSeconds <= 0) {
+      playIndex(index);
+      return;
+    }
+
+    const baseVolume = usePlayerStore.getState().volume;
+    const lowVolume = Math.max(0.12, baseVolume * 0.35);
+    await fadePlayerVolumeTransient(baseVolume, lowVolume, 260);
+    playIndex(index);
+    await wait(120);
+    await fadePlayerVolumeTransient(lowVolume, baseVolume, 520);
+  }, [crossfadeEnabled, crossfadeSeconds, fadePlayerVolumeTransient, playIndex]);
 
   const handleAddToPlaylist = useCallback(async () => {
     if (!currentTrack) return;
@@ -104,12 +137,12 @@ export default function PlayerBar() {
     initializePlayer(session.accessToken);
   }, [session?.accessToken, initializePlayer]);
 
-  const fetchAndPlay = useCallback(async (index: number) => {
+  const fetchAndPlay = useCallback(async (index: number, options?: { smooth?: boolean }) => {
     if (index < 0 || index >= queue.length || fetchingRef.current) return;
     const track = queue[index];
 
     if (track.uri !== undefined) {
-      playIndex(index);
+      await playWithTransition(index, options?.smooth ?? false);
       return;
     }
 
@@ -118,7 +151,7 @@ export default function PlayerBar() {
     const cached = resolveCache.get(cacheKey);
     if (cached !== undefined) {
       updateTrackUri(index, cached.uri, cached.imageUrl, cached.durationMs);
-      usePlayerStore.getState().playIndex(index);
+      await playWithTransition(index, options?.smooth ?? false);
       return;
     }
 
@@ -131,12 +164,12 @@ export default function PlayerBar() {
       const data = await res.json();
       resolveCache.set(cacheKey, data);
       updateTrackUri(index, data.uri ?? null, data.imageUrl, data.durationMs ?? undefined);
-      usePlayerStore.getState().playIndex(index);
+      await playWithTransition(index, options?.smooth ?? false);
     } finally {
       fetchingRef.current = false;
       setFetching(false);
     }
-  }, [queue, playIndex, updateTrackUri]);
+  }, [playWithTransition, queue, updateTrackUri]);
 
   useEffect(() => {
     if (!endedToken) return;
@@ -144,6 +177,37 @@ export default function PlayerBar() {
     if (nextIndex === null) return;
     fetchAndPlay(nextIndex);
   }, [endedToken, fetchAndPlay, getNextIndex]);
+
+  useEffect(() => {
+    crossfadeGuardRef.current = null;
+  }, [queueIndex, currentTrack?.uri]);
+
+  useEffect(() => {
+    if (!crossfadeEnabled || !isPlaying || isTransitioning || durationMs <= 0 || progressMs <= 0) return;
+    const nextIndex = getNextIndex();
+    if (nextIndex === null || nextIndex === queueIndex) return;
+
+    const remainingMs = durationMs - progressMs;
+    const thresholdMs = crossfadeSeconds * 1000;
+    if (remainingMs > thresholdMs || remainingMs <= 250) return;
+
+    const guardKey = `${queueIndex}:${currentTrack?.uri ?? currentTrack?.name}:${nextIndex}`;
+    if (crossfadeGuardRef.current === guardKey) return;
+    crossfadeGuardRef.current = guardKey;
+    fetchAndPlay(nextIndex, { smooth: true });
+  }, [
+    crossfadeEnabled,
+    crossfadeSeconds,
+    currentTrack?.name,
+    currentTrack?.uri,
+    durationMs,
+    fetchAndPlay,
+    getNextIndex,
+    isPlaying,
+    isTransitioning,
+    progressMs,
+    queueIndex,
+  ]);
 
   // Advance progress locally every 500 ms while playing so the bar moves
   // smoothly between infrequent SDK state-change events.
@@ -440,6 +504,28 @@ export default function PlayerBar() {
                             </button>
                           )}
                         </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/[0.08] px-3 py-2.5" style={{ background: "rgba(255,255,255,0.03)" }}>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setCrossfadeEnabled(!crossfadeEnabled)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${crossfadeEnabled ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/45 hover:text-white hover:bg-white/[0.08]"}`}
+                      >
+                        Crossfade {crossfadeEnabled ? `${crossfadeSeconds}s` : "Off"}
+                      </button>
+                      {crossfadeEnabled && (
+                        <input
+                          type="range"
+                          min={1}
+                          max={12}
+                          step={1}
+                          value={crossfadeSeconds}
+                          onChange={(e) => setCrossfadeSeconds(parseInt(e.target.value, 10))}
+                          className="flex-1 h-1 rounded-full appearance-none cursor-pointer accent-[#E8282B]"
+                          style={{ background: `linear-gradient(to right, #E8282B ${((crossfadeSeconds - 1) / 11) * 100}%, rgba(255,255,255,0.12) ${((crossfadeSeconds - 1) / 11) * 100}%)` }}
+                        />
                       )}
                     </div>
                   </div>
