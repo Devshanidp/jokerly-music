@@ -549,7 +549,7 @@ export default function PlaylistsClient() {
           <p className="text-xs mt-1 opacity-60">Create your first one above</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 gap-2">
           {playlists.map((pl) => {
             const isPinned = pinned.has(pl.id);
             const isDeleting = deleting.has(pl.id);
@@ -559,27 +559,27 @@ export default function PlaylistsClient() {
               <div
                 key={pl.id}
                 onClick={() => !isDeleting && openPlaylist(pl)}
-                className={`rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 active:scale-[0.97] ${isDeleting ? "opacity-40 pointer-events-none" : "hover:border-white/[0.12]"}`}
+                className={`rounded-lg overflow-hidden border cursor-pointer transition-all duration-200 active:scale-[0.97] ${isDeleting ? "opacity-40 pointer-events-none" : "hover:border-white/[0.12]"}`}
                 style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.07)" }}
               >
                 {/* Cover art square */}
                 <div className="relative aspect-square w-full overflow-hidden" style={{ background: "var(--surface)" }}>
-                  <CoverArt tracks={tracks} imageUrl={pl.images?.[0]?.url} name={pl.name} size={130} />
+                  <CoverArt tracks={tracks} imageUrl={pl.images?.[0]?.url} name={pl.name} size={90} />
                   {isPinned && (
-                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E8282B] border border-black/20 shadow" />
                   )}
                   {/* Play overlay */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity" style={{ background: "rgba(0,0,0,0.35)" }}>
-                    <div className="w-8 h-8 rounded-full bg-[#E8282B] flex items-center justify-center shadow-lg">
-                      <Play size={13} fill="white" className="text-white ml-0.5" />
+                    <div className="w-6 h-6 rounded-full bg-[#E8282B] flex items-center justify-center shadow-lg">
+                      <Play size={10} fill="white" className="text-white ml-0.5" />
                     </div>
                   </div>
                 </div>
 
                 {/* Info */}
-                <div className="p-2">
-                  <p className="text-white text-xs font-semibold truncate leading-tight">{pl.name}</p>
-                  <p className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>
+                <div className="p-1.5">
+                  <p className="text-white text-[10px] font-semibold truncate leading-tight">{pl.name}</p>
+                  <p className="text-[9px] mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>
                     {pl.tracks?.total ?? 0} tracks
                   </p>
                 </div>
