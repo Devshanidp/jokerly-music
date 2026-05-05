@@ -1,5 +1,5 @@
 // Jokerly Service Worker
-const CACHE_NAME = "jokerly-v3";
+const CACHE_NAME = "jokerly-v4";
 
 // Core shell pages/assets so app chrome loads offline
 const PRECACHE = [
@@ -79,7 +79,7 @@ self.addEventListener("fetch", (event) => {
   // Stale-while-revalidate for app shell navigations with offline fallback
   if (request.mode === "navigate") {
     event.respondWith(
-      caches.match(request).then((cached) => {
+      caches.match(request).then(async (cached) => {
         const network = fetch(request)
           .then((res) => {
             if (res.ok) {
@@ -88,7 +88,10 @@ self.addEventListener("fetch", (event) => {
             }
             return res;
           })
-          .catch(() => cached ?? caches.match("/"));
+          .catch(async () => {
+            const fallback = cached ?? (await caches.match("/"));
+            return fallback ?? Response.error();
+          });
 
         return cached ?? network;
       })
@@ -107,7 +110,7 @@ self.addEventListener("fetch", (event) => {
           }
           return res;
         })
-        .catch(() => cached);
+        .catch(() => cached ?? Response.error());
 
       return cached ?? network;
     })

@@ -24,8 +24,15 @@ export function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const hasSession =
-    req.cookies.has(SESSION_COOKIE) || req.cookies.has(SECURE_SESSION_COOKIE);
+  const hasSession = req.cookies.getAll().some((cookie) => {
+    const name = cookie.name;
+    return (
+      name === SESSION_COOKIE ||
+      name === SECURE_SESSION_COOKIE ||
+      name.startsWith(`${SESSION_COOKIE}.`) ||
+      name.startsWith(`${SECURE_SESSION_COOKIE}.`)
+    );
+  });
 
   const isLoginPage = pathname === "/login";
 

@@ -41,12 +41,25 @@ interface AcoustIdResponse {
   results?: AcoustIdResult[];
 }
 
+function parseFpcalcJson(rawOutput: string) {
+  const trimmed = rawOutput.trim();
+  try {
+    return JSON.parse(trimmed) as { duration?: number; fingerprint?: string };
+  } catch {
+    const objectMatch = trimmed.match(/\{[\s\S]*\}/);
+    if (!objectMatch) {
+      throw new Error("Could not parse fpcalc output as JSON");
+    }
+    return JSON.parse(objectMatch[0]) as { duration?: number; fingerprint?: string };
+  }
+}
+
 async function computeFingerprint(audioPath: string) {
   const wavPath = join(tmpdir(), `${randomUUID()}.wav`);
   try {
     await execFileAsync(FFMPEG_PATH, ["-y", "-i", audioPath, "-ac", "1", "-ar", "11025", wavPath]);
     const { stdout } = await execFileAsync(FPCALC_PATH, ["-json", wavPath]);
-    const parsed = JSON.parse(stdout) as { duration?: number; fingerprint?: string };
+    const parsed = parseFpcalcJson(stdout);
     if (!parsed.duration || !parsed.fingerprint) {
       throw new Error("Could not generate fingerprint");
     }

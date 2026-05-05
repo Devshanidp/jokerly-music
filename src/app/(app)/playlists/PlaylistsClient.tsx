@@ -529,8 +529,8 @@ export default function PlaylistsClient() {
 
       {/* Skeleton */}
       {loading ? (
-        <div className="grid grid-cols-3 gap-2">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+          {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="rounded-2xl overflow-hidden animate-pulse border border-white/[0.05]" style={{ background: "var(--card)" }}>
               <div className="aspect-square" style={{ background: "var(--surface)" }} />
               <div className="p-3 space-y-2">
@@ -549,7 +549,7 @@ export default function PlaylistsClient() {
           <p className="text-xs mt-1 opacity-60">Create your first one above</p>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
           {playlists.map((pl) => {
             const isPinned = pinned.has(pl.id);
             const isDeleting = deleting.has(pl.id);

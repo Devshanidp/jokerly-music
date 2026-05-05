@@ -39,16 +39,12 @@
       "mcp__1bd87535-937c-4e65-9f58-99a0542c99e5__list_projects",
       "Bash(git rm *)",
       "mcp__23f573de-66ba-4bee-8c76-4b95c49826f8__list_deployments",
-<<<<<<< HEAD
-      "Bash(npx vercel *)"
-=======
       "Bash(npx vercel *)",
-      "Bash(copy \"public\\\\manifest.webmanifest\" \"public\\\\manifest.json\")",
-      "Bash(del \"public\\\\manifest.webmanifest\")",
+      "Bash(copy \"public\\manifest.webmanifest\" \"public\\manifest.json\")",
+      "Bash(del \"public\\manifest.webmanifest\")",
       "Bash(xargs sed *)",
       "Bash(npm run *)",
       "Bash(git log *)"
->>>>>>> f6df6ddfa14cc84553b755f297935534f484b9bb
     ]
   }
 }
