@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { getSession } from "next-auth/react";
 
 export interface PlayableTrack {
   name: string;
@@ -269,8 +270,15 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     const player = new Spotify.Player({
       name: "Jokerly Web Player",
-      getOAuthToken: (cb) => {
-        cb(get().accessToken ?? accessToken);
+      getOAuthToken: async (cb) => {
+        try {
+          const session = await getSession();
+          const freshToken = (session?.accessToken as string | undefined) ?? get().accessToken ?? accessToken;
+          if (freshToken) set({ accessToken: freshToken });
+          cb(freshToken ?? "");
+        } catch {
+          cb(get().accessToken ?? accessToken);
+        }
       },
       volume: 0.8,
     });
@@ -320,7 +328,15 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     player.addListener("initialization_error", () => {
       set({ isPlayerReady: false, sdkError: "Player failed to initialize. Reload the page." });
     });
-    player.addListener("authentication_error", () => {
+    player.addListener("authentication_error", async () => {
+      try {
+        const session = await getSession();
+        if (session?.accessToken && !(session as { error?: string }).error) {
+          set({ accessToken: session.accessToken as string, sdkError: null });
+          await player.connect();
+          return;
+        }
+      } catch { /* fall through to error */ }
       set({ isPlayerReady: false, sdkError: "Spotify authentication error. Try signing out and back in." });
     });
     player.addListener("account_error", () => {
