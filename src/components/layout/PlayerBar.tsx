@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState, useRef } from "react";
 import { usePlayerStore } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
-import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal, Maximize2, Minimize2 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal } from "lucide-react";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
@@ -70,7 +70,6 @@ export default function PlayerBar() {
   const [showTimerPicker, setShowTimerPicker] = useState(false);
   const [timerRemaining, setTimerRemaining] = useState<string | null>(null);
   const [showLyrics, setShowLyrics] = useState(false);
-  const [lyricsExpanded, setLyricsExpanded] = useState(false);
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [resolvingAdd, setResolvingAdd] = useState(false);
   const fetchingRef = useRef(false);
@@ -468,16 +467,10 @@ export default function PlayerBar() {
                       className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-white hover:bg-white/[0.07] transition-colors">
                       <ListOrdered size={18} />
                     </button>
-                    <button onClick={() => setShowLyrics((v) => !v)} title="Lyrics"
+                    <button onClick={() => setShowLyrics(true)} title="Lyrics"
                       className={`shrink-0 p-2.5 rounded-2xl transition-colors ${showLyrics ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}>
                       <MicVocal size={18} />
                     </button>
-                    {showLyrics && (
-                      <button onClick={() => setLyricsExpanded((v) => !v)} title="Expand lyrics"
-                        className={`shrink-0 p-2.5 rounded-2xl transition-colors ${lyricsExpanded ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}>
-                        <Maximize2 size={18} />
-                      </button>
-                    )}
                     <div className="relative">
                       <button
                         onClick={() => setShowTimerPicker((v) => !v)}
@@ -536,31 +529,39 @@ export default function PlayerBar() {
                       )}
                     </div>
                   </div>
-                  {showLyrics && <LyricsPanel track={currentTrack} progressMs={progressMs} />}
-                </div>
-
-                {/* ── Fullscreen lyrics overlay ── */}
-                {showLyrics && lyricsExpanded && (
-                  <div className="fixed inset-0 z-[999] flex flex-col"
-                    style={{ background: "rgba(9,3,5,0.97)", backdropFilter: "blur(32px)" }}>
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-5 pt-12 pb-4 shrink-0">
-                      <button onClick={() => setLyricsExpanded(false)}
-                        className="p-2.5 rounded-2xl text-white/40 hover:text-white hover:bg-white/[0.07] transition-colors">
-                        <Minimize2 size={20} />
-                      </button>
-                      <div className="text-center">
-                        <p className="text-sm font-semibold text-white truncate max-w-[200px]">{currentTrack.name}</p>
-                        <p className="text-xs text-white/40 truncate max-w-[200px]">{currentTrack.artist}</p>
+                  {showLyrics && (
+                    <div
+                      className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+                      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}
+                      onClick={() => setShowLyrics(false)}
+                    >
+                      <div
+                        className="relative w-full max-w-lg max-h-[85vh] rounded-3xl border border-white/[0.08] flex flex-col overflow-hidden shadow-2xl"
+                        style={{ background: "rgba(15,8,10,0.98)" }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] shrink-0">
+                          <div className="min-w-0 pr-3">
+                            <p className="text-sm font-semibold text-white truncate">{currentTrack.name}</p>
+                            <p className="text-xs text-white/40 truncate">{currentTrack.artist}</p>
+                          </div>
+                          <button
+                            onClick={() => setShowLyrics(false)}
+                            className="shrink-0 p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/[0.07] transition-colors"
+                            aria-label="Close lyrics"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                        {/* Lyrics */}
+                        <div className="flex flex-col flex-1 overflow-hidden px-2 py-2">
+                          <LyricsPanel track={currentTrack} progressMs={progressMs} fullscreen />
+                        </div>
                       </div>
-                      <div className="w-10" />
                     </div>
-                    {/* Lyrics */}
-                    <div className="flex flex-col flex-1 overflow-hidden px-2">
-                      <LyricsPanel track={currentTrack} progressMs={progressMs} fullscreen />
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <p className="text-center text-xs text-white/20">{Math.max(queueIndex + 1, 1)} / {queue.length} in queue</p>
               </div>
