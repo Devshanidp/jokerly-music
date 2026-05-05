@@ -329,7 +329,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   // ── Grid view ────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-3 gap-2">
         {pinned.map((pl) => {
           const tracks = tracksMap[pl.playlist_id];
           return (
