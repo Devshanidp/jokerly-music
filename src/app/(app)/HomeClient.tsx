@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { PinnedPlaylist } from "@/types";
+import { PinnedAlbum, PinnedPlaylist } from "@/types";
 import Link from "next/link";
 import { Pin, Search, Loader2, Music, Mic2, Play, ListPlus, RefreshCw, Sparkles, SlidersHorizontal, UserCircle2, X } from "lucide-react";
 import PinnedPlaylistSection from "@/components/home/PinnedPlaylistSection";
 import PersonalizeSheet, { FavoriteArtist } from "@/components/home/PersonalizeSheet";
 import ArtistSheet from "@/components/music/ArtistSheet";
+import AlbumSheet from "@/components/music/AlbumSheet";
 import { SpotifyTrack, SpotifyArtist, trackImage, artistImage, artistNames } from "@/types/spotify";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import Image from "next/image";
@@ -158,7 +159,9 @@ export default function HomeClient() {
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string; images: { url: string }[]; release_date: string; artists: { id: string; name: string; external_urls: { spotify: string } }[]; external_urls: { spotify: string }; total_tracks: number; album_type: string; uri: string } | null>(null);
   const [pinnedArtists, setPinnedArtists] = useState<PinnedArtist[]>([]);
+  const [pinnedAlbums, setPinnedAlbums] = useState<PinnedAlbum[]>([]);
   const [recentlyPlayed, setRecentlyPlayed] = useState<RecentTrack[]>([]);
 
   const [listening, setListening] = useState(false);
@@ -192,9 +195,24 @@ export default function HomeClient() {
     }
   }, []);
 
+  const fetchPinnedAlbums = useCallback(async () => {
+    try {
+      const res = await fetch("/api/pinned-albums", { cache: "no-store" });
+      if (!res.ok) {
+        setPinnedAlbums([]);
+        return;
+      }
+      const data = await res.json();
+      setPinnedAlbums(Array.isArray(data) ? data : []);
+    } catch {
+      setPinnedAlbums([]);
+    }
+  }, []);
+
   // Always fetch pinned playlists, pinned artists + recently played on mount
   useEffect(() => {
     fetchPinnedPlaylists();
+    fetchPinnedAlbums();
 
     fetch("/api/pinned-artists")
       .then((r) => r.json())
@@ -205,7 +223,7 @@ export default function HomeClient() {
       .then((r) => r.json())
       .then((d) => { if (Array.isArray(d.data)) setRecentlyPlayed(d.data); })
       .catch(() => {});
-  }, [fetchPinnedPlaylists]);
+  }, [fetchPinnedAlbums, fetchPinnedPlaylists]);
 
   // Initial load (prefs only — pinned is always fetched above)
   useEffect(() => {
@@ -296,6 +314,14 @@ export default function HomeClient() {
     window.addEventListener("pinned-playlists-updated", handler);
     return () => window.removeEventListener("pinned-playlists-updated", handler);
   }, [fetchPinnedPlaylists]);
+
+  useEffect(() => {
+    const handler = () => {
+      fetchPinnedAlbums();
+    };
+    window.addEventListener("pinned-albums-updated", handler);
+    return () => window.removeEventListener("pinned-albums-updated", handler);
+  }, [fetchPinnedAlbums]);
 
   // Refresh everything
   const handleRefresh = () => {
@@ -662,6 +688,47 @@ export default function HomeClient() {
         </section>
       )}
 
+      {pinnedAlbums.length > 0 && (
+        <section className="space-y-3">
+          <h3 className="text-white font-bold text-base flex items-center gap-2">
+            <Music size={14} className="text-[#E8282B]" /> Pinned Albums
+          </h3>
+          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            {pinnedAlbums.map((album) => (
+              <button
+                key={album.id}
+                onClick={() => setSelectedAlbum({
+                  id: album.album_id,
+                  name: album.album_name,
+                  images: album.album_image ? [{ url: album.album_image }] : [],
+                  release_date: "",
+                  artists: [{ id: album.album_id, name: album.artist_name, external_urls: { spotify: "" } }],
+                  external_urls: { spotify: "" },
+                  total_tracks: 0,
+                  album_type: "album",
+                  uri: "",
+                })}
+                className="flex flex-col items-center gap-1.5 shrink-0 group"
+                style={{ width: 76 }}
+              >
+                <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/40 transition-all">
+                  {album.album_image ? (
+                    <Image src={album.album_image} alt={album.album_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Music size={18} className="text-white/20" />
+                    </div>
+                  )}
+                  <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                </div>
+                <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{album.album_name}</p>
+                <p className="text-[9px] text-white/25 text-center truncate w-full leading-tight">{album.artist_name}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Action buttons */}
       {langs && langs.length > 0 && (
         <div className="flex items-center gap-2">
@@ -812,6 +879,7 @@ export default function HomeClient() {
 
       {modalTrack && <AddToPlaylistModal track={modalTrack} onClose={() => setModalTrack(null)} />}
       {selectedArtist && <ArtistSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />}
+      {selectedAlbum && <AlbumSheet album={selectedAlbum} onClose={() => setSelectedAlbum(null)} />}
 
       {showPersonalize && (
         <PersonalizeSheet

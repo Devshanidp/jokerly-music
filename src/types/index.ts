@@ -47,4 +47,14 @@ export interface PinnedPlaylist {
   pinned_at: string;
 }
 
+export interface PinnedAlbum {
+  id: string;
+  user_id: string;
+  album_id: string;
+  album_name: string;
+  album_image: string;
+  artist_name: string;
+  pinned_at: string;
+}
+
 export type SearchType = "track" | "artist" | "album" | "playlist";
