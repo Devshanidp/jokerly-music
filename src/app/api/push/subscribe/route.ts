@@ -7,6 +7,11 @@ interface PushSubscriptionPayload {
   keys: { p256dh: string; auth: string };
 }
 
+function isPushStorageUnavailable(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return error.code === "42P01" || error.message?.toLowerCase().includes("push_subscriptions") || false;
+}
+
 export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,6 +23,9 @@ export async function GET() {
     .eq("user_id", session.spotifyId)
     .limit(1);
 
+  if (isPushStorageUnavailable(error)) {
+    return NextResponse.json({ subscribed: false, available: false });
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ subscribed: (data ?? []).length > 0 });
 }
@@ -46,6 +54,9 @@ export async function POST(req: NextRequest) {
       { onConflict: "user_id,endpoint" }
     );
 
+  if (isPushStorageUnavailable(error)) {
+    return NextResponse.json({ ok: false, available: false, error: "Push subscriptions are unavailable." }, { status: 503 });
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
@@ -64,6 +75,9 @@ export async function DELETE(req: NextRequest) {
     .eq("user_id", session.spotifyId)
     .eq("endpoint", body.endpoint);
 
+  if (isPushStorageUnavailable(error)) {
+    return NextResponse.json({ ok: false, available: false, error: "Push subscriptions are unavailable." }, { status: 503 });
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

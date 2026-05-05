@@ -3,6 +3,11 @@ import { getWebPush, toPushPayload } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+function isPushStorageUnavailable(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return error.code === "42P01" || error.message?.toLowerCase().includes("push_subscriptions") || false;
+}
+
 export async function POST() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,10 +18,16 @@ export async function POST() {
     .select("endpoint,p256dh,auth")
     .eq("user_id", session.spotifyId);
 
+  if (isPushStorageUnavailable(error)) return NextResponse.json({ ok: false, available: false, sent: 0 });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data?.length) return NextResponse.json({ error: "No push subscriptions" }, { status: 400 });
+  if (!data?.length) return NextResponse.json({ ok: false, sent: 0 });
 
-  const webpush = getWebPush();
+  let webpush;
+  try {
+    webpush = getWebPush();
+  } catch {
+    return NextResponse.json({ ok: false, available: false, sent: 0 });
+  }
   const payload = toPushPayload({
     title: "Jokerly notifications enabled",
     body: "You will now get release alerts for liked artists.",

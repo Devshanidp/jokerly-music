@@ -3,6 +3,11 @@ import { getWebPush, toPushPayload } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+function isPushStorageUnavailable(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return error.code === "42P01" || error.message?.toLowerCase().includes("push_subscriptions") || error.message?.toLowerCase().includes("artist_release_seen") || false;
+}
+
 async function spotifyGet(url: string, token: string) {
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) return null;
@@ -22,6 +27,9 @@ export async function POST() {
   ]);
 
   if (likedRes.error) return NextResponse.json({ error: likedRes.error.message }, { status: 500 });
+  if (isPushStorageUnavailable(subRes.error) || isPushStorageUnavailable(seenRes.error)) {
+    return NextResponse.json({ ok: false, available: false, notified: 0 });
+  }
   if (subRes.error) return NextResponse.json({ error: subRes.error.message }, { status: 500 });
   if (seenRes.error) return NextResponse.json({ error: seenRes.error.message }, { status: 500 });
 
@@ -31,7 +39,12 @@ export async function POST() {
 
   if (!liked.length || !subscriptions.length) return NextResponse.json({ ok: true, notified: 0 });
 
-  const webpush = getWebPush();
+  let webpush;
+  try {
+    webpush = getWebPush();
+  } catch {
+    return NextResponse.json({ ok: false, available: false, notified: 0 });
+  }
   let notified = 0;
 
   for (const artist of liked) {
