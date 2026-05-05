@@ -50,6 +50,10 @@ const TABS: { label: string; value: Tab }[] = [
   { label: "Albums", value: "album" },
 ];
 
+function normalizeSearchValue(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "").trim();
+}
+
 function toPlayable(t: SpotifyTrack): PlayableTrack {
   return { name: t.name, artist: artistNames(t), image: trackImage(t), uri: t.uri, durationMs: t.duration_ms };
 }
@@ -92,6 +96,8 @@ export default function SearchClient() {
   const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
   const [artists, setArtists] = useState<SpotifyArtist[]>([]);
   const [albums, setAlbums] = useState<SpotifyAlbum[]>([]);
+  const [matchedArtistAlbums, setMatchedArtistAlbums] = useState<SpotifyAlbum[]>([]);
+  const [matchedArtist, setMatchedArtist] = useState<SpotifyArtist | null>(null);
 
   const [loadingTracks, setLoadingTracks] = useState(false);
   const [loadingArtists, setLoadingArtists] = useState(false);
@@ -182,6 +188,44 @@ export default function SearchClient() {
   }, [query, doFetchType]);
 
   useEffect(() => { loadLikes(); }, [loadLikes]);
+
+  useEffect(() => {
+    if (!searched || !query.trim() || artists.length === 0) {
+      setMatchedArtist(null);
+      setMatchedArtistAlbums([]);
+      return;
+    }
+
+    const normalizedQuery = normalizeSearchValue(query);
+    const candidate = artists.find((artist) => {
+      const normalizedName = normalizeSearchValue(artist.name);
+      return normalizedName === normalizedQuery || normalizedName.includes(normalizedQuery) || normalizedQuery.includes(normalizedName);
+    });
+
+    if (!candidate) {
+      setMatchedArtist(null);
+      setMatchedArtistAlbums([]);
+      return;
+    }
+
+    let cancelled = false;
+    setMatchedArtist(candidate);
+
+    fetch(`/api/spotify/artist?id=${encodeURIComponent(candidate.id)}&name=${encodeURIComponent(candidate.name)}`)
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((data) => {
+        if (cancelled) return;
+        setMatchedArtistAlbums(Array.isArray(data.albums) ? data.albums : []);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setMatchedArtistAlbums([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [artists, query, searched]);
 
   // Auto-search when ?q= URL param changes
   useEffect(() => {
@@ -640,6 +684,24 @@ export default function SearchClient() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {artists.slice(0, 4).map((artist) => (
                       <SpotifyArtistCard key={artist.id} artist={artist} onSelect={setSelectedArtist} compact />
+                    ))}
+                  </div>
+                </section>
+              )}
+              {matchedArtist && matchedArtistAlbums.length > 0 && (
+                <section className="space-y-3 pb-5">
+                  <div className="flex items-center justify-between px-1">
+                    <h3 className="text-white text-sm font-semibold">Albums by {matchedArtist.name}</h3>
+                    <button
+                      onClick={() => handleTabChange("album")}
+                      className="text-xs text-[#E8282B] hover:text-[#ff6264] transition-colors"
+                    >
+                      More albums
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {matchedArtistAlbums.slice(0, 4).map((album) => (
+                      <SpotifyAlbumCard key={album.id} album={album} onSelect={setSelectedAlbum} />
                     ))}
                   </div>
                 </section>

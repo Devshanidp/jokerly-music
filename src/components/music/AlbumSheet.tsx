@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Loader2, ExternalLink, Music, Play, Pause, ListPlus, Heart } from "lucide-react";
+import { X, Loader2, ExternalLink, Music, Play, Pause, ListPlus, Heart, Pin } from "lucide-react";
 import Image from "next/image";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
@@ -38,6 +38,8 @@ export default function AlbumSheet({ album, onClose }: Props) {
   const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
+  const [isPinned, setIsPinned] = useState(false);
+  const [pinning, setPinning] = useState(false);
   const { setQueueAndPlay, currentTrack, isPlaying } = usePlayerStore();
 
   const image = album.images?.[0]?.url;
@@ -51,6 +53,49 @@ export default function AlbumSheet({ album, onClose }: Props) {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [album.id]);
+
+  useEffect(() => {
+    fetch("/api/pinned-albums")
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((data: { album_id: string }[]) => {
+        setIsPinned(Array.isArray(data) && data.some((item) => item.album_id === album.id));
+      })
+      .catch(() => {});
+  }, [album.id]);
+
+  const togglePin = async () => {
+    setPinning(true);
+    try {
+      if (isPinned) {
+        const res = await fetch("/api/pinned-albums", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ album_id: album.id }),
+        });
+        if (res.ok) {
+          setIsPinned(false);
+          window.dispatchEvent(new CustomEvent("pinned-albums-updated"));
+        }
+      } else {
+        const res = await fetch("/api/pinned-albums", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            album_id: album.id,
+            album_name: album.name,
+            album_image: image ?? "",
+            artist_name: artistStr,
+          }),
+        });
+        if (res.ok) {
+          setIsPinned(true);
+          window.dispatchEvent(new CustomEvent("pinned-albums-updated"));
+        }
+      }
+    } finally {
+      setPinning(false);
+    }
+  };
 
   const handlePlay = (index: number) => {
     setQueueAndPlay(tracks.map(toPlayable), index);
@@ -84,6 +129,18 @@ export default function AlbumSheet({ album, onClose }: Props) {
               <p className="text-xs text-white/30 mt-0.5">{album.total_tracks} tracks</p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={togglePin}
+                disabled={pinning}
+                title={isPinned ? "Unpin album" : "Pin album"}
+                className="p-2 rounded-xl transition-colors disabled:opacity-50"
+                style={{
+                  background: isPinned ? "rgba(232,40,43,0.18)" : "transparent",
+                  color: isPinned ? "#E8282B" : "rgba(255,255,255,0.4)",
+                }}
+              >
+                {pinning ? <Loader2 size={15} className="animate-spin" /> : <Pin size={15} />}
+              </button>
               {album.external_urls?.spotify && (
                 <a
                   href={album.external_urls.spotify}

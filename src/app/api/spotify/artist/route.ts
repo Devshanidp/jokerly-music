@@ -87,6 +87,27 @@ async function fetchAlbumTracks(artistId: string, token: string): Promise<any[]>
   return tracks;
 }
 
+async function fetchArtistAlbums(artistId: string, token: string): Promise<any[]> {
+  const albums = await spotifyGet(
+    `${SPOTIFY}/artists/${artistId}/albums?include_groups=album,single&limit=20&market=from_token`,
+    token
+  );
+  const items: any[] = albums?.items ?? [];
+  if (!items.length) return [];
+
+  const seen = new Set<string>();
+  const deduped: any[] = [];
+
+  for (const album of items) {
+    const key = `${album.name ?? ""}::${album.album_type ?? ""}`.toLowerCase();
+    if (!album?.id || seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(album);
+  }
+
+  return deduped;
+}
+
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -100,15 +121,17 @@ export async function GET(req: NextRequest) {
   const token = session.accessToken as string;
 
   // Stage 1: artist info + top tracks + search (controlled parallelism)
-  const [infoRes, topRes, searchRes] = await Promise.allSettled([
+  const [infoRes, topRes, searchRes, albumRes] = await Promise.allSettled([
     getArtist(id, token),
     fetchTopTracks(id, token),
     searchAllTracks(name, id, token),
+    fetchArtistAlbums(id, token),
   ]);
 
   const info      = infoRes.status  === "fulfilled" ? infoRes.value  : null;
   const topTracks = topRes.status   === "fulfilled" ? topRes.value   : [];
   const searchMore = searchRes.status === "fulfilled" ? searchRes.value : [];
+  const albums = albumRes.status === "fulfilled" ? albumRes.value : [];
 
   if (!info) return NextResponse.json({ error: "Artist not found" }, { status: 404 });
 
@@ -127,5 +150,5 @@ export async function GET(req: NextRequest) {
     if (moreTracks.length >= 100) break;
   }
 
-  return NextResponse.json({ info, topTracks, moreTracks });
+  return NextResponse.json({ info, topTracks, moreTracks, albums });
 }
