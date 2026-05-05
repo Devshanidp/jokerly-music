@@ -867,76 +867,7 @@ export default function HomeClient() {
         </section>
       )}
 
-      {/* ── Language feed ── */}
-      {feedLoading ? <FeedSkeleton /> : (
-        feedSections.map((section) => (
-          <section key={section.langId} className="space-y-4">
-            <h3 className="text-white font-bold text-base">{section.emoji} {section.label} Picks</h3>
-
-            {section.tracks.length > 0 && (
-              <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>
-                {section.tracks.slice(0, 6).map((track, i) => (
-                  <div key={track.id}
-                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.05] transition-colors group border-b border-white/[0.04] last:border-0 cursor-pointer"
-                    onClick={() => playSection(section, i)}>
-                    <span className="text-white/20 text-xs w-5 text-right shrink-0 tabular-nums">{i + 1}</span>
-                    <div className="relative w-10 h-10 shrink-0">
-                      {trackImage(track)
-                        ? <Image src={trackImage(track)!} alt={track.name} fill unoptimized sizes="40px" className="rounded-xl object-cover" />
-                        : <div className="w-10 h-10 bg-white/[0.06] rounded-xl flex items-center justify-center"><Music size={14} className="text-white/20" /></div>}
-                      <div className="absolute inset-0 rounded-xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Play size={13} fill="white" className="text-white" />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-medium truncate">{track.name}</p>
-                      <p className="text-white/35 text-xs truncate">{artistNames(track)}</p>
-                    </div>
-                    <button onClick={(e) => { e.stopPropagation(); track.uri && setModalTrack({ name: track.name, uri: track.uri, image: trackImage(track), artist: artistNames(track) }); }}
-                      className="p-1.5 rounded-lg text-[#E8282B]/60 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
-                      <ListPlus size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {section.artists.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {section.artists.slice(0, 6).map((artist) => {
-                  const isArtistPinned = pinnedArtists.some((pa) => pa.artist_id === artist.id);
-                  return (
-                    <div key={artist.id} className="flex flex-col items-center gap-2 group">
-                      <div className="relative w-full aspect-square">
-                        <button onClick={() => setSelectedArtist(artist)} className="w-full h-full">
-                          <div className="relative w-full h-full rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/30 transition-all">
-                            {artistImage(artist)
-                              ? <Image src={artistImage(artist)!} alt={artist.name} fill unoptimized sizes="80px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                              : <div className="w-full h-full flex items-center justify-center"><Mic2 size={20} className="text-white/20" /></div>}
-                          </div>
-                        </button>
-                        {/* Pin button */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleArtistPin(artist); }}
-                          className={`absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center shadow-lg border border-black/20 transition-all ${
-                            isArtistPinned
-                              ? "bg-[#E8282B] opacity-100"
-                              : "bg-black/60 opacity-0 group-hover:opacity-100"
-                          }`}
-                          title={isArtistPinned ? "Unpin artist" : "Pin to home"}
-                        >
-                          <Pin size={10} fill={isArtistPinned ? "white" : "none"} className="text-white" />
-                        </button>
-                      </div>
-                      <p className="text-xs text-white/40 group-hover:text-white transition-colors text-center truncate w-full">{artist.name}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        ))
-      )}
+      {/* Picks section hidden by request */}
 
       {/* No favourite artists CTA */}
       {!forYouLoading && forYouTracks.length === 0 && favoriteArtists.length === 0 && feedSections.length > 0 && (
