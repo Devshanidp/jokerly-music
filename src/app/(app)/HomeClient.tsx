@@ -134,6 +134,8 @@ function PinnedSkeleton() {
 export default function HomeClient() {
   const router = useRouter();
   const { data: session } = useSession();
+  const sessionError = (session as { error?: string } | null)?.error;
+  const isSessionHealthy = !!session?.accessToken && !sessionError;
   // Require non-empty feedSections so a failed/empty feed load never poisons the cache
   const hasFreshCache =
     homeCache !== null &&
@@ -211,6 +213,13 @@ export default function HomeClient() {
 
   // Always fetch pinned playlists, pinned artists + recently played on mount
   useEffect(() => {
+    if (!isSessionHealthy) {
+      setPinnedLoading(false);
+      setPinned([]);
+      setPinnedArtists([]);
+      setPinnedAlbums([]);
+      return;
+    }
     fetchPinnedPlaylists();
     fetchPinnedAlbums();
 
@@ -223,7 +232,7 @@ export default function HomeClient() {
       .then((r) => r.json())
       .then((d) => { if (Array.isArray(d.data)) setRecentlyPlayed(d.data); })
       .catch(() => {});
-  }, [fetchPinnedAlbums, fetchPinnedPlaylists]);
+  }, [fetchPinnedAlbums, fetchPinnedPlaylists, isSessionHealthy]);
 
   // Initial load (prefs only — pinned is always fetched above)
   useEffect(() => {
@@ -246,6 +255,7 @@ export default function HomeClient() {
 
   // Language feed
   const fetchFeed = useCallback((langList: string[], bust = false) => {
+    if (!isSessionHealthy) return;
     if (!langList.length) return;
     setFeedLoading(true);
     if (bust) setFeedSections([]); // clear stale content immediately
@@ -265,7 +275,7 @@ export default function HomeClient() {
       })
       .catch(() => {})
       .finally(() => setFeedLoading(false));
-  }, []);
+  }, [isSessionHealthy]);
 
   useEffect(() => {
     if (langs && langs.length > 0 && !hasFreshCache) fetchFeed(langs);
@@ -274,6 +284,7 @@ export default function HomeClient() {
 
   // For You — recommendations based on favorite artists
   const fetchForYou = useCallback((artists: FavoriteArtist[], bust = false) => {
+    if (!isSessionHealthy) return;
     if (!artists.length) return;
     setForYouLoading(true);
     if (bust) setForYouTracks([]);
@@ -287,7 +298,7 @@ export default function HomeClient() {
       })
       .catch(() => {})
       .finally(() => setForYouLoading(false));
-  }, []);
+  }, [isSessionHealthy]);
 
   useEffect(() => {
     if (favoriteArtists.length > 0 && !hasFreshCache) fetchForYou(favoriteArtists);
@@ -296,6 +307,7 @@ export default function HomeClient() {
 
   // Sync pinned artists when ArtistSheet fires the event
   useEffect(() => {
+    if (!isSessionHealthy) return;
     const handler = () => {
       fetch("/api/pinned-artists")
         .then((r) => r.json())
@@ -304,27 +316,30 @@ export default function HomeClient() {
     };
     window.addEventListener("pinned-artists-updated", handler);
     return () => window.removeEventListener("pinned-artists-updated", handler);
-  }, []);
+  }, [isSessionHealthy]);
 
   // Sync pinned playlists when playlist page toggles pin state
   useEffect(() => {
+    if (!isSessionHealthy) return;
     const handler = () => {
       fetchPinnedPlaylists();
     };
     window.addEventListener("pinned-playlists-updated", handler);
     return () => window.removeEventListener("pinned-playlists-updated", handler);
-  }, [fetchPinnedPlaylists]);
+  }, [fetchPinnedPlaylists, isSessionHealthy]);
 
   useEffect(() => {
+    if (!isSessionHealthy) return;
     const handler = () => {
       fetchPinnedAlbums();
     };
     window.addEventListener("pinned-albums-updated", handler);
     return () => window.removeEventListener("pinned-albums-updated", handler);
-  }, [fetchPinnedAlbums]);
+  }, [fetchPinnedAlbums, isSessionHealthy]);
 
   // Refresh everything
   const handleRefresh = () => {
+    if (!isSessionHealthy) return;
     if (refreshing || feedLoading) return;
     setRefreshing(true);
     homeCache = null;

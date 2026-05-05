@@ -2,6 +2,11 @@ import { auth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+function isPinnedAlbumsUnavailable(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return error.code === "42P01" || error.message?.toLowerCase().includes("pinned_albums") || false;
+}
+
 export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,6 +18,11 @@ export async function GET() {
     .eq("user_id", session.spotifyId)
     .order("pinned_at", { ascending: false });
 
+  if (isPinnedAlbumsUnavailable(error)) {
+    return NextResponse.json([], {
+      headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=120" },
+    });
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, {
     headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=120" },
@@ -39,6 +49,9 @@ export async function POST(req: NextRequest) {
     .select()
     .single();
 
+  if (isPinnedAlbumsUnavailable(error)) {
+    return NextResponse.json({ ok: false, available: false, error: "Pinned albums are unavailable." }, { status: 503 });
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
@@ -56,6 +69,9 @@ export async function DELETE(req: NextRequest) {
     .eq("user_id", session.spotifyId)
     .eq("album_id", album_id);
 
+  if (isPinnedAlbumsUnavailable(error)) {
+    return NextResponse.json({ ok: false, available: false, error: "Pinned albums are unavailable." }, { status: 503 });
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

@@ -22,6 +22,7 @@ const resolveCache = new Map<string, { uri: string | null; imageUrl?: string | n
 
 export default function PlayerBar() {
   const { data: session } = useSession();
+  const sessionError = (session as { error?: string } | null)?.error;
   const {
     currentTrack,
     queue,
@@ -133,9 +134,9 @@ export default function PlayerBar() {
   useEffect(() => { loadLikes(); }, [loadLikes]);
 
   useEffect(() => {
-    if (!session?.accessToken) return;
+    if (!session?.accessToken || sessionError) return;
     initializePlayer(session.accessToken);
-  }, [session?.accessToken, initializePlayer]);
+  }, [session?.accessToken, sessionError, initializePlayer]);
 
   const fetchAndPlay = useCallback(async (index: number, options?: { smooth?: boolean }) => {
     if (index < 0 || index >= queue.length || fetchingRef.current) return;
