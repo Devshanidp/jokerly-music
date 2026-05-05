@@ -1,0 +1,88 @@
+import { auth } from "@/lib/auth";
+import { getWebPush, toPushPayload } from "@/lib/push";
+import { createClient } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
+
+async function spotifyGet(url: string, token: string) {
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function POST() {
+  const session = await auth();
+  if (!session?.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = await createClient();
+
+  const [likedRes, subRes, seenRes] = await Promise.all([
+    supabase.from("liked_artists").select("artist_id,artist_name").eq("user_id", session.spotifyId).limit(20),
+    supabase.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", session.spotifyId),
+    supabase.from("artist_release_seen").select("artist_id,last_release_id").eq("user_id", session.spotifyId),
+  ]);
+
+  if (likedRes.error) return NextResponse.json({ error: likedRes.error.message }, { status: 500 });
+  if (subRes.error) return NextResponse.json({ error: subRes.error.message }, { status: 500 });
+  if (seenRes.error) return NextResponse.json({ error: seenRes.error.message }, { status: 500 });
+
+  const liked = likedRes.data ?? [];
+  const subscriptions = subRes.data ?? [];
+  const seenMap = new Map((seenRes.data ?? []).map((r) => [r.artist_id, r.last_release_id]));
+
+  if (!liked.length || !subscriptions.length) return NextResponse.json({ ok: true, notified: 0 });
+
+  const webpush = getWebPush();
+  let notified = 0;
+
+  for (const artist of liked) {
+    const data = await spotifyGet(
+      `https://api.spotify.com/v1/artists/${encodeURIComponent(artist.artist_id)}/albums?include_groups=album,single&limit=1&market=from_token`,
+      session.accessToken as string
+    );
+
+    const latest = data?.items?.[0];
+    if (!latest?.id) continue;
+
+    const previous = seenMap.get(artist.artist_id);
+    await supabase.from("artist_release_seen").upsert(
+      {
+        user_id: session.spotifyId,
+        artist_id: artist.artist_id,
+        artist_name: artist.artist_name,
+        last_release_id: latest.id,
+        last_release_name: latest.name ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,artist_id" }
+    );
+
+    if (!previous || previous === latest.id) continue;
+
+    const payload = toPushPayload({
+      title: `${artist.artist_name} dropped new music`,
+      body: latest.name ?? "Tap to listen on Jokerly",
+      url: `/search?q=${encodeURIComponent(artist.artist_name)}`,
+      icon: latest.images?.[0]?.url ?? "/icon-192.png",
+    });
+
+    for (const sub of subscriptions) {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
+          payload
+        );
+        notified += 1;
+      } catch (err: any) {
+        const statusCode = err?.statusCode as number | undefined;
+        if (statusCode === 404 || statusCode === 410) {
+          await supabase.from("push_subscriptions").delete().eq("user_id", session.spotifyId).eq("endpoint", sub.endpoint);
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({ ok: true, notified });
+}

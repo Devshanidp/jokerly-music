@@ -14,6 +14,7 @@ import { usePlayerStore, PlayableTrack } from "@/store/player";
 import Image from "next/image";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { LANGUAGES } from "@/lib/languages";
+import ListeningWaveform from "@/components/ui/ListeningWaveform";
 
 interface Suggestion {
   type: "track" | "artist";
@@ -500,7 +501,7 @@ export default function HomeClient() {
           title="Identify song"
           className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-lg flex items-center justify-center text-white/45 hover:text-white hover:bg-white/[0.06] transition-colors disabled:opacity-50"
         >
-          {listening || identifying ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+          {listening ? <ListeningWaveform /> : identifying ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
         </button>
         <input
           ref={inputRef} type="text" value={query}
@@ -578,7 +579,12 @@ export default function HomeClient() {
 
       {(identifyError || listening || identifying || identifiedMatch) && (
         <div className="rounded-2xl border border-white/[0.08] px-4 py-3" style={{ background: "var(--card)" }}>
-          {listening && <p className="text-sm text-zinc-200">Listening... hold your phone near the music source.</p>}
+          {listening && (
+            <p className="text-sm text-zinc-200 flex items-center gap-2">
+              <ListeningWaveform className="text-[#E8282B]" />
+              Listening... hold your phone near the music source.
+            </p>
+          )}
           {identifying && <p className="text-sm text-zinc-200">Identifying song...</p>}
           {identifyError && <p className="text-sm text-red-400">{identifyError}</p>}
           {identifiedMatch && !identifyError && !listening && !identifying && (

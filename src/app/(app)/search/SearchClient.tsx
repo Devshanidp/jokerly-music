@@ -15,6 +15,7 @@ import { SpotifyTrack, SpotifyArtist, SpotifyAlbum, trackImage, artistImage, art
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
 import Image from "next/image";
+import ListeningWaveform from "@/components/ui/ListeningWaveform";
 
 type Tab = "track" | "artist" | "album";
 
@@ -440,7 +441,7 @@ export default function SearchClient() {
           title="Identify song"
           className="absolute right-24 top-1/2 -translate-y-1/2 text-zinc-200 hover:text-white disabled:opacity-40 p-2 rounded-lg hover:bg-zinc-700/60 transition-colors"
         >
-          {listening || identifying ? <Loader2 size={15} className="animate-spin" /> : <Mic2 size={15} />}
+          {listening ? <ListeningWaveform /> : identifying ? <Loader2 size={15} className="animate-spin" /> : <Mic2 size={15} />}
         </button>
         <button
           onClick={() => handleSearch()}
@@ -533,7 +534,12 @@ export default function SearchClient() {
         <div className="rounded-2xl border border-zinc-700 bg-zinc-900/70 p-4 flex flex-col gap-2">
           <div className="flex items-start gap-2">
             <div className="flex-1 flex flex-col gap-2">
-              {listening && <p className="text-sm text-zinc-200">Listening… hold your phone near the music source.</p>}
+              {listening && (
+                <p className="text-sm text-zinc-200 flex items-center gap-2">
+                  <ListeningWaveform className="text-[#E8282B]" />
+                  Listening… hold your phone near the music source.
+                </p>
+              )}
               {identifying && <p className="text-sm text-zinc-200">Identifying song…</p>}
               {identifyError && <p className="text-sm text-red-400">{identifyError}</p>}
               {identifiedMatch && (

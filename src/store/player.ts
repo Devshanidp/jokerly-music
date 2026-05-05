@@ -180,6 +180,19 @@ function hydrateFromSdkState(state: SpotifyPlayerState | null) {
         track_image: currentTrack.image ?? null,
       }),
     }).catch(() => {});
+
+    fetch("/api/analytics/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_type: "play_started",
+        track_uri: currentTrack.uri,
+        track_name: currentTrack.name,
+        track_artist: currentTrack.artist,
+        meta: { source: "player" },
+      }),
+      keepalive: true,
+    }).catch(() => {});
   }
 }
 

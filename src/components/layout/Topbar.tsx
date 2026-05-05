@@ -3,11 +3,107 @@
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { X, User, Settings } from "lucide-react";
+import { X, User, Settings, Bell, Loader2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession();
+  const [notifBusy, setNotifBusy] = useState(false);
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [notifMessage, setNotifMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    fetch("/api/push/subscribe")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.subscribed) {
+          setNotifEnabled(true);
+          fetch("/api/push/artist-drops", { method: "POST" }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+  };
+
+  const enableNotifications = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setNotifMessage("Push notifications are not supported on this device.");
+      return;
+    }
+
+    setNotifBusy(true);
+    setNotifMessage(null);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setNotifMessage("Notification permission was not granted.");
+        return;
+      }
+
+      const reg = await navigator.serviceWorker.ready;
+      const keyRes = await fetch("/api/push/public-key");
+      const keyData = await keyRes.json();
+      if (!keyRes.ok || !keyData?.publicKey) {
+        setNotifMessage("Push is not configured yet.");
+        return;
+      }
+
+      const existing = await reg.pushManager.getSubscription();
+      const subscription =
+        existing ??
+        (await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey),
+        }));
+
+      const saveRes = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(subscription),
+      });
+
+      if (!saveRes.ok) {
+        setNotifMessage("Failed to save push subscription.");
+        return;
+      }
+
+      setNotifEnabled(true);
+      setNotifMessage("Notifications enabled.");
+
+      await fetch("/api/push/test", { method: "POST" }).catch(() => {});
+      await fetch("/api/push/artist-drops", { method: "POST" }).catch(() => {});
+    } catch {
+      setNotifMessage("Could not enable notifications.");
+    } finally {
+      setNotifBusy(false);
+    }
+  };
+
+  const sendTestNotification = async () => {
+    setNotifBusy(true);
+    setNotifMessage(null);
+    try {
+      const res = await fetch("/api/push/test", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotifMessage(data?.error ?? "Test notification failed.");
+        return;
+      }
+      setNotifMessage("Test notification sent.");
+    } catch {
+      setNotifMessage("Test notification failed.");
+    } finally {
+      setNotifBusy(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -34,6 +130,34 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div className="h-px bg-white/[0.06]" />
+          <div className="rounded-2xl border border-white/[0.08] p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-white text-sm font-medium flex items-center gap-1.5">
+                  <Bell size={14} className="text-[#E8282B]" /> Release Alerts
+                </p>
+                <p className="text-white/40 text-xs mt-0.5">Get notified when liked artists drop new tracks.</p>
+              </div>
+              <button
+                onClick={enableNotifications}
+                disabled={notifBusy || notifEnabled}
+                className="shrink-0 text-xs px-3 py-1.5 rounded-xl border border-white/[0.12] text-white/80 hover:text-white hover:border-[#E8282B]/50 transition-colors disabled:opacity-50"
+              >
+                {notifBusy ? <Loader2 size={13} className="animate-spin" /> : notifEnabled ? "Enabled" : "Enable"}
+              </button>
+            </div>
+            {notifEnabled && (
+              <button
+                onClick={sendTestNotification}
+                disabled={notifBusy}
+                className="mt-2 text-xs text-[#E8282B] hover:text-[#ff6264] transition-colors"
+              >
+                Send test notification
+              </button>
+            )}
+            {notifMessage && <p className="text-xs text-white/50 mt-2">{notifMessage}</p>}
+          </div>
+
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors text-sm font-medium"
@@ -59,6 +183,21 @@ export default function Topbar() {
     setMounted(true);
     router.prefetch("/");
   }, [router]);
+
+  useEffect(() => {
+    if (!session?.spotifyId) return;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+
+    fetch("/api/push/subscribe")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.subscribed) {
+          fetch("/api/push/artist-drops", { method: "POST" }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+  }, [session?.spotifyId]);
 
   const go = (e: React.PointerEvent<HTMLButtonElement> | React.MouseEvent<HTMLButtonElement>, target: "/") => {
     e.preventDefault();

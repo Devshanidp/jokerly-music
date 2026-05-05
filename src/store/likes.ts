@@ -57,6 +57,21 @@ export const useLikesStore = create<LikesState>((set, get) => ({
     const { songUris, songs } = get();
     const isLiked = songUris.has(track.uri);
 
+    const logEvent = (eventType: "song_liked" | "song_unliked") => {
+      fetch("/api/analytics/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_type: eventType,
+          track_uri: track.uri,
+          track_name: track.name,
+          track_artist: track.artist ?? null,
+          meta: { source: "likes_store" },
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    };
+
     if (isLiked) {
       // Optimistic remove
       set({
@@ -71,6 +86,7 @@ export const useLikesStore = create<LikesState>((set, get) => ({
         // Rollback on failure
         set({ songs, songUris });
       });
+      logEvent("song_unliked");
     } else {
       const newEntry: LikedSong = {
         id: crypto.randomUUID(),
@@ -98,6 +114,8 @@ export const useLikesStore = create<LikesState>((set, get) => ({
       if (!res?.ok) {
         // Rollback
         set({ songs, songUris });
+      } else {
+        logEvent("song_liked");
       }
     }
   },

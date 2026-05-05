@@ -1,12 +1,34 @@
 // Jokerly Service Worker
-const CACHE_NAME = "jokerly-v2";
+const CACHE_NAME = "jokerly-v3";
 
-// Only pre-cache the app shell root
-const PRECACHE = ["/"];
+// Core shell pages/assets so app chrome loads offline
+const PRECACHE = [
+  "/",
+  "/search",
+  "/playlists",
+  "/recommendations",
+  "/liked",
+  "/pinned",
+  "/manifest.json",
+  "/icon-96.png",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/apple-touch-icon.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await Promise.all(
+        PRECACHE.map(async (url) => {
+          try {
+            await cache.add(url);
+          } catch {
+            // Keep install resilient even if one route fails in current auth state.
+          }
+        })
+      );
+    })
   );
   self.skipWaiting();
 });
@@ -54,30 +76,72 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for navigation (HTML pages) — always fresh, fallback to cache
+  // Stale-while-revalidate for app shell navigations with offline fallback
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(request, clone));
-          return res;
-        })
-        .catch(() => caches.match(request).then((r) => r ?? caches.match("/")))
+      caches.match(request).then((cached) => {
+        const network = fetch(request)
+          .then((res) => {
+            if (res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+            }
+            return res;
+          })
+          .catch(() => cached ?? caches.match("/"));
+
+        return cached ?? network;
+      })
     );
     return;
   }
 
-  // Network-first for everything else (images, fonts, icons)
+  // Stale-while-revalidate for styles/scripts/fonts/images so shell feels instant
   event.respondWith(
-    fetch(request)
-      .then((res) => {
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+    caches.match(request).then((cached) => {
+      const network = fetch(request)
+        .then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+          }
+          return res;
+        })
+        .catch(() => cached);
+
+      return cached ?? network;
+    })
+  );
+});
+
+self.addEventListener("push", (event) => {
+  const payload = event.data?.json?.() ?? {};
+  const title = payload.title || "Jokerly";
+  const options = {
+    body: payload.body || "Open Jokerly",
+    icon: payload.icon || "/icon-192.png",
+    badge: payload.badge || "/icon-96.png",
+    data: {
+      url: payload.url || "/",
+    },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification?.data?.url || "/";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          client.navigate(targetUrl);
+          return client.focus();
         }
-        return res;
-      })
-      .catch(() => caches.match(request))
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+      return undefined;
+    })
   );
 });
