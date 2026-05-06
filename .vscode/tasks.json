@@ -39,6 +39,15 @@
 				"build"
 			],
 			"isBackground": false
+		},
+		{
+			"label": "Deploy to Vercel Production After Fixes",
+			"type": "shell",
+			"command": "vercel",
+			"args": [
+				"--prod"
+			],
+			"isBackground": false
 		}
 	]
 }
