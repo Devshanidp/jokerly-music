@@ -2,6 +2,7 @@ import Topbar from "@/components/layout/Topbar";
 import PlayerBar from "@/components/layout/PlayerBar";
 import FloatingNav from "@/components/layout/FloatingNav";
 import ToastContainer from "@/components/layout/ToastContainer";
+import DebugPanel from "@/components/layout/DebugPanel";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <PlayerBar />
       <FloatingNav />
       <ToastContainer />
+      <DebugPanel />
     </div>
   );
 }
