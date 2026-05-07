@@ -101,6 +101,23 @@ let ignorePausedUntil = 0;
 let lastLoggedUri = "";
 let suppressAutoResumeUntil = 0;
 let autoResumeTimer: ReturnType<typeof setInterval> | null = null;
+let pendingPlayOnReadyIndex: number | null = null;
+let playRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearPlayRetry() {
+  if (!playRetryTimer) return;
+  clearTimeout(playRetryTimer);
+  playRetryTimer = null;
+}
+
+function schedulePlayRetry(index: number) {
+  clearPlayRetry();
+  playRetryTimer = setTimeout(() => {
+    const snapshot = usePlayerStore.getState();
+    if (snapshot.isPlaying || snapshot.queueIndex !== index) return;
+    Promise.resolve(snapshot.playIndex(index)).catch(() => {});
+  }, 450);
+}
 
 function stopAutoResumeLoop() {
   if (!autoResumeTimer) return;
@@ -324,6 +341,13 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       // playing and we still have a valid queue item, resume it on this device.
       const snapshot = get();
       const idx = snapshot.queueIndex;
+      if (pendingPlayOnReadyIndex !== null) {
+        const queuedIndex = pendingPlayOnReadyIndex;
+        pendingPlayOnReadyIndex = null;
+        Promise.resolve(get().playIndex(queuedIndex)).catch(() => {});
+        return;
+      }
+
       if (snapshot.isPlaying && idx >= 0 && idx < snapshot.queue.length && snapshot.queue[idx]?.uri) {
         Promise.resolve(get().playIndex(idx)).catch(() => {});
       }
@@ -357,6 +381,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       }
 
       if (nextState && !nextState.paused) {
+        clearPlayRetry();
         stopAutoResumeLoop();
         return;
       }
@@ -431,6 +456,39 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     if (isTransitioning) return;
 
     const nextTrack = queue[index];
+    const uriEntries = queue
+      .map((track, queueIndex) => ({ uri: track.uri, queueIndex }))
+      .filter((item): item is { uri: string; queueIndex: number } => Boolean(item.uri));
+
+    const targetPosition = uriEntries.findIndex((item) => item.queueIndex === index);
+    if (targetPosition === -1) {
+      set({
+        pendingIndex: null,
+        isTransitioning: false,
+        queueIndex: index,
+        currentTrack: nextTrack,
+        isPlaying: false,
+      });
+      return;
+    }
+
+    if (!deviceId) {
+      // First click can happen before SDK reports ready device; queue it and auto-start on ready.
+      pendingPlayOnReadyIndex = index;
+      set({
+        pendingIndex: index,
+        isTransitioning: false,
+        queueIndex: index,
+        currentTrack: nextTrack,
+        isPlaying: false,
+        progressMs: 0,
+        durationMs: nextTrack.durationMs ?? 0,
+      });
+      return;
+    }
+
+    pendingPlayOnReadyIndex = null;
+    clearPlayRetry();
     ignorePausedUntil = Date.now() + 1400;
     const hasActivePlayback = !!currentTrack && isPlaying;
     set({
@@ -447,22 +505,6 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
           }),
     });
 
-    const uriEntries = queue
-      .map((track, queueIndex) => ({ uri: track.uri, queueIndex }))
-      .filter((item): item is { uri: string; queueIndex: number } => Boolean(item.uri));
-
-    const targetPosition = uriEntries.findIndex((item) => item.queueIndex === index);
-    if (targetPosition === -1 || !deviceId) {
-      set({
-        pendingIndex: null,
-        isTransitioning: false,
-        ...(hasActivePlayback
-          ? {}
-          : { queueIndex: index, currentTrack: queue[index], isPlaying: false, progressMs: 0, durationMs: 0 }),
-      });
-      return;
-    }
-
     try {
       await playerApi("play", {
         deviceId,
@@ -471,6 +513,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         positionMs: 0,
       });
     } catch {
+      schedulePlayRetry(index);
       set({
         pendingIndex: null,
         isTransitioning: false,
@@ -515,6 +558,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   stop: async () => {
     const { player } = get();
     suppressAutoResumeUntil = Date.now() + 60_000;
+    pendingPlayOnReadyIndex = null;
+    clearPlayRetry();
     stopAutoResumeLoop();
     if (player) {
       await player.pause().catch(() => {});
