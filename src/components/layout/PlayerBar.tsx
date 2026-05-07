@@ -18,6 +18,13 @@ function formatTime(seconds: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function buildMediaArtwork(imageUrl?: string) {
+  if (!imageUrl) return [] as MediaImage[];
+  // iOS lock-screen behavior is inconsistent across versions; provide multiple sizes.
+  const sizes = ["96x96", "128x128", "192x192", "256x256", "384x384", "512x512"];
+  return sizes.map((size) => ({ src: imageUrl, sizes: size }));
+}
+
 // Client-side resolve cache so the same track never hits the API twice
 const resolveCache = new Map<string, { uri: string | null; imageUrl?: string | null; durationMs?: number }>();
 
@@ -286,12 +293,11 @@ export default function PlayerBar() {
       navigator.mediaSession.metadata = null;
       return;
     }
-    const artwork = currentTrack.image
-      ? [{ src: currentTrack.image, sizes: "512x512", type: "image/jpeg" }]
-      : [];
+    const artwork = buildMediaArtwork(currentTrack.image);
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentTrack.name,
-      artist: currentTrack.artist,
+      title: currentTrack.name || "Now Playing",
+      artist: currentTrack.artist || "Jokerly",
+      album: "Jokerly",
       artwork,
     });
   }, [currentTrack]);
