@@ -207,13 +207,8 @@ export default function PlayerBar() {
   }, [ensurePlayingForAction, fetchAndPlay]);
 
   const handlePlayPause = useCallback(() => {
-    const currentlyPlaying = usePlayerStore.getState().isPlaying;
-    if (!currentlyPlaying && playDisabled) {
-      toast("Cannot pause because music is not playing.", "error");
-      return;
-    }
     togglePlay();
-  }, [playDisabled, toast, togglePlay]);
+  }, [togglePlay]);
 
   const handleQueuePlayIndex = useCallback((index: number) => {
     if (!ensurePlayingForAction("switch")) return false;
