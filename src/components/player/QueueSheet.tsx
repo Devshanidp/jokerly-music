@@ -21,7 +21,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 interface Props {
-  onPlayIndex: (index: number) => void;
+  onPlayIndex: (index: number) => boolean | void;
 }
 
 function SortableTrack({
@@ -176,7 +176,12 @@ export default function QueueSheet({ onPlayIndex }: Props) {
                       index={i}
                       isCurrent={isCurrent}
                       isCurrentlyPlaying={isCurrentlyPlaying}
-                      onPlay={() => { onPlayIndex(i); usePlayerStore.setState({ isQueueOpen: false }); }}
+                      onPlay={() => {
+                        const didStart = onPlayIndex(i);
+                        if (didStart !== false) {
+                          usePlayerStore.setState({ isQueueOpen: false });
+                        }
+                      }}
                       onRemove={(e) => { e.stopPropagation(); removeFromQueue(i); }}
                     />
                   </div>

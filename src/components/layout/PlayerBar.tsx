@@ -9,6 +9,7 @@ import { signOut, useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import QueueSheet from "@/components/player/QueueSheet";
 import LyricsPanel from "@/components/player/LyricsPanel";
+import { useToastStore } from "@/store/toast";
 
 function formatTime(seconds: number) {
   if (!isFinite(seconds)) return "0:00";
@@ -60,6 +61,7 @@ export default function PlayerBar() {
   } = usePlayerStore();
 
   const { load: loadLikes, songUris, toggleSong } = useLikesStore();
+  const { toast } = useToastStore();
   const isLiked = currentTrack?.uri ? songUris.has(currentTrack.uri) : false;
 
   const handleLike = () => {
@@ -172,6 +174,53 @@ export default function PlayerBar() {
     }
   }, [playWithTransition, queue, updateTrackUri]);
 
+  const ensurePlayingForAction = useCallback((action: "pause" | "next" | "prev" | "switch") => {
+    const currentlyPlaying = usePlayerStore.getState().isPlaying;
+    if (currentlyPlaying) return true;
+
+    const actionLabel = action === "pause"
+      ? "pause"
+      : action === "next"
+        ? "next"
+        : action === "prev"
+          ? "go to previous"
+        : "switch songs";
+
+    toast(`Cannot ${actionLabel} because music is not playing.`, "error");
+    return false;
+  }, [toast]);
+
+  const handleNextTrack = useCallback(() => {
+    if (!ensurePlayingForAction("next")) return;
+    const state = usePlayerStore.getState();
+    const next = state.getNextIndex();
+    if (next === null || next === state.queueIndex) return;
+    fetchAndPlay(next);
+  }, [ensurePlayingForAction, fetchAndPlay]);
+
+  const handlePrevTrack = useCallback(() => {
+    if (!ensurePlayingForAction("prev")) return;
+    const state = usePlayerStore.getState();
+    const prev = state.getPrevIndex();
+    if (prev === null || prev === state.queueIndex) return;
+    fetchAndPlay(prev);
+  }, [ensurePlayingForAction, fetchAndPlay]);
+
+  const handlePlayPause = useCallback(() => {
+    const currentlyPlaying = usePlayerStore.getState().isPlaying;
+    if (!currentlyPlaying && playDisabled) {
+      toast("Cannot pause because music is not playing.", "error");
+      return;
+    }
+    togglePlay();
+  }, [playDisabled, toast, togglePlay]);
+
+  const handleQueuePlayIndex = useCallback((index: number) => {
+    if (!ensurePlayingForAction("switch")) return false;
+    fetchAndPlay(index);
+    return true;
+  }, [ensurePlayingForAction, fetchAndPlay]);
+
   useEffect(() => {
     if (!endedToken) return;
     const nextIndex = getNextIndex();
@@ -260,15 +309,14 @@ export default function PlayerBar() {
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
     navigator.mediaSession.setActionHandler("play", () => togglePlay());
-    navigator.mediaSession.setActionHandler("pause", () => togglePlay());
+    navigator.mediaSession.setActionHandler("pause", () => {
+      if (!ensurePlayingForAction("pause")) return;
+      togglePlay();
+    });
     navigator.mediaSession.setActionHandler("previoustrack", () => {
-      const prev = usePlayerStore.getState().getPrevIndex();
-      if (prev !== null) fetchAndPlay(prev);
+      handlePrevTrack();
     });
-    navigator.mediaSession.setActionHandler("nexttrack", () => {
-      const next = usePlayerStore.getState().getNextIndex();
-      if (next !== null) fetchAndPlay(next);
-    });
+    navigator.mediaSession.setActionHandler("nexttrack", handleNextTrack);
     navigator.mediaSession.setActionHandler("seekto", (details) => {
       if (details.seekTime != null) {
         const { durationMs: dur } = usePlayerStore.getState();
@@ -280,7 +328,7 @@ export default function PlayerBar() {
         try { navigator.mediaSession.setActionHandler(a, null); } catch {}
       });
     };
-  }, [togglePlay, fetchAndPlay]);
+  }, [togglePlay, fetchAndPlay, ensurePlayingForAction, handleNextTrack, handlePrevTrack]);
 
   // Sleep timer countdown
   useEffect(() => {
@@ -346,7 +394,7 @@ export default function PlayerBar() {
   return (
     <>
       {/* ── Queue Sheet ── */}
-      {isQueueOpen && <QueueSheet onPlayIndex={fetchAndPlay} />}
+      {isQueueOpen && <QueueSheet onPlayIndex={handleQueuePlayIndex} />}
 
       {/* ── Expanded Now Playing ── */}
       {expanded && (
@@ -433,11 +481,11 @@ export default function PlayerBar() {
                     className={`p-3 rounded-2xl transition-colors ${shuffleEnabled ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
                     <Shuffle size={18} />
                   </button>
-                  <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)} title="Previous" disabled={isTransitioning}
+                  <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
                     className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
                     <SkipBack size={22} fill="currentColor" />
                   </button>
-                  <button onClick={togglePlay} disabled={playDisabled || isTransitioning} title={isPlaying ? "Pause" : "Play"}
+                  <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning} title={isPlaying ? "Pause" : "Play"}
                     className="btn-red p-5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
                     {playBusy
                       ? <Loader2 size={24} className="text-white animate-spin" />
@@ -446,7 +494,7 @@ export default function PlayerBar() {
                         : <Play size={24} fill="white" className="text-white" />
                     }
                   </button>
-                  <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)} title="Next" disabled={isTransitioning}
+                  <button onClick={handleNextTrack} title="Next" disabled={isTransitioning}
                     className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
                     <SkipForward size={22} fill="currentColor" />
                   </button>
@@ -589,11 +637,11 @@ export default function PlayerBar() {
               className={`p-2 rounded-xl transition-colors ${shuffleEnabled ? "text-[#E8282B]" : "text-white/30 hover:text-white"}`}>
               <Shuffle size={16} />
             </button>
-            <button onClick={() => prevIndex !== null && fetchAndPlay(prevIndex)} title="Previous" disabled={isTransitioning}
+            <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
               className="p-2 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
               <SkipBack size={18} fill="currentColor" />
             </button>
-            <button onClick={togglePlay} disabled={playDisabled || isTransitioning}
+            <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning}
               className="btn-red mx-1 p-3 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
               {(!currentTrack || !isPlaying) && playBusy
                 ? <Loader2 size={18} className="text-white animate-spin" />
@@ -601,7 +649,7 @@ export default function PlayerBar() {
                   ? <Pause size={18} fill="white" className="text-white" />
                   : <Play size={18} fill="white" className="text-white ml-0.5" />}
             </button>
-            <button onClick={() => nextIndex !== null && fetchAndPlay(nextIndex)} title="Next" disabled={isTransitioning}
+            <button onClick={handleNextTrack} title="Next" disabled={isTransitioning}
               className="p-2 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
               <SkipForward size={18} fill="currentColor" />
             </button>
