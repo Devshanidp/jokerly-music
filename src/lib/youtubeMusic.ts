@@ -82,24 +82,9 @@ function findTrackResult(payload: unknown): { videoId: string; title?: string } 
 }
 
 async function performYtmSearch(cookieString: string, query: string) {
-  const response = await fetch(YTM_SEARCH_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: cookieString,
-      Origin: "https://music.youtube.com",
-      Referer: "https://music.youtube.com/",
-      "X-Goog-AuthUser": "0",
-    },
-    body: JSON.stringify(buildSearchBody(query)),
-  });
-
-  if (!response.ok) {
-    throw new Error(`YouTube Music search failed: ${response.status} ${response.statusText}`);
-  }
-
-  const json = await response.json();
-  const match = findTrackResult(json);
+  const ytma = await authenticateYtm(cookieString);
+  const response = await (ytma as any).sendRequest("search", { query });
+  const match = findTrackResult(response);
   if (!match) return null;
   return match;
 }

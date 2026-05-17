@@ -24,8 +24,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "tracksToMove must be a non-empty array" }, { status: 400 });
     }
 
-    // Normalize cookie input: accept either the full cookie string or just the value of __Secure-1PAPISID
     let normalizedCookie = cookieString.trim();
+    if (normalizedCookie.toLowerCase().startsWith("cookie:")) {
+      normalizedCookie = normalizedCookie.slice(normalizedCookie.indexOf(":") + 1).trim();
+    }
     if (!normalizedCookie.includes("=")) {
       normalizedCookie = `__Secure-1PAPISID=${normalizedCookie}`;
     }
