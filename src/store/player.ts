@@ -147,7 +147,8 @@ let ignorePausedUntil = 0;
 let lastLoggedUri = "";
 let suppressAutoResumeUntil = 0;
 let autoResumeAttempts = 0;
-const MAX_AUTO_RESUME_ATTEMPTS = 6;
+const MAX_AUTO_RESUME_ATTEMPTS = 4;
+const AUTO_RESUME_INTERVAL_MS = 1200;
 let autoResumeTimer: ReturnType<typeof setInterval> | null = null;
 let pendingPlayOnReadyIndex: number | null = null;
 let playRetryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -208,6 +209,15 @@ function isStaleDeviceError(errorText: string) {
     (normalized.includes('"status"') && normalized.includes("404") && normalized.includes("not found"));
 }
 
+function isAuthError(errorText: string) {
+  const normalized = errorText.toLowerCase();
+  return normalized.includes("unauthorized") ||
+    normalized.includes("authentication") ||
+    normalized.includes("access token") ||
+    normalized.includes('"status":401') ||
+    normalized.includes("spotify api 401");
+}
+
 function stopAutoResumeLoop() {
   if (!autoResumeTimer) return;
   clearInterval(autoResumeTimer);
@@ -215,10 +225,10 @@ function stopAutoResumeLoop() {
   autoResumeAttempts = 0;
 }
 
-function tryAutoResumeFromInterruption() {
+async function tryAutoResumeFromInterruption() {
   const snapshot = usePlayerStore.getState();
   if (Date.now() < suppressAutoResumeUntil) return;
-  if (!snapshot.player || !snapshot.currentTrack || snapshot.queueIndex < 0 || !snapshot.deviceId) {
+  if (!snapshot.player || !snapshot.currentTrack?.uri || snapshot.queueIndex < 0 || !snapshot.deviceId) {
     stopAutoResumeLoop();
     return;
   }
@@ -235,16 +245,35 @@ function tryAutoResumeFromInterruption() {
 
   autoResumeAttempts += 1;
   addLog(`[AutoResume] Attempting resume: "${snapshot.currentTrack.name}" (attempt ${autoResumeAttempts})`, "warn");
-  snapshot.player.togglePlay().catch((e: unknown) => {
-    addLog(`[AutoResume] togglePlay failed: ${e instanceof Error ? e.message : String(e)}`, "error");
-  });
+  try {
+    await playerApi("play", {
+      deviceId: snapshot.deviceId,
+      uris: [snapshot.currentTrack.uri],
+      positionMs: Math.max(0, snapshot.progressMs),
+    });
+    ignorePausedUntil = Date.now() + 1400;
+    updateMediaSessionState(true);
+  } catch (e) {
+    const errorText = parseErrorText(e);
+    addLog(`[AutoResume] resume failed: ${errorText}`, "error");
+    if (isAuthError(errorText)) {
+      suppressAutoResumeUntil = Date.now() + 60_000;
+      stopAutoResumeLoop();
+      usePlayerStore.setState({
+        isPlaying: false,
+        isTransitioning: false,
+        isPlayerReady: false,
+        sdkError: "Spotify session expired. Sign in again to continue playback.",
+      });
+    }
+  }
 }
 
 function startAutoResumeLoop() {
   if (autoResumeTimer) return;
   autoResumeAttempts = 0;
-  tryAutoResumeFromInterruption();
-  autoResumeTimer = setInterval(tryAutoResumeFromInterruption, 700);
+  void tryAutoResumeFromInterruption();
+  autoResumeTimer = setInterval(() => void tryAutoResumeFromInterruption(), AUTO_RESUME_INTERVAL_MS);
 }
 
 async function loadSpotifySdk(): Promise<SpotifyPlayerCtor | null> {
@@ -422,6 +451,18 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       getOAuthToken: async (cb) => {
         try {
           const session = await getSession();
+          const sessionError = (session as { error?: string } | null)?.error;
+          if (sessionError) {
+            stopAutoResumeLoop();
+            clearPlayRetry(true);
+            set({
+              isPlaying: false,
+              isPlayerReady: false,
+              sdkError: "Spotify session expired. Sign in again to continue playback.",
+            });
+            cb("");
+            return;
+          }
           const freshToken = (session?.accessToken as string | undefined) ?? get().accessToken ?? accessToken;
           if (freshToken) set({ accessToken: freshToken });
           cb(freshToken ?? "");
@@ -513,6 +554,9 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     });
     player.addListener("authentication_error", async () => {
       addLog("[SDK] authentication_error — refreshing token", "warn");
+      suppressAutoResumeUntil = Date.now() + 60_000;
+      stopAutoResumeLoop();
+      clearPlayRetry(true);
       try {
         const session = await getSession();
         if (session?.accessToken && !(session as { error?: string }).error) {
@@ -522,7 +566,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         }
       } catch { /* fall through to error */ }
       addLog("[SDK] authentication_error — token refresh failed", "error");
-      set({ isPlayerReady: false, sdkError: "Spotify authentication error. Try signing out and back in." });
+      set({
+        isPlaying: false,
+        isTransitioning: false,
+        isPlayerReady: false,
+        sdkError: "Spotify session expired. Sign in again to continue playback.",
+      });
     });
     player.addListener("account_error", () => {
       addLog("[SDK] account_error — Spotify Premium required", "error");
