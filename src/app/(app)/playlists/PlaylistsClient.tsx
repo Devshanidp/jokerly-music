@@ -13,6 +13,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { SpotifyPlaylist } from "@/types";
 import Image from "next/image";
+import { signIn } from "next-auth/react";
 import { useToastStore } from "@/store/toast";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
@@ -23,6 +24,7 @@ import { SpotifyArtist } from "@/types/spotify";
 import { useLikesStore } from "@/store/likes";
 import SpotifyIcon from "@/components/icons/SpotifyIcon";
 import TransferResultDialog, { TransferResult } from "@/components/spotify/TransferResultDialog";
+import { SPOTIFY_SCOPES } from "@/lib/spotify-scopes";
 
 interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
@@ -172,6 +174,14 @@ export default function PlaylistsClient() {
   );
 
   const selectedPlaylist = playlists.find((p) => p.id === selectedId) ?? null;
+
+  const continueWithSpotify = useCallback(() => {
+    void signIn(
+      "spotify",
+      { callbackUrl: window.location.href },
+      { scope: SPOTIFY_SCOPES, show_dialog: "true" }
+    );
+  }, []);
 
   const handleDragEnd = (event: DragEndEvent, playlistId: string) => {
     const { active, over } = event;
@@ -379,7 +389,14 @@ export default function PlaylistsClient() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
-        throw new Error(data.error || "Spotify session needs to be refreshed. Sign in again once, then retry transfer.");
+        setTransferResult({
+          type: "error",
+          title: "Spotify Permission Needed",
+          message: data.error || "Connect Spotify once to allow playlist transfer.",
+          details: data.error || "Spotify needs a one-time permission upgrade before transfer can continue.",
+          needsReauth: true,
+        });
+        return;
       }
       if (!res.ok) throw new Error(data.error || "Could not transfer playlist");
 
@@ -395,11 +412,15 @@ export default function PlaylistsClient() {
       });
     } catch (e) {
       const message = (e as Error).message || "Could not transfer playlist";
+      const needsReauth =
+        message.toLowerCase().includes("spotify") &&
+        (message.toLowerCase().includes("permission") || message.toLowerCase().includes("token"));
       setTransferResult({
         type: "error",
         title: "Transfer Failed",
         message,
         details: message,
+        needsReauth,
       });
     } finally {
       setTransferringPlaylistId(null);
@@ -542,7 +563,13 @@ export default function PlaylistsClient() {
             onClose={() => setExportModal(false)}
           />
         )}
-        {transferResult && <TransferResultDialog result={transferResult} onClose={() => setTransferResult(null)} />}
+        {transferResult && (
+          <TransferResultDialog
+            result={transferResult}
+            onClose={() => setTransferResult(null)}
+            onReauthorize={continueWithSpotify}
+          />
+        )}
       </div>
     );
   }
@@ -688,7 +715,13 @@ export default function PlaylistsClient() {
 
       {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
       {selectedArtist && <ArtistSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />}
-      {transferResult && <TransferResultDialog result={transferResult} onClose={() => setTransferResult(null)} />}
+      {transferResult && (
+        <TransferResultDialog
+          result={transferResult}
+          onClose={() => setTransferResult(null)}
+          onReauthorize={continueWithSpotify}
+        />
+      )}
     </div>
   );
 }

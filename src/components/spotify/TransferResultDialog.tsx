@@ -5,17 +5,27 @@ import { AlertCircle, CheckCircle2, Copy, X } from "lucide-react";
 
 export type TransferResult =
   | { type: "success"; title: string; message: string; url?: string | null }
-  | { type: "error"; title: string; message: string; details?: string };
+  | { type: "error"; title: string; message: string; details?: string; needsReauth?: boolean };
 
 interface Props {
   result: TransferResult;
   onClose: () => void;
+  onReauthorize?: () => void;
 }
 
-export default function TransferResultDialog({ result, onClose }: Props) {
+export default function TransferResultDialog({ result, onClose, onReauthorize }: Props) {
   const [copied, setCopied] = useState(false);
   const isSuccess = result.type === "success";
   const details = result.type === "error" ? result.details || result.message : "";
+  const errorText = result.type === "error" ? `${result.title} ${result.message} ${details}`.toLowerCase() : "";
+  const looksLikeSpotifyPermissionError =
+    errorText.includes("spotify") &&
+    (errorText.includes("permission") ||
+      errorText.includes("token") ||
+      errorText.includes("401") ||
+      errorText.includes("unauthorized") ||
+      errorText.includes("continue with spotify"));
+  const canReauthorize = result.type === "error" && onReauthorize && (result.needsReauth || looksLikeSpotifyPermissionError);
 
   const copyDetails = async () => {
     await navigator.clipboard.writeText(details);
@@ -79,9 +89,17 @@ export default function TransferResultDialog({ result, onClose }: Props) {
               Open Spotify
             </button>
           )}
+          {canReauthorize && (
+            <button
+              onClick={onReauthorize}
+              className="flex-1 rounded-2xl bg-[#1DB954] px-4 py-2.5 text-sm font-bold text-black transition-opacity hover:opacity-90"
+            >
+              Continue with Spotify
+            </button>
+          )}
           <button
             onClick={onClose}
-            className={`${result.type === "success" && result.url ? "flex-1" : "w-full"} rounded-2xl bg-[#E8282B] px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90`}
+            className={`${(result.type === "success" && result.url) || canReauthorize ? "flex-1" : "w-full"} rounded-2xl bg-[#E8282B] px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90`}
           >
             Done
           </button>

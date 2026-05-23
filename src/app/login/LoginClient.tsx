@@ -4,13 +4,14 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
+import { SPOTIFY_SCOPES } from "@/lib/spotify-scopes";
 
 export default function LoginClient() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     setLoading(true);
-    await signIn("spotify", { callbackUrl: "/" });
+    await signIn("spotify", { callbackUrl: "/" }, { scope: SPOTIFY_SCOPES });
   };
 
   return (

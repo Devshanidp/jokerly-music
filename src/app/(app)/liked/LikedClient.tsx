@@ -4,12 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { Heart, Music, Mic2, Play, Trash2, Loader2, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { useLikesStore, LikedSong, LikedArtist } from "@/store/likes";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import { SpotifyArtist } from "@/types/spotify";
 import SpotifyIcon from "@/components/icons/SpotifyIcon";
 import TransferResultDialog, { TransferResult } from "@/components/spotify/TransferResultDialog";
+import { SPOTIFY_SCOPES } from "@/lib/spotify-scopes";
 
 export default function LikedClient() {
   const router = useRouter();
@@ -21,6 +23,14 @@ export default function LikedClient() {
   const [transferResult, setTransferResult] = useState<TransferResult | null>(null);
 
   useEffect(() => { load(); }, [load]);
+
+  const continueWithSpotify = useCallback(() => {
+    void signIn(
+      "spotify",
+      { callbackUrl: window.location.href },
+      { scope: SPOTIFY_SCOPES, show_dialog: "true" }
+    );
+  }, []);
 
   const playSong = (song: LikedSong, index: number) => {
     const queue: PlayableTrack[] = songs.map((s) => ({
@@ -70,7 +80,14 @@ export default function LikedClient() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
-        throw new Error(data.error || "Spotify session needs to be refreshed. Sign in again once, then retry transfer.");
+        setTransferResult({
+          type: "error",
+          title: "Spotify Permission Needed",
+          message: data.error || "Connect Spotify once to allow playlist, liked song, and artist transfer.",
+          details: data.error || "Spotify needs a one-time permission upgrade before transfer can continue.",
+          needsReauth: true,
+        });
+        return;
       }
       if (!res.ok) throw new Error(data.error || "Could not transfer liked items");
 
@@ -83,11 +100,15 @@ export default function LikedClient() {
       });
     } catch (e) {
       const message = (e as Error).message || "Could not transfer liked items";
+      const needsReauth =
+        message.toLowerCase().includes("spotify") &&
+        (message.toLowerCase().includes("permission") || message.toLowerCase().includes("token"));
       setTransferResult({
         type: "error",
         title: "Transfer Failed",
         message,
         details: message,
+        needsReauth,
       });
     } finally {
       setTransferring(false);
@@ -149,7 +170,13 @@ export default function LikedClient() {
       )}
 
       {selectedArtist && <ArtistSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />}
-      {transferResult && <TransferResultDialog result={transferResult} onClose={() => setTransferResult(null)} />}
+      {transferResult && (
+        <TransferResultDialog
+          result={transferResult}
+          onClose={() => setTransferResult(null)}
+          onReauthorize={continueWithSpotify}
+        />
+      )}
     </div>
   );
 }

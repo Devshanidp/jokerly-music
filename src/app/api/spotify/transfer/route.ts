@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getToken } from "next-auth/jwt";
+import { auth, refreshAccessToken } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 const SPOTIFY_BASE = "https://api.spotify.com/v1";
@@ -31,7 +32,7 @@ interface LikedArtistRow {
 }
 
 class SpotifyApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public details?: string) {
     super(message);
     this.name = "SpotifyApiError";
   }
@@ -59,7 +60,7 @@ function isSpotifyTrackUri(uri: string) {
 function spotifyErrorMessage(status: number, details: string) {
   const lower = details.toLowerCase();
   if (status === 401 || status === 403 || lower.includes("scope") || lower.includes("permission")) {
-    return "Spotify needs new permissions. Please sign out and sign in again, then retry transfer.";
+    return "Spotify needs a one-time permission upgrade. Tap Continue with Spotify, approve it, then retry transfer.";
   }
   return details || `Spotify API ${status}`;
 }
@@ -83,11 +84,39 @@ async function spotifyRequest<T>(path: string, accessToken: string, init: Reques
 
   if (!res.ok) {
     const details = await res.text().catch(() => "");
-    throw new SpotifyApiError(res.status, spotifyErrorMessage(res.status, details));
+    throw new SpotifyApiError(res.status, spotifyErrorMessage(res.status, details), details);
   }
 
   if (res.status === 204) return null as T;
   return (await res.json()) as T;
+}
+
+async function getRefreshedAccessToken(req: NextRequest) {
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  });
+
+  if (!token) return null;
+  const refreshed = await refreshAccessToken(token);
+  if (refreshed.error || !refreshed.accessToken) return null;
+  return refreshed.accessToken;
+}
+
+async function retryWithFreshToken<T>(
+  req: NextRequest,
+  accessToken: string,
+  action: (token: string) => Promise<T>
+) {
+  try {
+    return await action(accessToken);
+  } catch (error) {
+    if (!(error instanceof SpotifyApiError) || error.status !== 401) throw error;
+
+    const freshToken = await getRefreshedAccessToken(req);
+    if (!freshToken || freshToken === accessToken) throw error;
+    return action(freshToken);
+  }
 }
 
 async function saveLikedSongs(accessToken: string, songs: LikedSongRow[]) {
@@ -174,7 +203,9 @@ export async function POST(req: NextRequest) {
     let followedArtistCount = 0;
 
     try {
-      savedSongCount = await saveLikedSongs(session.accessToken, (songsResult.data ?? []) as LikedSongRow[]);
+      savedSongCount = await retryWithFreshToken(req, session.accessToken, (token) =>
+        saveLikedSongs(token, (songsResult.data ?? []) as LikedSongRow[])
+      );
     } catch (error) {
       console.error("[spotify-transfer] liked songs transfer failed", error);
       if (error instanceof SpotifyApiError && (error.status === 401 || error.status === 403)) {
@@ -184,7 +215,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      followedArtistCount = await followLikedArtists(session.accessToken, (artistsResult.data ?? []) as LikedArtistRow[]);
+      followedArtistCount = await retryWithFreshToken(req, session.accessToken, (token) =>
+        followLikedArtists(token, (artistsResult.data ?? []) as LikedArtistRow[])
+      );
     } catch (error) {
       console.error("[spotify-transfer] liked artists transfer failed", error);
       if (savedSongCount === 0 && error instanceof SpotifyApiError && (error.status === 401 || error.status === 403)) {
@@ -211,7 +244,9 @@ export async function POST(req: NextRequest) {
     if (tracks.length === 0) return NextResponse.json({ error: "Playlist has no tracks to transfer" }, { status: 400 });
 
     try {
-      const created = await createSpotifyPlaylist(session.accessToken, playlistResult.data as PlaylistRow, tracks, body.public ?? false);
+      const created = await retryWithFreshToken(req, session.accessToken, (token) =>
+        createSpotifyPlaylist(token, playlistResult.data as PlaylistRow, tracks, body.public ?? false)
+      );
       return NextResponse.json({ ok: true, ...created });
     } catch (error) {
       console.error("[spotify-transfer] playlist transfer failed", error);
