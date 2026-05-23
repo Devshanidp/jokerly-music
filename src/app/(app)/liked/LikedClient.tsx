@@ -1,20 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Heart, Music, Mic2, Play, Trash2, Loader2, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { useLikesStore, LikedSong, LikedArtist } from "@/store/likes";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import { SpotifyArtist } from "@/types/spotify";
+import { useToastStore } from "@/store/toast";
+import SpotifyIcon from "@/components/icons/SpotifyIcon";
+import TransferResultDialog, { TransferResult } from "@/components/spotify/TransferResultDialog";
+
+const PENDING_LIKED_TRANSFER_KEY = "jokerly-pending-liked-transfer";
 
 export default function LikedClient() {
   const router = useRouter();
   const { songs, artists, loaded, load, toggleSong, toggleArtist } = useLikesStore();
   const { setQueueAndPlay } = usePlayerStore();
+  const { toast } = useToastStore();
   const [tab, setTab] = useState<"songs" | "artists">("songs");
   const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
+  const [transferring, setTransferring] = useState(false);
+  const [transferResult, setTransferResult] = useState<TransferResult | null>(null);
 
   useEffect(() => { load(); }, [load]);
 
@@ -47,6 +56,65 @@ export default function LikedClient() {
     } as SpotifyArtist);
   };
 
+  const transferLikedToSpotify = useCallback(async (allowReauth = true) => {
+    if (songs.length === 0 && artists.length === 0) {
+      setTransferResult({
+        type: "error",
+        title: "Nothing To Transfer",
+        message: "Like some songs or artists first, then try again.",
+      });
+      return;
+    }
+
+    setTransferring(true);
+    try {
+      const res = await fetch("/api/spotify/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "liked" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        if (!allowReauth) {
+          throw new Error(data.error || "Spotify permissions were not refreshed. Please try signing in again.");
+        }
+        sessionStorage.setItem(PENDING_LIKED_TRANSFER_KEY, "1");
+        toast(data.error || "Spotify permissions need to be refreshed", "info");
+        await signIn("spotify", { callbackUrl: window.location.href }, { show_dialog: "true" });
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || "Could not transfer liked items");
+
+      const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+      setTransferResult({
+        type: warnings.length > 0 ? "error" : "success",
+        title: warnings.length > 0 ? "Transfer Partially Completed" : "Transfer Successful",
+        message: `Transferred ${data.savedSongCount ?? 0} songs and ${data.followedArtistCount ?? 0} artists to Spotify.`,
+        ...(warnings.length > 0 ? { details: warnings.join("\n") } : {}),
+      });
+    } catch (e) {
+      const message = (e as Error).message || "Could not transfer liked items";
+      setTransferResult({
+        type: "error",
+        title: "Transfer Failed",
+        message,
+        details: message,
+      });
+    } finally {
+      setTransferring(false);
+    }
+  }, [artists.length, songs.length, toast]);
+
+  useEffect(() => {
+    if (!loaded || transferring) return;
+    if (sessionStorage.getItem(PENDING_LIKED_TRANSFER_KEY) !== "1") return;
+    sessionStorage.removeItem(PENDING_LIKED_TRANSFER_KEY);
+    const id = window.setTimeout(() => {
+      void transferLikedToSpotify(false);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [loaded, transferring, transferLikedToSpotify]);
+
   return (
     <div className="w-full space-y-5">
       {/* Header */}
@@ -66,6 +134,16 @@ export default function LikedClient() {
             </p>
           </div>
         </div>
+        <div className="flex-1" />
+        <button
+          onClick={() => void transferLikedToSpotify()}
+          disabled={transferring || !loaded || (songs.length === 0 && artists.length === 0)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white font-semibold text-xs transition-all active:scale-95 disabled:opacity-40"
+          style={{ background: "rgba(29,185,84,0.14)", color: "#1DB954" }}
+        >
+          {transferring ? <Loader2 size={14} className="animate-spin" /> : <SpotifyIcon size={14} />}
+          Spotify
+        </button>
       </div>
 
       {/* Tabs */}
@@ -92,6 +170,7 @@ export default function LikedClient() {
       )}
 
       {selectedArtist && <ArtistSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />}
+      {transferResult && <TransferResultDialog result={transferResult} onClose={() => setTransferResult(null)} />}
     </div>
   );
 }

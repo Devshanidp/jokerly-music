@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ListMusic, Plus, Pencil, Pin, Loader2, X, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Share2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Share2 } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -13,6 +13,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { SpotifyPlaylist } from "@/types";
 import Image from "next/image";
+import { signIn } from "next-auth/react";
 import { useToastStore } from "@/store/toast";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
@@ -21,6 +22,10 @@ import ExportToYouTubeMusicModal from "@/components/export/ExportToYouTubeMusicM
 import ArtistSheet from "@/components/music/ArtistSheet";
 import { SpotifyArtist } from "@/types/spotify";
 import { useLikesStore } from "@/store/likes";
+import SpotifyIcon from "@/components/icons/SpotifyIcon";
+import TransferResultDialog, { TransferResult } from "@/components/spotify/TransferResultDialog";
+
+const PENDING_PLAYLIST_TRANSFER_KEY = "jokerly-pending-playlist-transfer";
 
 interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
@@ -157,6 +162,8 @@ export default function PlaylistsClient() {
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [addFromPlaylist, setAddFromPlaylist] = useState(false);
   const [exportModal, setExportModal] = useState(false);
+  const [transferringPlaylistId, setTransferringPlaylistId] = useState<string | null>(null);
+  const [transferResult, setTransferResult] = useState<TransferResult | null>(null);
   const [pinnedArtists, setPinnedArtists] = useState<PinnedArtist[]>([]);
   const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
   const { toast } = useToastStore();
@@ -185,7 +192,7 @@ export default function PlaylistsClient() {
     }).catch(() => toast("Could not save order"));
   };
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [plRes, pinRes] = await Promise.all([
@@ -202,9 +209,27 @@ export default function PlaylistsClient() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  useEffect(() => { load(); }, []);
+  const fetchTracks = useCallback(async (id: string) => {
+    setLoadingTracks(id);
+    try {
+      const res = await fetch(`/api/spotify/playlists/${id}?_t=${Date.now()}`);
+      const data = await res.json();
+      setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
+    } catch {
+      setTracksMap((prev) => ({ ...prev, [id]: [] }));
+    } finally {
+      setLoadingTracks(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [load]);
 
   useEffect(() => {
     const fetchPinnedArtists = () =>
@@ -223,7 +248,7 @@ export default function PlaylistsClient() {
         .then((data) => setTracksMap((prev) => ({ ...prev, [pl.id]: data.items ?? [] })))
         .catch(() => {});
     });
-  }, [playlists]);
+  }, [playlists, tracksMap]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -236,20 +261,7 @@ export default function PlaylistsClient() {
     };
     window.addEventListener("playlist-updated", handler);
     return () => window.removeEventListener("playlist-updated", handler);
-  }, [selectedId]);
-
-  const fetchTracks = async (id: string) => {
-    setLoadingTracks(id);
-    try {
-      const res = await fetch(`/api/spotify/playlists/${id}?_t=${Date.now()}`);
-      const data = await res.json();
-      setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
-    } catch {
-      setTracksMap((prev) => ({ ...prev, [id]: [] }));
-    } finally {
-      setLoadingTracks(null);
-    }
-  };
+  }, [fetchTracks, selectedId]);
 
   const openPlaylist = (pl: SpotifyPlaylist) => {
     setSelectedId(pl.id);
@@ -360,6 +372,62 @@ export default function PlaylistsClient() {
     }
   };
 
+  const transferPlaylistToSpotify = useCallback(async (pl: SpotifyPlaylist, allowReauth = true) => {
+    setTransferringPlaylistId(pl.id);
+    try {
+      const res = await fetch("/api/spotify/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "playlist", playlistId: pl.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        if (!allowReauth) {
+          throw new Error(data.error || "Spotify permissions were not refreshed. Please try signing in again.");
+        }
+        sessionStorage.setItem(PENDING_PLAYLIST_TRANSFER_KEY, pl.id);
+        toast(data.error || "Spotify permissions need to be refreshed", "info");
+        await signIn("spotify", { callbackUrl: window.location.href }, { show_dialog: "true" });
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || "Could not transfer playlist");
+
+      const skippedCount = data.skippedCount ?? 0;
+      setTransferResult({
+        type: "success",
+        title: "Transfer Successful",
+        message:
+          skippedCount > 0
+            ? `Transferred ${data.trackCount ?? 0} tracks to Spotify. ${skippedCount} local tracks were skipped.`
+            : `Transferred ${data.trackCount ?? 0} tracks to Spotify.`,
+        url: data.spotifyPlaylistUrl ?? null,
+      });
+    } catch (e) {
+      const message = (e as Error).message || "Could not transfer playlist";
+      setTransferResult({
+        type: "error",
+        title: "Transfer Failed",
+        message,
+        details: message,
+      });
+    } finally {
+      setTransferringPlaylistId(null);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (loading || transferringPlaylistId) return;
+    const playlistId = sessionStorage.getItem(PENDING_PLAYLIST_TRANSFER_KEY);
+    if (!playlistId) return;
+    const playlist = playlists.find((item) => item.id === playlistId);
+    if (!playlist) return;
+    sessionStorage.removeItem(PENDING_PLAYLIST_TRANSFER_KEY);
+    const id = window.setTimeout(() => {
+      void transferPlaylistToSpotify(playlist, false);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [loading, playlists, transferPlaylistToSpotify, transferringPlaylistId]);
+
   // ── Detail view ─────────────────────────────────────────────────────────
   if (selectedId && selectedPlaylist) {
     const pl = selectedPlaylist;
@@ -388,6 +456,11 @@ export default function PlaylistsClient() {
             title="Export to YouTube Music"
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
             <Share2 size={15} />
+          </button>
+          <button onClick={() => transferPlaylistToSpotify(pl)} disabled={transferringPlaylistId === pl.id || tracks.length === 0}
+            title="Transfer playlist to Spotify"
+            className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors disabled:opacity-40" style={{ color: "rgba(29,185,84,0.85)" }}>
+            {transferringPlaylistId === pl.id ? <Loader2 size={15} className="animate-spin" /> : <SpotifyIcon size={15} />}
           </button>
           <button onClick={() => setEdit({ id: pl.id, name: pl.name, description: pl.description ?? "" })}
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -491,6 +564,7 @@ export default function PlaylistsClient() {
             onClose={() => setExportModal(false)}
           />
         )}
+        {transferResult && <TransferResultDialog result={transferResult} onClose={() => setTransferResult(null)} />}
       </div>
     );
   }
@@ -636,6 +710,7 @@ export default function PlaylistsClient() {
 
       {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
       {selectedArtist && <ArtistSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />}
+      {transferResult && <TransferResultDialog result={transferResult} onClose={() => setTransferResult(null)} />}
     </div>
   );
 }
