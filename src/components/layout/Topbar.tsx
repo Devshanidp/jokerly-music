@@ -1,16 +1,25 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { X, User, Settings, Bell, Loader2 } from "lucide-react";
+import { X, User, Settings, Bell, Loader2, RefreshCw } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { SPOTIFY_SCOPES } from "@/lib/spotify-scopes";
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession();
   const [notifBusy, setNotifBusy] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifMessage, setNotifMessage] = useState<string | null>(null);
+
+  const reconnectSpotify = () => {
+    void signIn(
+      "spotify",
+      { callbackUrl: window.location.href },
+      { scope: SPOTIFY_SCOPES, show_dialog: "true" }
+    );
+  };
 
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
@@ -130,6 +139,22 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div className="h-px bg-white/[0.06]" />
+          <div className="rounded-2xl border border-[#1DB954]/20 p-3" style={{ background: "rgba(29,185,84,0.06)" }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-white text-sm font-medium">Spotify permissions</p>
+                <p className="text-white/40 text-xs mt-0.5">Refresh access for playlist and liked transfers.</p>
+              </div>
+              <button
+                onClick={reconnectSpotify}
+                className="shrink-0 flex items-center gap-1.5 rounded-xl bg-[#1DB954] px-3 py-1.5 text-xs font-bold text-black transition-opacity hover:opacity-90"
+              >
+                <RefreshCw size={13} />
+                Reconnect
+              </button>
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-white/[0.08] p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
@@ -180,8 +205,9 @@ export default function Topbar() {
   const sessionError = (session as { error?: string } | null)?.error;
 
   useEffect(() => {
-    setMounted(true);
+    const timer = window.setTimeout(() => setMounted(true), 0);
     router.prefetch("/");
+    return () => window.clearTimeout(timer);
   }, [router]);
 
   useEffect(() => {
