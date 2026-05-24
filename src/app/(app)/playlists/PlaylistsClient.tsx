@@ -372,10 +372,10 @@ export default function PlaylistsClient() {
     const tracks = tracksMap[pl.id] ?? [];
     const isLoadingTracks = loadingTracks === pl.id;
     const handleCopyLink = async () => {
-      const url = `${window.location.origin}/playlist/${pl.id}`;
+      const url = `https://jokerly-music.vercel.app/playlist/${pl.id}`;
       try {
         await navigator.clipboard.writeText(url);
-        toast("Playlist link copied! Paste this into TuneMyMusic.");
+        toast("Playlist link copied! Paste into TuneMyMusic.");
       } catch (err) {
         console.error("Failed to copy!", err);
       }
