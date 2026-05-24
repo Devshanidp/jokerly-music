@@ -9,10 +9,9 @@ const STATIC_FILE_EXT_RE = /\.(?:png|jpg|jpeg|svg|webp|ico|json|webmanifest|txt|
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Let static assets, API routes, public playlist shares, and NextAuth routes pass through
+  // Let static assets, API routes, and NextAuth routes pass through
   if (
     pathname.startsWith("/api/") ||
-    pathname.startsWith("/playlist/") ||
     pathname.startsWith("/_next/") ||
     pathname === "/favicon.ico" ||
     pathname === "/manifest.json" ||
@@ -56,8 +55,7 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - /playlist/:path* (public playlist route)
      */
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|playlist/).*)",
+    "/((?!api/auth|_next/static|_next/image|favicon.ico).*)",
   ],
 };

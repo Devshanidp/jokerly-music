@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Share2, Download } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -17,7 +17,6 @@ import { useToastStore } from "@/store/toast";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import AddFromPlaylistModal from "@/components/playlist/AddFromPlaylistModal";
-import ExportToYouTubeMusicModal from "@/components/export/ExportToYouTubeMusicModal";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import { SpotifyArtist } from "@/types/spotify";
 import { useLikesStore } from "@/store/likes";
@@ -156,7 +155,6 @@ export default function PlaylistsClient() {
   const [removingTrack, setRemovingTrack] = useState<string | null>(null);
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [addFromPlaylist, setAddFromPlaylist] = useState(false);
-  const [exportModal, setExportModal] = useState(false);
   const [pinnedArtists, setPinnedArtists] = useState<PinnedArtist[]>([]);
   const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
   const { toast } = useToastStore();
@@ -389,15 +387,6 @@ export default function PlaylistsClient() {
     const isPinned = pinned.has(pl.id);
     const tracks = tracksMap[pl.id] ?? [];
     const isLoadingTracks = loadingTracks === pl.id;
-    const handleCopyLink = async () => {
-      const url = `https://jokerly-music.vercel.app/playlist/${pl.id}`;
-      try {
-        await navigator.clipboard.writeText(url);
-        toast("Playlist link copied! Paste into TuneMyMusic.");
-      } catch (err) {
-        console.error("Failed to copy!", err);
-      }
-    };
 
     return (
       <div className="w-full space-y-4">
@@ -415,17 +404,6 @@ export default function PlaylistsClient() {
             title="Add tracks from another playlist"
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
             <FolderInput size={15} />
-          </button>
-          <button onClick={() => setExportModal(true)}
-            title="Export to YouTube Music"
-            className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
-            <Share2 size={15} />
-          </button>
-          <button onClick={handleCopyLink}
-            title="Copy shareable link"
-            className="p-2 rounded-xl hover:bg-white/[0.07]"
-            style={{ color: "rgba(255,255,255,0.4)" }}>
-            <Share2 size={15} />
           </button>
           <button onClick={() => handleDownloadM3U(pl, tracks)} disabled={tracks.length === 0}
             title="Download M3U for TuneMyMusic"
@@ -526,13 +504,6 @@ export default function PlaylistsClient() {
             targetPlaylistName={selectedPlaylist.name}
             onClose={() => setAddFromPlaylist(false)}
             onTracksAdded={() => fetchTracks(selectedPlaylist.id)}
-          />
-        )}
-        {exportModal && (
-          <ExportToYouTubeMusicModal
-            title={pl.name}
-            tracks={tracks.map((t) => ({ name: t.track_name, artist: t.track_artist || "" }))}
-            onClose={() => setExportModal(false)}
           />
         )}
       </div>
