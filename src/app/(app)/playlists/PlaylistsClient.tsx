@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Share2 } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Share2, Download } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -365,6 +365,24 @@ export default function PlaylistsClient() {
     }
   };
 
+  const handleDownloadM3U = (playlist: SpotifyPlaylist, playlistTracks: PlaylistTrack[]) => {
+    const m3uContent = [
+      "#EXTM3U",
+      ...playlistTracks.map((track) => `#EXTINF:-1,${track.track_artist ?? "Unknown Artist"} - ${track.track_name}`),
+    ].join("\n");
+
+    const blob = new Blob([m3uContent], { type: "audio/x-mpegurl" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${playlist.name.replace(/\s+/g, "_")}.m3u`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast("M3U file downloaded! You can now upload this to TuneMyMusic.");
+  };
+
   // ── Detail view ─────────────────────────────────────────────────────────
   if (selectedId && selectedPlaylist) {
     const pl = selectedPlaylist;
@@ -408,6 +426,12 @@ export default function PlaylistsClient() {
             className="p-2 rounded-xl hover:bg-white/[0.07]"
             style={{ color: "rgba(255,255,255,0.4)" }}>
             <Share2 size={15} />
+          </button>
+          <button onClick={() => handleDownloadM3U(pl, tracks)} disabled={tracks.length === 0}
+            title="Download M3U playlist"
+            className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+            style={{ color: "rgba(255,255,255,0.4)" }}>
+            <Download size={15} />
           </button>
           <button onClick={() => setEdit({ id: pl.id, name: pl.name, description: pl.description ?? "" })}
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
