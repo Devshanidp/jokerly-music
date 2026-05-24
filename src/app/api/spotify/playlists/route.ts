@@ -1,6 +1,9 @@
 import { auth } from "@/lib/auth";
+import { compilePlaylist, parseSelectedArtists } from "@/lib/compile-playlist";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+
+export const maxDuration = 60;
 
 export async function GET() {
   const session = await auth();
@@ -37,16 +40,27 @@ export async function POST(req: NextRequest) {
   if (!session?.spotifyId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { name, description } = await req.json();
+  const body = (await req.json().catch(() => ({}))) as {
+    name?: unknown;
+    description?: unknown;
+    selectedArtists?: unknown;
+  };
+  const name = String(body.name ?? "").trim();
+  const description = String(body.description ?? "").trim();
+  const selectedArtists = parseSelectedArtists(body.selectedArtists);
+
   if (!name) return NextResponse.json({ error: "Name required" }, { status: 400 });
+  if (selectedArtists.length > 0 && !session.accessToken) {
+    return NextResponse.json({ error: "Session expired — please log in again" }, { status: 401 });
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("playlists")
     .insert({
       user_id: session.spotifyId,
-      name: String(name).trim(),
-      description: String(description ?? "").trim(),
+      name,
+      description,
       image: "",
     })
     .select("id, name, description, image")
@@ -54,10 +68,32 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  let addedCount = 0;
+
+  if (selectedArtists.length > 0 && session.accessToken) {
+    try {
+      const result = await compilePlaylist(
+        session.accessToken,
+        data.id,
+        session.spotifyId,
+        selectedArtists,
+        supabase
+      );
+      addedCount = result.addedCount;
+    } catch (e) {
+      await supabase.from("playlists").delete().eq("id", data.id).eq("user_id", session.spotifyId);
+      return NextResponse.json(
+        { error: (e as Error).message ?? "Could not compile playlist from artists" },
+        { status: 500 }
+      );
+    }
+  }
+
   return NextResponse.json({
     ...data,
     images: data.image ? [{ url: data.image }] : [],
-    tracks: { total: 0 },
+    tracks: { total: addedCount },
+    addedCount,
     owner: { display_name: "You" },
     external_urls: { spotify: "" },
   });

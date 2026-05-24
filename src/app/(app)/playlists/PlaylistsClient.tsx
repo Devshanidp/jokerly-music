@@ -27,23 +27,6 @@ interface PlaylistTrack { id: string; track_uri: string; track_name: string; tra
 interface PinnedArtist { id: string; artist_id: string; artist_name: string; artist_image: string; }
 interface SelectedArtist { id: string; name: string; image?: string | null; }
 interface ArtistSearchResponse { artists?: SpotifyArtist[]; error?: string; }
-interface ArtistTracksResponse { topTracks?: SpotifyApiTrack[]; moreTracks?: SpotifyApiTrack[]; error?: string; }
-interface SpotifyApiTrack {
-  id?: string;
-  uri?: string;
-  name?: string;
-  album?: { images?: { url: string }[] };
-  artists?: { name: string }[];
-}
-
-function spotifyTrackToPlaylistPayload(track: SpotifyApiTrack) {
-  return {
-    uri: track.uri,
-    trackName: track.name ?? "Track",
-    trackImage: track.album?.images?.[0]?.url ?? null,
-    trackArtist: track.artists?.map((artist) => artist.name).join(", ") ?? "",
-  };
-}
 
 // ── Sortable track row ──────────────────────────────────────────────────────
 function SortableTrackRow({
@@ -307,13 +290,13 @@ export default function PlaylistsClient() {
     }
   };
 
-  const addSelectedArtist = (artist: SpotifyArtist) => {
+  const addArtist = (artist: SpotifyArtist) => {
     setSelectedArtists((prev) => {
-      if (prev.some((item) => item.id === artist.id)) return prev;
+      if (prev.find((a) => a.id === artist.id)) return prev;
       return [...prev, { id: artist.id, name: artist.name, image: artist.images?.[0]?.url ?? null }];
     });
-    setArtistQuery("");
-    setArtistResults([]);
+    setArtistResults((prev) => prev.filter((item) => item.id !== artist.id));
+    toast(`Added [${artist.name}]`);
   };
 
   const removeSelectedArtist = (artistId: string) => {
@@ -345,54 +328,34 @@ export default function PlaylistsClient() {
     setSaving(true);
     try {
       const res = await fetch("/api/spotify/playlists", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim(), description: newDesc.trim() }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newName.trim(),
+          description: newDesc.trim(),
+          selectedArtists: selectedArtists.map((artist) => ({ id: artist.id, name: artist.name })),
+        }),
       });
-      if (!res.ok) throw new Error("Failed to create playlist");
-      const created = (await res.json()) as SpotifyPlaylist;
+      const created = (await res.json().catch(() => ({}))) as SpotifyPlaylist & { addedCount?: number; error?: string };
+      if (!res.ok) throw new Error(created.error ?? "Failed to create playlist");
 
-      setPlaylists((prev) => [created, ...prev.filter((p) => p.id !== created.id)]);
+      const addedCount = created.addedCount ?? created.tracks?.total ?? 0;
+
+      setPlaylists((prev) => [
+        { ...created, tracks: { total: addedCount } },
+        ...prev.filter((p) => p.id !== created.id),
+      ]);
       setTracksMap((prev) => ({ ...prev, [created.id]: prev[created.id] ?? [] }));
-      let addedCount = 0;
 
       if (selectedArtists.length > 0) {
-        const seenUris = new Set<string>();
-
-        for (const artist of selectedArtists) {
-          const artistRes = await fetch(
-            `/api/spotify/artist?id=${encodeURIComponent(artist.id)}&name=${encodeURIComponent(artist.name)}`
-          );
-          const artistData = (await artistRes.json().catch(() => ({}))) as ArtistTracksResponse;
-          if (!artistRes.ok) throw new Error(artistData.error ?? `Could not load tracks for ${artist.name}`);
-
-          const artistTracks = [...(artistData.topTracks ?? []), ...(artistData.moreTracks ?? [])]
-            .filter((track) => track.uri && !seenUris.has(track.uri))
-            .slice(0, 50);
-
-          for (const track of artistTracks) {
-            const payload = spotifyTrackToPlaylistPayload(track);
-            if (!payload.uri) continue;
-            seenUris.add(payload.uri);
-
-            const addRes = await fetch(`/api/spotify/playlists/${created.id}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ uris: [payload.uri], trackName: payload.trackName, trackImage: payload.trackImage, trackArtist: payload.trackArtist }),
-            });
-
-            if (addRes.ok) addedCount += 1;
-          }
-        }
-
         await fetchTracks(created.id);
-        setPlaylists((prev) => prev.map((playlist) =>
-          playlist.id === created.id ? { ...playlist, tracks: { total: addedCount } } : playlist
-        ));
       }
 
       toast(
         selectedArtists.length > 0
-          ? `Created playlist with ${addedCount} artist tracks`
+          ? addedCount > 0
+            ? `Created playlist with ${addedCount} tracks from ${selectedArtists.length} artist${selectedArtists.length === 1 ? "" : "s"}`
+            : "Playlist created, but no tracks were found for the selected artists"
           : "Playlist created"
       );
 
@@ -666,11 +629,13 @@ export default function PlaylistsClient() {
 
             {artistResults.length > 0 && (
               <div className="rounded-xl border border-white/[0.08] overflow-hidden" style={{ background: "var(--card)" }}>
-                {artistResults.map((artist) => (
+                {artistResults
+                  .filter((artist) => !selectedArtists.some((selected) => selected.id === artist.id))
+                  .map((artist) => (
                   <button
                     key={artist.id}
                     type="button"
-                    onClick={() => addSelectedArtist(artist)}
+                    onClick={() => addArtist(artist)}
                     className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-white/[0.04] transition-colors"
                   >
                     <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white/[0.06] shrink-0">
@@ -690,32 +655,37 @@ export default function PlaylistsClient() {
             )}
 
             {selectedArtists.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {selectedArtists.map((artist) => (
-                  <span
-                    key={artist.id}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[#E8282B]/25 bg-[#E8282B]/10 px-2.5 py-1 text-xs text-white"
-                  >
-                    {artist.name}
-                    <button
-                      type="button"
-                      onClick={() => removeSelectedArtist(artist.id)}
-                      className="rounded-full text-white/45 hover:text-white"
-                      aria-label={`Remove ${artist.name}`}
+              <div className="space-y-2">
+                <p className="text-[11px] font-medium text-white/50">
+                  Selected artists ({selectedArtists.length})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedArtists.map((artist) => (
+                    <span
+                      key={artist.id}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#E8282B]/25 bg-[#E8282B]/10 px-2.5 py-1 text-xs text-white"
                     >
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
+                      <span>[{artist.name}]</span>
+                      <button
+                        type="button"
+                        onClick={() => removeSelectedArtist(artist.id)}
+                        className="rounded-full text-white/45 hover:text-white"
+                        aria-label={`Remove ${artist.name}`}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
 
             <p className="text-[11px] leading-relaxed text-white/35">
-              Optional: add multiple artists, then create the playlist to auto-fill it with tracks from those artists only.
+              Search and tap artists to add them. Repeat search to add more, then tap Create.
             </p>
           </div>
           <div className="flex gap-2">
-            <button onClick={createPlaylist} disabled={saving || !newName.trim()}
+            <button type="button" onClick={createPlaylist} disabled={saving || !newName.trim()}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#E8282B] hover:bg-[#c0201f] disabled:opacity-40 text-white font-semibold text-sm transition-colors">
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Create
             </button>
