@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, X } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -25,6 +25,25 @@ interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
 interface PlaylistTrack { id: string; track_uri: string; track_name: string; track_image?: string | null; track_artist?: string | null; added_at: string; position: number; }
 interface PinnedArtist { id: string; artist_id: string; artist_name: string; artist_image: string; }
+interface SelectedArtist { id: string; name: string; image?: string | null; }
+interface ArtistSearchResponse { artists?: SpotifyArtist[]; error?: string; }
+interface ArtistTracksResponse { topTracks?: SpotifyApiTrack[]; moreTracks?: SpotifyApiTrack[]; error?: string; }
+interface SpotifyApiTrack {
+  id?: string;
+  uri?: string;
+  name?: string;
+  album?: { images?: { url: string }[] };
+  artists?: { name: string }[];
+}
+
+function spotifyTrackToPlaylistPayload(track: SpotifyApiTrack) {
+  return {
+    uri: track.uri,
+    trackName: track.name ?? "Track",
+    trackImage: track.album?.images?.[0]?.url ?? null,
+    trackArtist: track.artists?.map((artist) => artist.name).join(", ") ?? "",
+  };
+}
 
 // ── Sortable track row ──────────────────────────────────────────────────────
 function SortableTrackRow({
@@ -144,6 +163,10 @@ export default function PlaylistsClient() {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [artistQuery, setArtistQuery] = useState("");
+  const [artistResults, setArtistResults] = useState<SpotifyArtist[]>([]);
+  const [selectedArtists, setSelectedArtists] = useState<SelectedArtist[]>([]);
+  const [searchingArtists, setSearchingArtists] = useState(false);
   const [saving, setSaving] = useState(false);
   const [edit, setEdit] = useState<EditState | null>(null);
   const [pinned, setPinned] = useState<Set<string>>(new Set());
@@ -266,6 +289,37 @@ export default function PlaylistsClient() {
     setQueueAndPlay(queue, index);
   };
 
+  const searchArtists = async () => {
+    const query = artistQuery.trim();
+    if (!query) return;
+
+    setSearchingArtists(true);
+    try {
+      const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(query)}&type=artist&limit=5`);
+      const data = (await res.json().catch(() => ({}))) as ArtistSearchResponse;
+      if (!res.ok) throw new Error(data.error ?? "Could not search artists");
+      setArtistResults(data.artists ?? []);
+    } catch (e) {
+      toast((e as Error).message ?? "Could not search artists");
+      setArtistResults([]);
+    } finally {
+      setSearchingArtists(false);
+    }
+  };
+
+  const addSelectedArtist = (artist: SpotifyArtist) => {
+    setSelectedArtists((prev) => {
+      if (prev.some((item) => item.id === artist.id)) return prev;
+      return [...prev, { id: artist.id, name: artist.name, image: artist.images?.[0]?.url ?? null }];
+    });
+    setArtistQuery("");
+    setArtistResults([]);
+  };
+
+  const removeSelectedArtist = (artistId: string) => {
+    setSelectedArtists((prev) => prev.filter((artist) => artist.id !== artistId));
+  };
+
   const removeTrack = async (playlistId: string, trackId: string) => {
     const key = `${playlistId}::${trackId}`;
     setRemovingTrack(key);
@@ -299,7 +353,50 @@ export default function PlaylistsClient() {
 
       setPlaylists((prev) => [created, ...prev.filter((p) => p.id !== created.id)]);
       setTracksMap((prev) => ({ ...prev, [created.id]: prev[created.id] ?? [] }));
-      setNewName(""); setNewDesc(""); setCreating(false);
+      let addedCount = 0;
+
+      if (selectedArtists.length > 0) {
+        const seenUris = new Set<string>();
+
+        for (const artist of selectedArtists) {
+          const artistRes = await fetch(
+            `/api/spotify/artist?id=${encodeURIComponent(artist.id)}&name=${encodeURIComponent(artist.name)}`
+          );
+          const artistData = (await artistRes.json().catch(() => ({}))) as ArtistTracksResponse;
+          if (!artistRes.ok) throw new Error(artistData.error ?? `Could not load tracks for ${artist.name}`);
+
+          const artistTracks = [...(artistData.topTracks ?? []), ...(artistData.moreTracks ?? [])]
+            .filter((track) => track.uri && !seenUris.has(track.uri))
+            .slice(0, 50);
+
+          for (const track of artistTracks) {
+            const payload = spotifyTrackToPlaylistPayload(track);
+            if (!payload.uri) continue;
+            seenUris.add(payload.uri);
+
+            const addRes = await fetch(`/api/spotify/playlists/${created.id}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ uris: [payload.uri], trackName: payload.trackName, trackImage: payload.trackImage, trackArtist: payload.trackArtist }),
+            });
+
+            if (addRes.ok) addedCount += 1;
+          }
+        }
+
+        await fetchTracks(created.id);
+        setPlaylists((prev) => prev.map((playlist) =>
+          playlist.id === created.id ? { ...playlist, tracks: { total: addedCount } } : playlist
+        ));
+      }
+
+      toast(
+        selectedArtists.length > 0
+          ? `Created playlist with ${addedCount} artist tracks`
+          : "Playlist created"
+      );
+
+      setNewName(""); setNewDesc(""); setArtistQuery(""); setArtistResults([]); setSelectedArtists([]); setCreating(false);
     } catch (e) {
       toast((e as Error).message ?? "Could not create playlist");
     } finally {
@@ -542,12 +639,87 @@ export default function PlaylistsClient() {
             placeholder="Description (optional)"
             className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
             style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }} />
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                value={artistQuery}
+                onChange={(e) => setArtistQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void searchArtists();
+                  }
+                }}
+                placeholder="Search artist to auto-add tracks"
+                className="min-w-0 flex-1 border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
+                style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
+              />
+              <button
+                type="button"
+                onClick={() => void searchArtists()}
+                disabled={searchingArtists || !artistQuery.trim()}
+                className="shrink-0 px-3 py-2 rounded-xl border border-white/[0.10] text-white/70 hover:text-white hover:border-[#E8282B]/50 disabled:opacity-40 transition-colors"
+              >
+                {searchingArtists ? <Loader2 size={14} className="animate-spin" /> : "Search"}
+              </button>
+            </div>
+
+            {artistResults.length > 0 && (
+              <div className="rounded-xl border border-white/[0.08] overflow-hidden" style={{ background: "var(--card)" }}>
+                {artistResults.map((artist) => (
+                  <button
+                    key={artist.id}
+                    type="button"
+                    onClick={() => addSelectedArtist(artist)}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-white/[0.04] transition-colors"
+                  >
+                    <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white/[0.06] shrink-0">
+                      {artist.images?.[0]?.url ? (
+                        <Image src={artist.images[0].url} alt={artist.name} fill unoptimized sizes="32px" className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Mic2 size={12} className="text-white/25" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-sm text-white truncate">{artist.name}</span>
+                    <Plus size={13} className="ml-auto text-white/35" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selectedArtists.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {selectedArtists.map((artist) => (
+                  <span
+                    key={artist.id}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#E8282B]/25 bg-[#E8282B]/10 px-2.5 py-1 text-xs text-white"
+                  >
+                    {artist.name}
+                    <button
+                      type="button"
+                      onClick={() => removeSelectedArtist(artist.id)}
+                      className="rounded-full text-white/45 hover:text-white"
+                      aria-label={`Remove ${artist.name}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <p className="text-[11px] leading-relaxed text-white/35">
+              Optional: add multiple artists, then create the playlist to auto-fill it with tracks from those artists only.
+            </p>
+          </div>
           <div className="flex gap-2">
             <button onClick={createPlaylist} disabled={saving || !newName.trim()}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#E8282B] hover:bg-[#c0201f] disabled:opacity-40 text-white font-semibold text-sm transition-colors">
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Create
             </button>
-            <button onClick={() => { setCreating(false); setNewName(""); setNewDesc(""); }}
+            <button onClick={() => { setCreating(false); setNewName(""); setNewDesc(""); setArtistQuery(""); setArtistResults([]); setSelectedArtists([]); }}
               className="px-4 py-2 rounded-xl text-sm transition-colors"
               style={{ border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}>
               Cancel
