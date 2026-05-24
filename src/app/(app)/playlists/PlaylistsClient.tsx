@@ -365,23 +365,21 @@ export default function PlaylistsClient() {
     }
   };
 
-  const sharePlaylist = useCallback(async (playlistId: string) => {
-    try {
-      const url = `${window.location.origin}/playlist/${playlistId}`;
-      await navigator.clipboard.writeText(url);
-      toast("Copied to clipboard!");
-    } catch (e) {
-      console.error("Could not copy playlist link", e);
-      toast("Could not copy playlist link");
-    }
-  }, [toast]);
-
   // ── Detail view ─────────────────────────────────────────────────────────
   if (selectedId && selectedPlaylist) {
     const pl = selectedPlaylist;
     const isPinned = pinned.has(pl.id);
     const tracks = tracksMap[pl.id] ?? [];
     const isLoadingTracks = loadingTracks === pl.id;
+    const handleCopyLink = async () => {
+      const url = `${window.location.origin}/playlist/${pl.id}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast("Playlist link copied! Paste this into TuneMyMusic.");
+      } catch (err) {
+        console.error("Failed to copy!", err);
+      }
+    };
 
     return (
       <div className="w-full space-y-4">
@@ -405,9 +403,9 @@ export default function PlaylistsClient() {
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
             <Share2 size={15} />
           </button>
-          <button onClick={() => sharePlaylist(pl.id)}
-            title="Copy public playlist link"
-            className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors"
+          <button onClick={handleCopyLink}
+            title="Copy shareable link"
+            className="p-2 rounded-xl hover:bg-white/[0.07]"
             style={{ color: "rgba(255,255,255,0.4)" }}>
             <Share2 size={15} />
           </button>

@@ -1,8 +1,10 @@
 import Image from "next/image";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const revalidate = 0;
+const SITE_URL = "https://jokerly-music.vercel.app";
 
 type PublicPlaylistPageProps = {
   params: Promise<{ id: string }>;
@@ -30,6 +32,27 @@ function spotifyTrackUrl(uri: string) {
   return /^[A-Za-z0-9]{22}$/.test(trackId) ? `https://open.spotify.com/track/${trackId}` : null;
 }
 
+function musicPlaylistJsonLd(playlist: PlaylistRow, tracks: PlaylistTrackRow[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "MusicPlaylist",
+    name: playlist.name,
+    description: playlist.description || "Exported from Jokerly",
+    track: tracks.map((track) => ({
+      "@type": "MusicRecording",
+      name: track.track_name,
+      ...(track.track_artist
+        ? {
+            byArtist: {
+              "@type": "MusicGroup",
+              name: track.track_artist,
+            },
+          }
+        : {}),
+    })),
+  };
+}
+
 async function getPublicPlaylist(id: string) {
   const supabase = await createClient();
 
@@ -54,7 +77,7 @@ async function getPublicPlaylist(id: string) {
   return { playlist, tracks: tracks ?? [] };
 }
 
-export async function generateMetadata({ params }: PublicPlaylistPageProps) {
+export async function generateMetadata({ params }: PublicPlaylistPageProps): Promise<Metadata> {
   const { id } = await params;
   const result = await getPublicPlaylist(id);
 
@@ -67,6 +90,12 @@ export async function generateMetadata({ params }: PublicPlaylistPageProps) {
   return {
     title: `${result.playlist.name} | Jokerly`,
     description: result.playlist.description || `${result.tracks.length} tracks shared from Jokerly`,
+    openGraph: {
+      type: "music.playlist",
+      title: result.playlist.name,
+      description: "Check out this playlist on Jokerly",
+      url: `${SITE_URL}/playlist/${id}`,
+    },
   };
 }
 
@@ -78,9 +107,14 @@ export default async function PublicPlaylistPage({ params }: PublicPlaylistPageP
 
   const { playlist, tracks } = result;
   const coverImages = [...new Set(tracks.map((track) => track.track_image).filter(Boolean) as string[])].slice(0, 4);
+  const jsonLd = musicPlaylistJsonLd(playlist, tracks);
 
   return (
     <main className="min-h-screen px-4 py-8" style={{ background: "#080406", color: "white" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="mx-auto max-w-2xl space-y-8">
         <header className="flex items-end gap-4">
           <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] shadow-xl">
