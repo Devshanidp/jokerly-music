@@ -49,5 +49,15 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    /*
+     * Match all routes except for:
+     * - api/auth (auth routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - /playlist/:path* (public playlist route)
+     */
+    "/((?!api/auth|_next/static|_next/image|favicon.ico|playlist/).*)",
+  ],
 };

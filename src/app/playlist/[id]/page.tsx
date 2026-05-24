@@ -37,7 +37,7 @@ function musicPlaylistJsonLd(playlist: PlaylistRow, tracks: PlaylistTrackRow[]) 
     "@context": "https://schema.org",
     "@type": "MusicPlaylist",
     name: playlist.name,
-    description: playlist.description || "Exported from Jokerly",
+    description: "Exported from Jokerly",
     track: tracks.map((track) => ({
       "@type": "MusicRecording",
       name: track.track_name,
@@ -88,8 +88,8 @@ export async function generateMetadata({ params }: PublicPlaylistPageProps): Pro
   }
 
   return {
-    title: `${result.playlist.name} | Jokerly`,
-    description: result.playlist.description || `${result.tracks.length} tracks shared from Jokerly`,
+    title: result.playlist.name,
+    description: "Exported from Jokerly",
     openGraph: {
       type: "music.playlist",
       title: result.playlist.name,
