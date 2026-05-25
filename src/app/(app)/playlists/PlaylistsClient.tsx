@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, X } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -319,6 +319,7 @@ export default function PlaylistsClient() {
       />
     </>
   );
+  const removeTrack = async (playlistId: string, trackId: string) => {
     const key = `${playlistId}::${trackId}`;
     setRemovingTrack(key);
     try {
@@ -335,50 +336,6 @@ export default function PlaylistsClient() {
       toast((e as Error).message ?? "Could not remove track");
     } finally {
       setRemovingTrack(null);
-    }
-  };
-
-  const createPlaylist = async () => {
-    if (!newName.trim()) return;
-    setSaving(true);
-    try {
-      const res = await fetch("/api/spotify/playlists", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newName.trim(),
-          description: newDesc.trim(),
-          selectedArtists: selectedArtists.map((artist) => ({ id: artist.id, name: artist.name })),
-        }),
-      });
-      const created = (await res.json().catch(() => ({}))) as SpotifyPlaylist & { addedCount?: number; error?: string };
-      if (!res.ok) throw new Error(created.error ?? "Failed to create playlist");
-
-      const addedCount = created.addedCount ?? created.tracks?.total ?? 0;
-
-      setPlaylists((prev) => [
-        { ...created, tracks: { total: addedCount } },
-        ...prev.filter((p) => p.id !== created.id),
-      ]);
-      setTracksMap((prev) => ({ ...prev, [created.id]: prev[created.id] ?? [] }));
-
-      if (selectedArtists.length > 0) {
-        await fetchTracks(created.id);
-      }
-
-      toast(
-        selectedArtists.length > 0
-          ? addedCount > 0
-            ? `Created playlist with ${addedCount} tracks from ${selectedArtists.length} artist${selectedArtists.length === 1 ? "" : "s"}`
-            : "Playlist created, but no tracks were found for the selected artists"
-          : "Playlist created"
-      );
-
-      setNewName(""); setNewDesc(""); setArtistQuery(""); setArtistResults([]); setSelectedArtists([]); setCreating(false);
-    } catch (e) {
-      toast((e as Error).message ?? "Could not create playlist");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -581,6 +538,7 @@ export default function PlaylistsClient() {
             onTracksAdded={() => fetchTracks(selectedPlaylist.id)}
           />
         )}
+        {artistMixFab}
       </div>
     );
   }
@@ -617,94 +575,12 @@ export default function PlaylistsClient() {
             placeholder="Description (optional)"
             className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
             style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }} />
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <input
-                value={artistQuery}
-                onChange={(e) => setArtistQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void searchArtists();
-                  }
-                }}
-                placeholder="Search artist to auto-add tracks"
-                className="min-w-0 flex-1 border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
-                style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
-              />
-              <button
-                type="button"
-                onClick={() => void searchArtists()}
-                disabled={searchingArtists || !artistQuery.trim()}
-                className="shrink-0 px-3 py-2 rounded-xl border border-white/[0.10] text-white/70 hover:text-white hover:border-[#E8282B]/50 disabled:opacity-40 transition-colors"
-              >
-                {searchingArtists ? <Loader2 size={14} className="animate-spin" /> : "Search"}
-              </button>
-            </div>
-
-            {artistResults.length > 0 && (
-              <div className="rounded-xl border border-white/[0.08] overflow-hidden" style={{ background: "var(--card)" }}>
-                {artistResults
-                  .filter((artist) => !selectedArtists.some((selected) => selected.id === artist.id))
-                  .map((artist) => (
-                  <button
-                    key={artist.id}
-                    type="button"
-                    onClick={() => addArtist(artist)}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-white/[0.04] transition-colors"
-                  >
-                    <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white/[0.06] shrink-0">
-                      {artist.images?.[0]?.url ? (
-                        <Image src={artist.images[0].url} alt={artist.name} fill unoptimized sizes="32px" className="object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Mic2 size={12} className="text-white/25" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-sm text-white truncate">{artist.name}</span>
-                    <Plus size={13} className="ml-auto text-white/35" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {selectedArtists.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[11px] font-medium text-white/50">
-                  Selected artists ({selectedArtists.length})
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedArtists.map((artist) => (
-                    <span
-                      key={artist.id}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[#E8282B]/25 bg-[#E8282B]/10 px-2.5 py-1 text-xs text-white"
-                    >
-                      <span>[{artist.name}]</span>
-                      <button
-                        type="button"
-                        onClick={() => removeSelectedArtist(artist.id)}
-                        className="rounded-full text-white/45 hover:text-white"
-                        aria-label={`Remove ${artist.name}`}
-                      >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <p className="text-[11px] leading-relaxed text-white/35">
-              Search and tap artists to add them. Repeat search to add more, then tap Create.
-            </p>
-          </div>
           <div className="flex gap-2">
             <button type="button" onClick={createPlaylist} disabled={saving || !newName.trim()}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#E8282B] hover:bg-[#c0201f] disabled:opacity-40 text-white font-semibold text-sm transition-colors">
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Create
             </button>
-            <button onClick={() => { setCreating(false); setNewName(""); setNewDesc(""); setArtistQuery(""); setArtistResults([]); setSelectedArtists([]); }}
+            <button onClick={() => { setCreating(false); setNewName(""); setNewDesc(""); }}
               className="px-4 py-2 rounded-xl text-sm transition-colors"
               style={{ border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}>
               Cancel
@@ -732,7 +608,7 @@ export default function PlaylistsClient() {
             <ListMusic size={28} className="opacity-30" />
           </div>
           <p className="text-sm font-medium">No playlists yet</p>
-          <p className="text-xs mt-1 opacity-60">Create your first one above</p>
+          <p className="text-xs mt-1 opacity-60">Tap + to mix artists, or New for an empty playlist</p>
         </div>
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 gap-2">
@@ -808,6 +684,7 @@ export default function PlaylistsClient() {
 
       {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
       {selectedArtist && <ArtistSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />}
+      {artistMixFab}
     </div>
   );
 }
