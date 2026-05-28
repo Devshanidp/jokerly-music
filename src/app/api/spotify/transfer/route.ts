@@ -60,7 +60,7 @@ function isSpotifyTrackUri(uri: string) {
 function spotifyErrorMessage(status: number, details: string) {
   const lower = details.toLowerCase();
   if (status === 401 || status === 403 || lower.includes("scope") || lower.includes("permission")) {
-    return "Your account needs a one-time permission upgrade. Sign in again, approve access, then retry transfer.";
+    return "Spotify needs a one-time permission upgrade. Tap Continue with Spotify, approve it, then retry transfer.";
   }
   return details || `Spotify API ${status}`;
 }
@@ -161,7 +161,7 @@ async function createSpotifyPlaylist(
       method: "POST",
       body: JSON.stringify({
         name: playlist.name,
-        description: playlist.description || "Transferred from JkMusic",
+        description: playlist.description || "Transferred from Jokerly Music",
         public: isPublic,
       }),
     }

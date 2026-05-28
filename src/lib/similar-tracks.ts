@@ -1,8 +1,7 @@
-import { getArtist, getArtistTopTracks, getUserTopTracks, searchSpotify } from "@/lib/spotify";
+import { getArtist, getArtistTopTracks, searchSpotify } from "@/lib/spotify";
 import { spotifyTrackIdFromUri } from "@/lib/spotify-track-id";
 
 const SPOTIFY_BASE = "https://api.spotify.com/v1";
-const TOP_TRACK_MARKETS = ["US", "IN", "GB", "DE", "from_token"];
 
 export type SimilarTrack = {
   id: string;
@@ -14,11 +13,23 @@ export type SimilarTrack = {
   external_urls?: { spotify: string };
 };
 
+type SeedContext = {
+  trackId: string | null;
+  trackUri: string | null;
+  trackName: string;
+  artistName: string;
+  primaryArtistId: string | null;
+  artistIds: string[];
+  albumId: string | null;
+  albumName: string | null;
+  genres: string[];
+};
+
 async function spotifyGet(url: string, accessToken: string): Promise<unknown | null> {
   try {
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      signal: AbortSignal.timeout(12_000),
+      signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) return null;
     return res.json();
@@ -48,11 +59,12 @@ export function normalizeSimilarTrack(raw: unknown): SimilarTrack | null {
   const name = typeof item.name === "string" ? item.name : null;
   if (!name) return null;
 
-  const artistsRaw = Array.isArray(item.artists) ? item.artists : [];
   const artists: { id?: string; name: string }[] = [];
-  for (const a of artistsRaw) {
-    const artist = a as { id?: string; name?: string };
-    if (artist?.name) artists.push({ id: artist.id, name: artist.name });
+  if (Array.isArray(item.artists)) {
+    for (const a of item.artists) {
+      const artist = a as { id?: string; name?: string };
+      if (artist?.name) artists.push({ id: artist.id, name: artist.name });
+    }
   }
 
   const albumRaw = item.album as Record<string, unknown> | undefined;
@@ -99,6 +111,42 @@ function dedupeTracks(
   return result;
 }
 
+function scoreTrack(track: SimilarTrack, seed: SeedContext): number {
+  let score = 0;
+  const trackArtistIds = new Set(
+    track.artists.map((a) => a.id).filter((id): id is string => !!id)
+  );
+  const primaryName = seed.artistName.split(",")[0].trim().toLowerCase();
+
+  if (seed.albumId && track.album?.id === seed.albumId) score += 28;
+  if (seed.albumName && track.album?.name?.toLowerCase() === seed.albumName.toLowerCase()) {
+    score += 12;
+  }
+
+  for (const artistId of seed.artistIds) {
+    if (trackArtistIds.has(artistId)) score += 18;
+  }
+
+  const trackArtistNames = track.artists.map((a) => a.name.toLowerCase());
+  if (trackArtistNames.some((n) => n.includes(primaryName) || primaryName.includes(n))) {
+    score += 10;
+  } else if (seed.primaryArtistId && !trackArtistIds.has(seed.primaryArtistId)) {
+    score += 14;
+  }
+
+  const trackName = track.name.toLowerCase();
+  const seedName = seed.trackName.toLowerCase();
+  if (trackName !== seedName && trackName.split(" ")[0] === seedName.split(" ")[0]) {
+    score += 4;
+  }
+
+  return score;
+}
+
+function rankByRelevance(tracks: SimilarTrack[], seed: SeedContext): SimilarTrack[] {
+  return [...tracks].sort((a, b) => scoreTrack(b, seed) - scoreTrack(a, seed));
+}
+
 async function safeSearch(
   query: string,
   type: string,
@@ -106,10 +154,35 @@ async function safeSearch(
   limit = 10,
   offset = 0
 ): Promise<unknown> {
+  if (!query.trim()) return null;
   try {
     return await searchSpotify(query, type, accessToken, limit, offset);
   } catch {
     return null;
+  }
+}
+
+async function searchTracks(
+  query: string,
+  accessToken: string,
+  limit = 10,
+  offset = 0
+): Promise<SimilarTrack[]> {
+  const data = (await safeSearch(query, "track", accessToken, limit, offset)) as {
+    tracks?: { items?: unknown[] };
+  } | null;
+  return compactTracks(data?.tracks?.items ?? []);
+}
+
+async function topTracksForArtist(
+  artistId: string,
+  accessToken: string
+): Promise<SimilarTrack[]> {
+  try {
+    const data = (await getArtistTopTracks(artistId, accessToken)) as { tracks?: unknown[] };
+    return compactTracks(data?.tracks ?? []);
+  } catch {
+    return [];
   }
 }
 
@@ -119,61 +192,6 @@ async function fetchTrackMeta(
 ): Promise<SimilarTrack | null> {
   const data = await spotifyGet(`${SPOTIFY_BASE}/tracks/${trackId}`, accessToken);
   return normalizeSimilarTrack(data);
-}
-
-async function resolveTrackId(
-  trackId: string | null,
-  trackUri: string | null,
-  trackName: string,
-  artistName: string,
-  accessToken: string
-): Promise<{ trackId: string | null; artistId: string | null; albumId: string | null }> {
-  const fromParam = trackId?.trim() || null;
-  const fromUri = spotifyTrackIdFromUri(trackUri);
-  const resolvedId = fromParam ?? fromUri;
-
-  if (resolvedId) {
-    const meta = await fetchTrackMeta(resolvedId, accessToken);
-    return {
-      trackId: resolvedId,
-      artistId: meta?.artists?.[0]?.id ?? null,
-      albumId: meta?.album?.id ?? null,
-    };
-  }
-
-  const primaryArtist = artistName.split(",")[0].trim();
-  const queries = [
-    `track:"${trackName}" artist:"${primaryArtist}"`,
-    `track:${trackName} artist:${primaryArtist}`,
-    `${trackName} ${primaryArtist}`,
-    trackName,
-  ];
-
-  for (const query of queries) {
-    const data = (await safeSearch(query, "track", accessToken, 10)) as {
-      tracks?: { items?: unknown[] };
-    } | null;
-    const items = compactTracks(data?.tracks?.items ?? []);
-
-    const exact =
-      items.find(
-        (item) =>
-          item.name.toLowerCase() === trackName.toLowerCase() &&
-          item.artists.some((artist) =>
-            artist.name.toLowerCase().includes(primaryArtist.toLowerCase())
-          )
-      ) ?? items[0];
-
-    if (exact?.id) {
-      return {
-        trackId: exact.id,
-        artistId: exact.artists[0]?.id ?? null,
-        albumId: exact.album?.id ?? null,
-      };
-    }
-  }
-
-  return { trackId: null, artistId: null, albumId: null };
 }
 
 async function resolveArtistId(
@@ -188,7 +206,7 @@ async function resolveArtistId(
 
   const attempts = [`artist:"${primaryArtist}"`, `artist:${primaryArtist}`, primaryArtist];
   for (const query of attempts) {
-    const data = (await safeSearch(query, "artist", accessToken, 8)) as {
+    const data = (await safeSearch(query, "artist", accessToken, 5)) as {
       artists?: { items?: { id: string; name: string }[] };
     } | null;
     const items = data?.artists?.items ?? [];
@@ -201,25 +219,67 @@ async function resolveArtistId(
   return null;
 }
 
-async function fetchArtistTopTracks(
-  artistId: string,
+async function buildSeedContext(
+  trackId: string | null,
+  trackUri: string | null,
+  trackName: string,
+  artistName: string,
   accessToken: string
-): Promise<SimilarTrack[]> {
-  for (const market of TOP_TRACK_MARKETS) {
-    const data = (await spotifyGet(
-      `${SPOTIFY_BASE}/artists/${artistId}/top-tracks?market=${market}`,
-      accessToken
-    )) as { tracks?: unknown[] } | null;
-    const tracks = compactTracks(data?.tracks ?? []);
-    if (tracks.length > 0) return tracks;
+): Promise<SeedContext> {
+  const fromUri = spotifyTrackIdFromUri(trackUri);
+  const resolvedId = trackId?.trim() || fromUri || null;
+  const primary = artistName.split(",")[0].trim();
+
+  const [metaFromId, resolvedArtistId] = await Promise.all([
+    resolvedId ? fetchTrackMeta(resolvedId, accessToken) : Promise.resolve(null),
+    primary ? resolveArtistId(primary, null, accessToken) : Promise.resolve(null),
+  ]);
+
+  let meta = metaFromId;
+  if (!meta && trackName && primary) {
+    const items = await searchTracks(`${trackName} ${primary}`, accessToken, 8, 0);
+    meta =
+      items.find(
+        (item) =>
+          item.name.toLowerCase() === trackName.toLowerCase() &&
+          item.artists.some((a) => a.name.toLowerCase().includes(primary.toLowerCase()))
+      ) ?? items[0] ?? null;
   }
 
-  try {
-    const data = await getArtistTopTracks(artistId, accessToken);
-    return compactTracks((data as { tracks?: unknown[] })?.tracks ?? []);
-  } catch {
-    return [];
+  const artistIds = new Set<string>();
+  const genres = new Set<string>();
+
+  if (meta?.artists) {
+    for (const a of meta.artists) {
+      if (a.id) artistIds.add(a.id);
+    }
   }
+
+  const primaryArtistId = meta?.artists?.[0]?.id ?? resolvedArtistId ?? null;
+  if (primaryArtistId) artistIds.add(primaryArtistId);
+  if (resolvedArtistId) artistIds.add(resolvedArtistId);
+
+  const genreArtistId = primaryArtistId ?? resolvedArtistId;
+  if (genreArtistId) {
+    const profile = (await getArtist(genreArtistId, accessToken).catch(() => null)) as {
+      genres?: string[];
+    } | null;
+    for (const g of profile?.genres ?? []) {
+      if (g) genres.add(g);
+    }
+  }
+
+  return {
+    trackId: meta?.id ?? resolvedId,
+    trackUri,
+    trackName,
+    artistName,
+    primaryArtistId,
+    artistIds: [...artistIds],
+    albumId: meta?.album?.id ?? null,
+    albumName: meta?.album?.name ?? null,
+    genres: [...genres],
+  };
 }
 
 async function fetchAlbumTracks(
@@ -241,8 +301,7 @@ async function fetchAlbumTracks(
     accessToken
   )) as { items?: unknown[] } | null;
 
-  const rawItems = tracksData?.items ?? [];
-  const merged: unknown[] = rawItems.map((item) => ({
+  const merged: unknown[] = (tracksData?.items ?? []).map((item) => ({
     ...(typeof item === "object" && item ? item : {}),
     album: {
       id: album.id,
@@ -253,96 +312,87 @@ async function fetchAlbumTracks(
       external_urls: album.external_urls,
     },
   }));
+
   return compactTracks(merged);
 }
 
-async function fetchTracksFromSimilarArtists(
-  artistId: string,
-  artistName: string,
-  accessToken: string,
-  poolSize: number,
-  refreshSeed = 0
-): Promise<SimilarTrack[]> {
-  const primaryArtist = artistName.split(",")[0].trim();
-  const collected: SimilarTrack[] = [];
-
-  const artistSearch = (await safeSearch(
-    primaryArtist,
-    "artist",
-    accessToken,
-    10,
-    refreshSeed * 3
-  )) as { artists?: { items?: { id: string; name: string }[] } } | null;
-
-  for (const artist of artistSearch?.artists?.items ?? []) {
-    if (!artist?.id || artist.id === artistId) continue;
-    collected.push(...(await fetchArtistTopTracks(artist.id, accessToken)));
-    if (collected.length >= poolSize) break;
-  }
-
-  return collected;
+function artistNamesFromString(artistName: string): string[] {
+  return [...new Set(artistName.split(",").map((s) => s.trim()).filter(Boolean))].slice(0, 4);
 }
 
-async function fetchTracksFromGenreSearch(
-  artistId: string | null,
-  accessToken: string,
-  poolSize: number
-): Promise<SimilarTrack[]> {
-  if (!artistId) return [];
-
-  const artist = (await getArtist(artistId, accessToken).catch(() => null)) as {
-    genres?: string[];
-  } | null;
-  const genre = artist?.genres?.[0];
-  if (!genre) return [];
-
-  const data = (await safeSearch(`genre:${genre}`, "track", accessToken, 10)) as {
-    tracks?: { items?: unknown[] };
-  } | null;
-  return compactTracks(data?.tracks?.items ?? []).slice(0, poolSize);
+function artistSearchQuery(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return "";
+  return trimmed.includes(" ") ? `artist:"${trimmed}"` : `artist:${trimmed}`;
 }
 
-async function fetchFromSearchFallback(
+/** Fast path — parallel top tracks + search, no slow nested loops. */
+export async function fetchSimilarTracksFallback(
+  accessToken: string,
   trackName: string,
   artistName: string,
-  accessToken: string,
-  poolSize: number,
-  refreshSeed = 0
+  limit: number,
+  refreshSeed: number,
+  existing: SimilarTrack[] = []
 ): Promise<SimilarTrack[]> {
-  const primaryArtist = artistName.split(",")[0].trim();
+  const artists = artistNamesFromString(artistName);
+  const primary = artists[0] ?? "";
+  if (!primary && !trackName) return existing.slice(0, limit);
+
+  const seen = new Set(existing.map((t) => t.id));
+  const out = [...existing];
+
+  const artistResolves = await Promise.allSettled(
+    artists.map((name) => resolveArtistId(name, null, accessToken))
+  );
+  const artistIds = [
+    ...new Set(
+      artistResolves
+        .filter((r): r is PromiseFulfilledResult<string | null> => r.status === "fulfilled")
+        .map((r) => r.value)
+        .filter((id): id is string => !!id)
+    ),
+  ];
+
+  const topResults = await Promise.allSettled(
+    artistIds.map((id) => topTracksForArtist(id, accessToken))
+  );
+  for (const result of topResults) {
+    if (result.status !== "fulfilled") continue;
+    for (const t of result.value) {
+      if (seen.has(t.id)) continue;
+      seen.add(t.id);
+      out.push(t);
+      if (out.length >= limit) return out.slice(0, limit);
+    }
+  }
+
   const queries = [
-    primaryArtist ? `artist:"${primaryArtist}"` : "",
-    primaryArtist ? `artist:${primaryArtist}` : "",
-    primaryArtist && trackName ? `${trackName} ${primaryArtist}` : "",
-    primaryArtist || "",
-    trackName || "",
-    "popular",
+    ...artists.map(artistSearchQuery).filter(Boolean),
+    trackName && primary ? `${trackName} ${primary}` : "",
+    trackName,
+    primary,
   ].filter(Boolean);
 
-  const collected: SimilarTrack[] = [];
-  const ordered = [...queries.slice(refreshSeed % queries.length), ...queries];
+  const searchJobs = queries.slice(0, 6).map((q, i) => {
+    const idx = (i + refreshSeed) % queries.length;
+    const query = queries[idx];
+    const offset = refreshSeed * 10 + i * 5;
+    return searchTracks(query, accessToken, 10, offset);
+  });
 
-  for (const query of ordered) {
-    const data = (await safeSearch(query, "track", accessToken, 10)) as {
-      tracks?: { items?: unknown[] };
-    } | null;
-    collected.push(...compactTracks(data?.tracks?.items ?? []));
-    if (collected.length >= poolSize) break;
+  const searchResults = await Promise.allSettled(searchJobs);
+  for (const result of searchResults) {
+    if (result.status !== "fulfilled") continue;
+    for (const t of result.value) {
+      if (seen.has(t.id)) continue;
+      seen.add(t.id);
+      out.push(t);
+      if (out.length >= limit) return out.slice(0, limit);
+    }
   }
 
-  return collected;
-}
-
-export async function fetchUserTopTracksFallback(
-  accessToken: string,
-  limit: number
-): Promise<SimilarTrack[]> {
-  try {
-    const data = await getUserTopTracks(accessToken, Math.min(limit, 20));
-    return compactTracks((data as { items?: unknown[] })?.items ?? []);
-  } catch {
-    return [];
-  }
+  return out.slice(0, limit);
 }
 
 export async function fetchSimilarTracks(
@@ -359,61 +409,71 @@ export async function fetchSimilarTracks(
 ): Promise<SimilarTrack[]> {
   const limit = options.limit ?? 15;
   const excluded = options.excludeIds ?? [];
-  const poolSize = Math.max(limit * 4, 24, excluded.length * 2 + limit);
+  const refreshSeed = Math.max(0, options.refreshSeed ?? 0);
   const excludeUri = options.trackUri ?? null;
   const excludeIds = new Set(excluded);
-  const refreshSeed = options.refreshSeed ?? 0;
+  const primary = options.artistName.split(",")[0].trim();
 
-  const { trackId: resolvedTrackId, artistId: hintArtistId, albumId } =
-    await resolveTrackId(
+  // Run fast fallback in parallel with seed building so results aren't blocked.
+  const [seed, fallbackTracks] = await Promise.all([
+    buildSeedContext(
       options.trackId ?? null,
       options.trackUri ?? null,
       options.trackName,
       options.artistName,
       accessToken
-    );
-
-  const artistId = await resolveArtistId(options.artistName, hintArtistId, accessToken);
-
-  const sources = await Promise.allSettled([
-    artistId ? fetchArtistTopTracks(artistId, accessToken) : Promise.resolve([]),
-    artistId
-      ? fetchTracksFromSimilarArtists(
-          artistId,
-          options.artistName,
-          accessToken,
-          poolSize,
-          refreshSeed
-        )
-      : Promise.resolve([]),
-    artistId
-      ? fetchTracksFromGenreSearch(artistId, accessToken, poolSize)
-      : Promise.resolve([]),
-    albumId ? fetchAlbumTracks(albumId, accessToken) : Promise.resolve([]),
-    fetchFromSearchFallback(
+    ),
+    fetchSimilarTracksFallback(
+      accessToken,
       options.trackName,
       options.artistName,
-      accessToken,
-      poolSize,
+      limit,
       refreshSeed
     ),
   ]);
 
-  let tracks: SimilarTrack[] = [];
-  for (const source of sources) {
+  let tracks: SimilarTrack[] = [...fallbackTracks];
+
+  const tasks: Promise<SimilarTrack[]>[] = [];
+
+  if (seed.albumId) tasks.push(fetchAlbumTracks(seed.albumId, accessToken));
+
+  if (options.trackName && primary) {
+    tasks.push(
+      searchTracks(`${options.trackName} ${primary}`, accessToken, 10, refreshSeed * 6)
+    );
+  }
+
+  if (seed.albumName) {
+    tasks.push(searchTracks(`album:"${seed.albumName}"`, accessToken, 10, refreshSeed * 4));
+  }
+
+  if (seed.genres.length > 0) {
+    const genre = seed.genres[refreshSeed % seed.genres.length];
+    tasks.push(searchTracks(`genre:${genre}`, accessToken, 10, refreshSeed * 12));
+  }
+
+  const settled = await Promise.allSettled(tasks);
+  for (const source of settled) {
     if (source.status === "fulfilled") tracks.push(...source.value);
   }
 
-  const deduped = dedupeTracks(tracks, excludeUri, resolvedTrackId, excludeIds);
-  if (deduped.length >= limit) return deduped.slice(0, limit);
+  let result = dedupeTracks(rankByRelevance(tracks, seed), excludeUri, seed.trackId, excludeIds);
+  if (result.length >= limit) return result.slice(0, limit);
 
-  const topFallback = await fetchUserTopTracksFallback(accessToken, limit);
-  tracks = dedupeTracks(
-    [...deduped, ...topFallback],
-    excludeUri,
-    resolvedTrackId,
-    excludeIds
+  result = await fetchSimilarTracksFallback(
+    accessToken,
+    options.trackName,
+    options.artistName,
+    limit,
+    refreshSeed + 1,
+    result
   );
 
-  return tracks.slice(0, limit);
+  return dedupeTracks(
+    rankByRelevance(result, seed),
+    excludeUri,
+    seed.trackId,
+    excludeIds
+  ).slice(0, limit);
 }

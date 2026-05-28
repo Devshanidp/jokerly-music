@@ -47,13 +47,13 @@ export async function GET(req: NextRequest) {
     }
 
     if (data.syncedLyrics) {
-      const lines = parseLrc(data.syncedLyrics);
-      if (lines.length === 0) {
+      const syncedLines = parseLrc(data.syncedLyrics);
+      if (syncedLines.length === 0) {
         return NextResponse.json({ notFound: true });
       }
 
       return NextResponse.json(
-        { syncedLines: lines },
+        { syncedLines },
         { headers: { "Cache-Control": "private, max-age=86400" } }
       );
     }

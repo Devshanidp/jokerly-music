@@ -5,7 +5,6 @@ import SessionWrapper from "@/components/layout/SessionWrapper";
 import ThemeProvider from "@/components/layout/ThemeProvider";
 import ServiceWorkerRegister from "@/components/layout/ServiceWorkerRegister";
 import InstallPrompt from "@/components/layout/InstallPrompt";
-import { APP_NAME, APP_TAGLINE } from "@/lib/app";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,8 +16,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: APP_NAME,
-  description: APP_TAGLINE,
+  title: "Jokerly",
+  description: "Discover, search, and play your music",
   icons: {
     icon: [
       { url: "/icon-96.png",  sizes: "96x96",   type: "image/png" },
@@ -35,7 +34,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: APP_NAME,
+    title: "Jokerly",
   },
   other: {
     "msapplication-TileImage": "/icon-144.png",

@@ -8,7 +8,6 @@ export class SpotifyError extends Error {
 }
 
 async function spotifyFetch(url: string, accessToken: string, timeoutMs = 8000): Promise<any> {
-  console.log("[spotifyFetch] url:", url, "token:", accessToken?.slice(0, 15), "tokenLen:", accessToken?.length);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -38,8 +37,7 @@ function buildSearchUrl(query: string, type: string, limit: number, offset = 0) 
 }
 
 export async function searchSpotify(query: string, type: string, accessToken: string, limit = 20, offset = 0) {
-  // 5s per-call timeout — tight enough to fit 3 parallel calls + cold-start within a 10s function budget
-  const T = 5000;
+  const T = 10_000;
 
   if (type !== "all") {
     return spotifyFetch(buildSearchUrl(query, type, limit, offset), accessToken, T);

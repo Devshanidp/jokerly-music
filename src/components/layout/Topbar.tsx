@@ -6,7 +6,6 @@ import Image from "next/image";
 import { X, User, Settings, Bell, Loader2, RefreshCw } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { SPOTIFY_SCOPES } from "@/lib/spotify-scopes";
-import { APP_NAME, APP_TAGLINE } from "@/lib/app";
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession();
@@ -140,15 +139,15 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div className="h-px bg-white/[0.06]" />
-          <div className="rounded-2xl border border-[#E8282B]/20 p-3" style={{ background: "rgba(232,40,43,0.06)" }}>
+          <div className="rounded-2xl border border-[#1DB954]/20 p-3" style={{ background: "rgba(29,185,84,0.06)" }}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-white text-sm font-medium">Account access</p>
+                <p className="text-white text-sm font-medium">Spotify permissions</p>
                 <p className="text-white/40 text-xs mt-0.5">Refresh access for playlist and liked transfers.</p>
               </div>
               <button
                 onClick={reconnectSpotify}
-                className="shrink-0 flex items-center gap-1.5 rounded-xl bg-[#E8282B] px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                className="shrink-0 flex items-center gap-1.5 rounded-xl bg-[#1DB954] px-3 py-1.5 text-xs font-bold text-black transition-opacity hover:opacity-90"
               >
                 <RefreshCw size={13} />
                 Reconnect
@@ -254,11 +253,8 @@ export default function Topbar() {
             onPointerDown={(e) => go(e, "/")}
             onClick={(e) => e.preventDefault()}
             className="flex items-center gap-2.5 shrink-0">
-            <Image src="/icon-96.png" alt={APP_NAME} width={34} height={34} className="rounded-xl" />
-            <span className="flex flex-col items-start leading-tight">
-              <span className="text-[#E8282B] font-bold text-lg tracking-tight">{APP_NAME}</span>
-              <span className="text-[10px] text-white/35 font-medium">{APP_TAGLINE}</span>
-            </span>
+            <Image src="/icon-96.png" alt="Jokerly" width={34} height={34} className="rounded-xl" />
+            <span className="text-[#E8282B] font-bold text-lg tracking-tight">Jokerly</span>
           </button>
 
           {/* Right side */}

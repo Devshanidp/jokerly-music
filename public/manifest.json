@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "JkMusic",
-  "short_name": "JkMusic",
-  "description": "listening you",
+  "name": "Jokerly",
+  "short_name": "Jokerly",
+  "description": "Discover, search, and play your music",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

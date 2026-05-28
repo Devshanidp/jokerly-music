@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { APP_NAME } from "@/lib/app";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getSession } from "next-auth/react";
 export interface PlayableTrack {
@@ -48,7 +47,7 @@ interface PlayerState {
   playIndex: (index: number) => void;
   pausePlayback: () => Promise<void>;
   resumePlayback: () => Promise<void>;
-  togglePlay: () => Promise<void>;
+  togglePlay: () => void;
   seek: (ratio: number) => void;
   stop: () => void;
   setRepeatMode: (mode: RepeatMode) => Promise<void>;
@@ -79,7 +78,6 @@ interface SpotifyPlayer {
   connect: () => Promise<boolean>;
   disconnect: () => void;
   togglePlay: () => Promise<void>;
-  getCurrentState: () => Promise<SpotifyPlayerState | null>;
   seek: (positionMs: number) => Promise<void>;
   pause: () => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
@@ -120,19 +118,6 @@ function requestAudioFocus() {
   } catch { /* ignore */ }
 }
 
-// Setup MediaSession handlers for external play/pause (lock screen, other apps)
-function setupMediaSessionHandlers() {
-  if (typeof navigator === "undefined" || !navigator.mediaSession) return;
-
-  navigator.mediaSession.setActionHandler("play", () => {
-    Promise.resolve(usePlayerStore.getState().resumePlayback()).catch(() => {});
-  });
-
-  navigator.mediaSession.setActionHandler("pause", () => {
-    Promise.resolve(usePlayerStore.getState().pausePlayback()).catch(() => {});
-  });
-}
-
 // Update MediaSession playback state so OS knows we're playing/paused
 function updateMediaSessionState(isPlaying: boolean) {
   if (typeof navigator === "undefined" || !navigator.mediaSession) return;
@@ -141,10 +126,8 @@ function updateMediaSessionState(isPlaying: boolean) {
 let ignorePausedUntil = 0;
 let lastLoggedUri = "";
 let suppressAutoResumeUntil = 0;
-let autoResumeAttempts = 0;
-const MAX_AUTO_RESUME_ATTEMPTS = 4;
-const AUTO_RESUME_INTERVAL_MS = 1200;
-let autoResumeTimer: ReturnType<typeof setInterval> | null = null;
+let userPausedIntent = false;
+let lastSdkPositionMs = 0;
 let pendingPlayOnReadyIndex: number | null = null;
 let playRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let playRetryIndex: number | null = null;
@@ -177,7 +160,7 @@ function schedulePlayRetry(index: number) {
   clearPlayRetry(false);
   playRetryTimer = setTimeout(() => {
     const snapshot = usePlayerStore.getState();
-    if (snapshot.isPlaying || snapshot.queueIndex !== index) {
+    if (userPausedIntent || snapshot.isPlaying || snapshot.queueIndex !== index) {
       clearPlayRetry(true);
       return;
     }
@@ -210,61 +193,6 @@ function isAuthError(errorText: string) {
     normalized.includes("access token") ||
     normalized.includes('"status":401') ||
     normalized.includes("spotify api 401");
-}
-
-function stopAutoResumeLoop() {
-  if (!autoResumeTimer) return;
-  clearInterval(autoResumeTimer);
-  autoResumeTimer = null;
-  autoResumeAttempts = 0;
-}
-
-async function tryAutoResumeFromInterruption() {
-  const snapshot = usePlayerStore.getState();
-  if (Date.now() < suppressAutoResumeUntil) return;
-  if (!snapshot.player || !snapshot.currentTrack?.uri || snapshot.queueIndex < 0 || !snapshot.deviceId) {
-    stopAutoResumeLoop();
-    return;
-  }
-  if (snapshot.isPlaying) {
-    stopAutoResumeLoop();
-    return;
-  }
-  if (autoResumeAttempts >= MAX_AUTO_RESUME_ATTEMPTS) {
-    suppressAutoResumeUntil = Date.now() + 30_000;
-    stopAutoResumeLoop();
-    return;
-  }
-
-  autoResumeAttempts += 1;
-  try {
-    await playerApi("play", {
-      deviceId: snapshot.deviceId,
-      uris: [snapshot.currentTrack.uri],
-      positionMs: Math.max(0, snapshot.progressMs),
-    });
-    ignorePausedUntil = Date.now() + 1400;
-    updateMediaSessionState(true);
-  } catch (e) {
-    const errorText = parseErrorText(e);
-    if (isAuthError(errorText)) {
-      suppressAutoResumeUntil = Date.now() + 60_000;
-      stopAutoResumeLoop();
-      usePlayerStore.setState({
-        isPlaying: false,
-        isTransitioning: false,
-        isPlayerReady: false,
-        sdkError: "Spotify session expired. Sign in again to continue playback.",
-      });
-    }
-  }
-}
-
-function startAutoResumeLoop() {
-  if (autoResumeTimer) return;
-  autoResumeAttempts = 0;
-  void tryAutoResumeFromInterruption();
-  autoResumeTimer = setInterval(() => void tryAutoResumeFromInterruption(), AUTO_RESUME_INTERVAL_MS);
 }
 
 async function loadSpotifySdk(): Promise<SpotifyPlayerCtor | null> {
@@ -309,9 +237,17 @@ function hydrateFromSdkState(state: SpotifyPlayerState | null) {
   const sdkTrack = state.track_window.current_track;
   const prev = usePlayerStore.getState();
 
-  // Only suppress the transient paused+position=0 state that fires right after a playIndex call.
-  // The ignorePausedUntil window is set in playIndex; outside that window always trust the SDK.
+  if (prev.isTransitioning && Date.now() < ignorePausedUntil) {
+    return;
+  }
+
+  // Suppress transient paused+position=0 right after play/resume requests.
   if (state.paused && state.position === 0 && Date.now() < ignorePausedUntil) {
+    return;
+  }
+
+  // Honor explicit user pause — ignore brief SDK "playing" flicker until user resumes.
+  if (userPausedIntent && !state.paused) {
     return;
   }
 
@@ -439,13 +375,24 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
 
     const player = new Spotify.Player({
-      name: `${APP_NAME} Web Player`,
+      name: "Jokerly Web Player",
       getOAuthToken: async (cb) => {
         try {
+          const res = await fetch("/api/spotify/token", {
+            credentials: "same-origin",
+            cache: "no-store",
+          });
+          if (res.ok) {
+            const data = (await res.json()) as { accessToken?: string };
+            if (data.accessToken) {
+              set({ accessToken: data.accessToken, sdkError: null });
+              cb(data.accessToken);
+              return;
+            }
+          }
           const session = await getSession();
           const sessionError = (session as { error?: string } | null)?.error;
-          if (sessionError) {
-            stopAutoResumeLoop();
+          if (sessionError || res.status === 401) {
             clearPlayRetry(true);
             set({
               isPlaying: false,
@@ -455,7 +402,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
             cb("");
             return;
           }
-          const freshToken = (session?.accessToken as string | undefined) ?? get().accessToken ?? accessToken;
+          const freshToken =
+            (session?.accessToken as string | undefined) ?? get().accessToken ?? accessToken;
           if (freshToken) set({ accessToken: freshToken });
           cb(freshToken ?? "");
         } catch {
@@ -485,55 +433,42 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         return;
       }
 
-      if (snapshot.isPlaying && idx >= 0 && idx < snapshot.queue.length && snapshot.queue[idx]?.uri) {
-        Promise.resolve(get().playIndex(idx)).catch(() => {});
-      }
     });
 
     player.addListener("not_ready", () => {
       clearPlayRetry(true);
-      stopAutoResumeLoop();
       set({ deviceId: null, isPlayerReady: false });
     });
 
     player.addListener("player_state_changed", (state) => {
       const previous = get();
-      hydrateFromSdkState((state as SpotifyPlayerState | null) ?? null);
-
       const nextState = (state as SpotifyPlayerState | null) ?? null;
+      const prevSdkPosition = lastSdkPositionMs;
+      if (nextState) lastSdkPositionMs = nextState.position;
+
+      hydrateFromSdkState(nextState);
+
       const currentUri = nextState?.track_window.current_track.uri;
+      const nearEndOnSdk =
+        previous.durationMs > 0 &&
+        prevSdkPosition >= Math.max(0, previous.durationMs - 2500);
       const likelyEnded =
         previous.isPlaying &&
-        previous.durationMs > 0 &&
-        previous.progressMs >= Math.max(0, previous.durationMs - 1500) &&
-        previous.progressMs > 0 &&
+        !userPausedIntent &&
         !!nextState &&
         nextState.paused &&
         nextState.position === 0 &&
+        nearEndOnSdk &&
         currentUri === previous.currentTrack?.uri;
 
       if (likelyEnded) {
-        stopAutoResumeLoop();
-        set({ endedToken: previous.endedToken + 1 });
+        set({ endedToken: previous.endedToken + 1, isPlaying: false });
         return;
       }
 
       if (nextState && !nextState.paused) {
         clearPlayRetry();
-        stopAutoResumeLoop();
-        return;
-      }
-
-      const unexpectedPausedInterruption =
-        !!nextState &&
-        previous.isPlaying &&
-        nextState.paused &&
-        nextState.position > 0 &&
-        Date.now() >= ignorePausedUntil &&
-        Date.now() >= suppressAutoResumeUntil;
-
-      if (unexpectedPausedInterruption && get().deviceId) {
-        startAutoResumeLoop();
+        userPausedIntent = false;
       }
     });
 
@@ -542,9 +477,20 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     });
     player.addListener("authentication_error", async () => {
       suppressAutoResumeUntil = Date.now() + 60_000;
-      stopAutoResumeLoop();
       clearPlayRetry(true);
       try {
+        const res = await fetch("/api/spotify/token", {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (res.ok) {
+          const data = (await res.json()) as { accessToken?: string };
+          if (data.accessToken) {
+            set({ accessToken: data.accessToken, sdkError: null });
+            await player.connect();
+            return;
+          }
+        }
         const session = await getSession();
         if (session?.accessToken && !(session as { error?: string }).error) {
           set({ accessToken: session.accessToken as string, sdkError: null });
@@ -565,7 +511,6 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     const connected = await player.connect();
     if (connected) {
-      setupMediaSessionHandlers(); // respond to external play/pause commands
       set({ player });
       player.setVolume(get().volume).catch(() => {});
     }
@@ -573,11 +518,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
   setQueueAndPlay: async (tracks, index) => {
     requestAudioFocus(); // steal iOS audio focus synchronously within the user gesture
-    set({
-      queue: tracks,
-      isPlayerExpanded: true,
-      isQueueOpen: false,
-    });
+    set({ queue: tracks, isPlayerExpanded: true, isQueueOpen: false });
     get().playIndex(index);
   },
 
@@ -603,16 +544,22 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   playIndex: async (index) => {
-    const { queue, deviceId, currentTrack, isPlaying, isTransitioning, queueIndex, progressMs } =
-      get();
+    const { queue, deviceId, currentTrack, isPlaying, isTransitioning, queueIndex } = get();
     if (index < 0 || index >= queue.length) return;
-    if (isTransitioning) {
-      const stalled = !isPlaying && (queueIndex === index || get().pendingIndex === index);
-      if (!stalled) return;
-      set({ isTransitioning: false, pendingIndex: null });
-    }
+    if (isTransitioning) return;
 
     const nextTrack = queue[index];
+
+    // Same track — resume without restarting from 0:00.
+    if (
+      index === queueIndex &&
+      nextTrack.uri &&
+      nextTrack.uri === currentTrack?.uri
+    ) {
+      if (isPlaying) return;
+      await get().resumePlayback();
+      return;
+    }
     const uriEntries = queue
       .map((track, queueIndex) => ({ uri: track.uri, queueIndex }))
       .filter((item): item is { uri: string; queueIndex: number } => Boolean(item.uri));
@@ -645,9 +592,10 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
 
     pendingPlayOnReadyIndex = null;
+    userPausedIntent = false;
     clearPlayRetry(index !== playRetryIndex);
-    ignorePausedUntil = Date.now() + 1400;
-    const hasActivePlayback = !!currentTrack && isPlaying;
+    ignorePausedUntil = Date.now() + 1800;
+    const hasActivePlayback = !!currentTrack && isPlaying && queueIndex !== index;
     set({
       pendingIndex: index,
       isTransitioning: true,
@@ -662,18 +610,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
           }),
     });
 
-    const resumeSameTrack =
-      index === queueIndex &&
-      !isPlaying &&
-      progressMs > 0 &&
-      currentTrack?.uri === nextTrack.uri;
-
     try {
       await playerApi("play", {
         deviceId,
         uris: uriEntries.map((item) => item.uri),
         offset: { position: targetPosition },
-        positionMs: resumeSameTrack ? progressMs : 0,
+        positionMs: 0,
       });
     } catch (e) {
       const errorText = parseErrorText(e);
@@ -708,95 +650,57 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       pendingIndex: null,
       isPlaying: true,
       isTransitioning: false,
-      progressMs: resumeSameTrack ? progressMs : 0,
+      progressMs: 0,
       durationMs: nextTrack.durationMs ?? 0,
     });
     updateMediaSessionState(true);
   },
 
   pausePlayback: async () => {
-    const { player, isPlaying, isTransitioning } = get();
-    if (!isPlaying || isTransitioning) return;
+    const { player, isPlaying } = get();
+    if (!player || !isPlaying) return;
 
-    suppressAutoResumeUntil = Date.now() + 8000;
-    stopAutoResumeLoop();
-    updateMediaSessionState(false);
-    const { progressMs, durationMs } = get();
-    set({ isPlaying: false, isTransitioning: false });
+    userPausedIntent = true;
+    suppressAutoResumeUntil = Date.now() + 60_000;
+    clearPlayRetry(true);
+    ignorePausedUntil = 0;
 
-    if (
-      typeof navigator !== "undefined" &&
-      "mediaSession" in navigator &&
-      "setPositionState" in navigator.mediaSession &&
-      durationMs > 0
-    ) {
-      try {
-        navigator.mediaSession.setPositionState({
-          duration: durationMs / 1000,
-          playbackRate: 1,
-          position: Math.max(0, progressMs) / 1000,
-        });
-      } catch {
-        // ignore unsupported position state
-      }
-    }
-
-    if (player) {
-      await player.pause().catch(() => {});
-    }
-  },
-
-  resumePlayback: async () => {
-    const { player, isPlaying, queueIndex, queue, deviceId, currentTrack, progressMs } = get();
-    if (isPlaying) return;
-
-    requestAudioFocus();
-    suppressAutoResumeUntil = 0;
-
-    const track = queueIndex >= 0 ? queue[queueIndex] : null;
-
-    if (player && deviceId && track?.uri && currentTrack?.uri === track.uri) {
-      try {
-        const sdkState = (await player.getCurrentState()) as SpotifyPlayerState | null;
-        if (
-          sdkState?.paused &&
-          sdkState.track_window.current_track.uri === track.uri
-        ) {
-          ignorePausedUntil = Date.now() + 1400;
-          set({
-            isPlaying: true,
-            isTransitioning: false,
-            progressMs: sdkState.position,
-            durationMs: sdkState.duration,
-          });
-          updateMediaSessionState(true);
-          await player.togglePlay();
-          return;
-        }
-      } catch {
-        // Fall through to API play with saved position.
-      }
-    }
-
-    if (queueIndex >= 0 && track?.uri) {
-      await get().playIndex(queueIndex);
+    try {
+      await player.pause();
+    } catch {
       return;
     }
 
-    if (player) {
-      updateMediaSessionState(true);
-      set({ isPlaying: true });
-      await player.togglePlay().catch(() => {});
+    set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+    updateMediaSessionState(false);
+  },
+
+  resumePlayback: async () => {
+    const { player, isPlaying, currentTrack, queue, queueIndex } = get();
+    if (!player || isPlaying) return;
+
+    const track = currentTrack ?? (queueIndex >= 0 ? queue[queueIndex] : null);
+    if (!track?.uri) return;
+
+    userPausedIntent = false;
+    suppressAutoResumeUntil = 0;
+    requestAudioFocus();
+    ignorePausedUntil = Date.now() + 1800;
+
+    try {
+      await player.togglePlay();
+    } catch {
+      return;
     }
+
+    set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+    updateMediaSessionState(true);
   },
 
   togglePlay: async () => {
     const { isPlaying } = get();
-    if (isPlaying) {
-      await get().pausePlayback();
-      return;
-    }
-    await get().resumePlayback();
+    if (isPlaying) await get().pausePlayback();
+    else await get().resumePlayback();
   },
 
   seek: async (ratio) => {
@@ -808,10 +712,10 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
   stop: async () => {
     const { player } = get();
+    userPausedIntent = true;
     suppressAutoResumeUntil = Date.now() + 60_000;
     pendingPlayOnReadyIndex = null;
     clearPlayRetry();
-    stopAutoResumeLoop();
     if (player) {
       await player.pause().catch(() => {});
     }
@@ -955,7 +859,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     queue: state.queue,
     queueIndex: state.queueIndex,
     pendingIndex: null,
-    isPlaying: state.isPlaying,
+    isPlaying: false,
     isTransitioning: false,
     progressMs: state.progressMs,
     durationMs: state.durationMs,
@@ -978,6 +882,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     setQueueAndPlay: state.setQueueAndPlay,
     updateTrackUri: state.updateTrackUri,
     playIndex: state.playIndex,
+    pausePlayback: state.pausePlayback,
+    resumePlayback: state.resumePlayback,
     togglePlay: state.togglePlay,
     seek: state.seek,
     stop: state.stop,

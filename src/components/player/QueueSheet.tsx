@@ -177,11 +177,13 @@ export default function QueueSheet({ onPlayIndex }: Props) {
             <h2 className="text-white font-bold text-lg">
               {tab === "queue" ? "Queue" : "Similar"}
             </h2>
-            {tab === "queue" && (
-              <p className="text-xs text-white/30 mt-0.5">
-                {queue.length} track{queue.length !== 1 ? "s" : ""}
-              </p>
-            )}
+            <p className="text-xs text-white/30 mt-0.5">
+              {tab === "queue"
+                ? `${queue.length} track${queue.length !== 1 ? "s" : ""}`
+                : seedTrack
+                  ? `Like ${seedTrack.name}`
+                  : "Based on now playing"}
+            </p>
           </div>
           <button
             onClick={() => usePlayerStore.setState({ isQueueOpen: false })}
@@ -244,7 +246,12 @@ export default function QueueSheet({ onPlayIndex }: Props) {
                         isCurrent={isCurrent}
                         isCurrentlyPlaying={isCurrentlyPlaying}
                         onPlay={() => {
-                          onPlayIndex(i);
+                          const didStart = onPlayIndex(i);
+                          if (didStart !== false) {
+                            window.requestAnimationFrame(() => {
+                              usePlayerStore.setState({ isQueueOpen: false });
+                            });
+                          }
                         }}
                         onRemove={(e) => { e.stopPropagation(); removeFromQueue(i); }}
                       />
@@ -263,7 +270,7 @@ export default function QueueSheet({ onPlayIndex }: Props) {
           aria-hidden={tab !== "similar"}
         >
           {seedTrack ? (
-            <SimilarMusicSection key={seedKey} track={seedTrack} />
+            <SimilarMusicSection key={seedKey} track={seedTrack} variant="sheet" />
           ) : (
             <div className="flex flex-col items-center justify-center h-48 gap-3">
               <Sparkles size={28} className="text-white/10" />

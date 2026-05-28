@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Music, Play, RefreshCw } from "lucide-react";
+import { Loader2, ListPlus, Music, Play, RefreshCw } from "lucide-react";
 import Image from "next/image";
+import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { PlayableTrack, usePlayerStore } from "@/store/player";
 import { SpotifyTrack, artistNames, trackImage } from "@/types/spotify";
 import { spotifyTrackIdFromUri } from "@/lib/spotify-track-id";
 
 const INITIAL_LIMIT = 15;
 const MORE_LIMIT = 10;
+const MAX_EXCLUDE_IDS = 80;
 
 interface Props {
   track: PlayableTrack;
@@ -19,7 +21,28 @@ function normalizeItem(item: SpotifyTrack): SpotifyTrack | null {
   const id = item?.id ?? spotifyTrackIdFromUri(item?.uri) ?? null;
   const uri = item?.uri ?? (id ? `spotify:track:${id}` : null);
   if (!id || !uri || !item?.name) return null;
-  return { ...item, id, uri };
+  const artists =
+    item.artists?.length > 0
+      ? item.artists
+      : [{ id: "unknown", name: "Unknown Artist", external_urls: { spotify: "" } }];
+  const album = item.album ?? {
+    id: "unknown",
+    name: "",
+    images: [],
+    external_urls: { spotify: "" },
+    release_date: "",
+    album_type: "album",
+  };
+  return {
+    ...item,
+    id,
+    uri,
+    artists,
+    album,
+    duration_ms: item.duration_ms ?? 0,
+    external_urls: item.external_urls ?? { spotify: `https://open.spotify.com/track/${id}` },
+    preview_url: item.preview_url ?? null,
+  };
 }
 
 function toPlayable(t: SpotifyTrack): PlayableTrack {
@@ -32,6 +55,35 @@ function toPlayable(t: SpotifyTrack): PlayableTrack {
   };
 }
 
+async function searchSimilarViaApi(
+  trackName: string,
+  artistName: string,
+  limit: number,
+  refreshSeed: number
+): Promise<SpotifyTrack[]> {
+  const primary = artistName.split(",")[0]?.trim() ?? "";
+  const queries = [
+    primary,
+    primary && trackName ? `${trackName} ${primary}` : "",
+    trackName,
+  ].filter(Boolean);
+  const start = refreshSeed % queries.length;
+
+  for (let i = 0; i < queries.length; i++) {
+    const q = queries[(start + i) % queries.length];
+    const params = new URLSearchParams({ q, type: "track", limit: String(limit) });
+    const res = await fetch(`/api/spotify/search?${params}`, {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    if (!res.ok) continue;
+    const data = (await res.json()) as { tracks?: SpotifyTrack[] };
+    const items = (data.tracks ?? []).map(normalizeItem).filter((t): t is SpotifyTrack => !!t);
+    if (items.length > 0) return items;
+  }
+  return [];
+}
+
 export default function SimilarMusicSection({ track, variant = "sheet" }: Props) {
   const embedded = variant === "embedded";
   const [similarTracks, setSimilarTracks] = useState<SpotifyTrack[]>([]);
@@ -39,6 +91,13 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [empty, setEmpty] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [modalTrack, setModalTrack] = useState<{
+    uri: string;
+    name: string;
+    image?: string | null;
+    artist?: string | null;
+  } | null>(null);
   const refreshSeedRef = useRef(0);
   const shownIdsRef = useRef<Set<string>>(new Set());
   const trackKeyRef = useRef("");
@@ -46,25 +105,27 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
   const playingRef = useRef(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const hasMoreRef = useRef(true);
+  const initialRetryRef = useRef(false);
   const { setQueueAndPlay, currentTrack, isPlaying } = usePlayerStore();
 
   const fetchTracks = useCallback(
     async (mode: "initial" | "more" | "refresh") => {
       const generation = ++fetchGenRef.current;
-      const limit = mode === "initial" ? INITIAL_LIMIT : MORE_LIMIT;
+      const limit = mode === "initial" || mode === "refresh" ? INITIAL_LIMIT : MORE_LIMIT;
 
-      if (!track.name || !track.artist) {
+      if (!track.name?.trim()) {
         setSimilarTracks([]);
         setEmpty(true);
         hasMoreRef.current = false;
         return;
       }
+      const artistLabel = track.artist?.trim() || "Unknown Artist";
 
       if (mode === "refresh") {
         refreshSeedRef.current += 1;
-        shownIdsRef.current = new Set();
         setRefreshing(true);
         setEmpty(false);
+        setSessionExpired(false);
       } else if (mode === "more") {
         if (!hasMoreRef.current || loadingMore || loading) return;
         setLoadingMore(true);
@@ -72,6 +133,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         refreshSeedRef.current = 0;
         setLoading(true);
         setEmpty(false);
+        setSessionExpired(false);
       }
 
       try {
@@ -83,13 +145,14 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         if (trackId) params.set("trackId", trackId);
         if (track.uri) params.set("trackUri", track.uri);
         params.set("track", track.name);
-        params.set("artist", track.artist);
+        params.set("artist", artistLabel);
 
-        const exclude = Array.from(shownIdsRef.current);
+        const exclude = Array.from(shownIdsRef.current).slice(-MAX_EXCLUDE_IDS);
         if (exclude.length > 0) params.set("exclude", exclude.join(","));
 
         const res = await fetch(`/api/spotify/recommendations?${params}`, {
           cache: "no-store",
+          credentials: "same-origin",
         });
         if (generation !== fetchGenRef.current) return;
 
@@ -99,7 +162,12 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         };
 
         if (!res.ok) {
-          if (mode === "initial") {
+          const expired =
+            res.status === 401 ||
+            data.error === "Token expired, please re-login" ||
+            data.error === "Unauthorized";
+          if (expired) setSessionExpired(true);
+          if (mode === "initial" || mode === "refresh") {
             setSimilarTracks([]);
             setEmpty(true);
           }
@@ -109,23 +177,49 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
 
         const currentUri = track.uri ?? "";
         const currentId = spotifyTrackIdFromUri(track.uri);
-        const items = (data.tracks ?? [])
-          .map(normalizeItem)
-          .filter((item): item is SpotifyTrack => {
-            if (!item) return false;
-            if (currentUri && item.uri === currentUri) return false;
-            if (currentId && item.id === currentId) return false;
-            if (shownIdsRef.current.has(item.id)) return false;
-            return true;
-          });
+        const filterItems = (raw: SpotifyTrack[]) =>
+          raw
+            .map(normalizeItem)
+            .filter((item): item is SpotifyTrack => {
+              if (!item) return false;
+              if (currentUri && item.uri === currentUri) return false;
+              if (currentId && item.id === currentId) return false;
+              if (shownIdsRef.current.has(item.id)) return false;
+              return true;
+            });
+
+        let items = filterItems(data.tracks ?? []);
+
+        if (items.length === 0) {
+          const searched = await searchSimilarViaApi(
+            track.name,
+            artistLabel,
+            limit,
+            refreshSeedRef.current
+          );
+          if (generation !== fetchGenRef.current) return;
+          items = filterItems(searched);
+        }
 
         for (const item of items) shownIdsRef.current.add(item.id);
 
         if (generation !== fetchGenRef.current) return;
 
         if (mode === "initial" || mode === "refresh") {
-          setSimilarTracks(items);
-          setEmpty(items.length === 0);
+          if (items.length > 0) {
+            setSimilarTracks(items);
+            setEmpty(false);
+          } else if (mode === "refresh") {
+            setEmpty(similarTracks.length === 0);
+          } else {
+            setSimilarTracks([]);
+            setEmpty(true);
+            if (mode === "initial" && !initialRetryRef.current) {
+              initialRetryRef.current = true;
+              refreshSeedRef.current += 1;
+              window.setTimeout(() => void fetchTracks("initial"), 400);
+            }
+          }
         } else {
           setSimilarTracks((prev) => {
             const seen = new Set(prev.map((t) => t.id));
@@ -135,10 +229,10 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
           if (items.length === 0) hasMoreRef.current = false;
         }
 
-        hasMoreRef.current = items.length >= (mode === "initial" ? 3 : 1);
+        hasMoreRef.current = items.length >= (mode === "more" ? 1 : 3);
       } catch {
         if (generation !== fetchGenRef.current) return;
-        if (mode === "initial") {
+        if (mode === "initial" || mode === "refresh") {
           setSimilarTracks([]);
           setEmpty(true);
         }
@@ -150,7 +244,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         setRefreshing(false);
       }
     },
-    [track.artist, track.name, track.uri, loading, loadingMore]
+    [track.artist, track.name, track.uri, loading, loadingMore, similarTracks.length]
   );
 
   useEffect(() => {
@@ -165,6 +259,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
     trackKeyRef.current = key;
     shownIdsRef.current = new Set();
     refreshSeedRef.current = 0;
+    initialRetryRef.current = false;
     hasMoreRef.current = true;
     void fetchTracks("initial");
   }, [track.artist, track.name, track.uri, fetchTracks]);
@@ -186,6 +281,16 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
   const handleRefresh = () => {
     if (refreshing || loading) return;
     void fetchTracks("refresh");
+  };
+
+  const handleAddToPlaylist = (item: SpotifyTrack) => {
+    if (!item.uri) return;
+    setModalTrack({
+      uri: item.uri,
+      name: item.name,
+      image: trackImage(item) ?? null,
+      artist: artistNames(item),
+    });
   };
 
   const playSimilar = async (picked: SpotifyTrack) => {
@@ -221,9 +326,13 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         key={item.id}
         role="button"
         tabIndex={0}
-        onClick={() => void playSimilar(item)}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("button")) return;
+          void playSimilar(item);
+        }}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
+            if ((e.target as HTMLElement).closest("button")) return;
             e.preventDefault();
             void playSimilar(item);
           }
@@ -284,100 +393,141 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
           </p>
           <p className="text-xs text-white/40 truncate mt-0.5">{artistNames(item)}</p>
         </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleAddToPlaylist(item);
+          }}
+          title="Add to playlist"
+          aria-label={`Add ${item.name} to playlist`}
+          className="shrink-0 p-2 rounded-xl text-[#E8282B]/60 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors"
+        >
+          <ListPlus size={embedded ? 16 : 17} />
+        </button>
       </div>
     );
   });
 
+  const playlistModal = modalTrack ? (
+    <AddToPlaylistModal track={modalTrack} onClose={() => setModalTrack(null)} />
+  ) : null;
+
   if (embedded) {
     return (
-      <section className="shrink-0 pt-2 border-t border-white/[0.06]">
-        <div className="flex items-center justify-between gap-2 mb-2 px-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">Similar</p>
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={busy}
-            aria-label="Refresh similar tracks"
-            title="Refresh"
-            className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
-          >
-            {refreshing ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <RefreshCw size={16} />
-            )}
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 size={20} className="animate-spin text-white/25" />
-          </div>
-        ) : empty ? (
-          <div className="flex flex-col items-center justify-center py-8 gap-3 px-2">
-            <p className="text-sm text-white/35 text-center">No similar tracks found</p>
+      <>
+        <section className="shrink-0 pt-2 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between gap-2 mb-2 px-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/30">
+              Similar
+            </p>
             <button
               type="button"
-              onClick={() => void fetchTracks("initial")}
+              onClick={handleRefresh}
               disabled={busy}
-              className="text-xs font-semibold px-3 py-2 rounded-xl bg-white/[0.08] text-white/70 hover:text-white transition-colors"
+              aria-label="Refresh similar tracks"
+              title="Refresh"
+              className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
             >
-              Try again
+              {refreshing ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <RefreshCw size={16} />
+              )}
             </button>
           </div>
-        ) : (
-          <>
-            <div>{trackRows}</div>
-            <div ref={loadMoreRef} className="h-6 flex items-center justify-center py-2">
-              {loadingMore && <Loader2 size={16} className="animate-spin text-white/20" />}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={20} className="animate-spin text-white/25" />
             </div>
-          </>
-        )}
-      </section>
+          ) : empty ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-3 px-2">
+              <p className="text-sm text-white/35 text-center">
+                {sessionExpired
+                  ? "Session expired. Sign in again to load similar tracks."
+                  : "No similar tracks found"}
+              </p>
+              {sessionExpired ? (
+                <a
+                  href="/login"
+                  className="text-xs font-semibold px-3 py-2 rounded-xl bg-[#E8282B] text-white hover:opacity-90 transition-opacity"
+                >
+                  Sign in
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void fetchTracks("initial")}
+                  disabled={busy}
+                  className="text-xs font-semibold px-3 py-2 rounded-xl bg-white/[0.08] text-white/70 hover:text-white transition-colors"
+                >
+                  Try again
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div>{trackRows}</div>
+              <div ref={loadMoreRef} className="h-6 flex items-center justify-center py-2">
+                {loadingMore && <Loader2 size={16} className="animate-spin text-white/20" />}
+              </div>
+            </>
+          )}
+        </section>
+        {playlistModal}
+      </>
     );
   }
 
   return (
-    <section className="flex flex-col min-h-0 flex-1">
-      <div
-        className="flex-1 min-h-[280px] rounded-2xl border overflow-hidden flex flex-col"
-        style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
-      >
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center py-16">
-            <Loader2 size={22} className="animate-spin text-white/25" />
-          </div>
-        ) : empty ? (
-          <div className="flex-1 flex flex-col items-center justify-center py-16 px-4 gap-2">
-            <Music size={28} className="text-white/15" />
-            <p className="text-sm text-white/35 text-center">No similar tracks found</p>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto">
-            {trackRows}
-            <div ref={loadMoreRef} className="h-8 flex items-center justify-center">
-              {loadingMore && <Loader2 size={16} className="animate-spin text-white/20" />}
+    <>
+      <section className="flex flex-col min-h-0 flex-1">
+        <div
+          className="flex-1 min-h-[280px] rounded-2xl border overflow-hidden flex flex-col"
+          style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
+        >
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center py-16">
+              <Loader2 size={22} className="animate-spin text-white/25" />
             </div>
-          </div>
-        )}
+          ) : empty ? (
+            <div className="flex-1 flex flex-col items-center justify-center py-16 px-4 gap-2">
+              <Music size={28} className="text-white/15" />
+              <p className="text-sm text-white/35 text-center">
+                {sessionExpired
+                  ? "Session expired. Sign in again."
+                  : "No similar tracks found"}
+              </p>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto">
+              {trackRows}
+              <div ref={loadMoreRef} className="h-8 flex items-center justify-center">
+                {loadingMore && <Loader2 size={16} className="animate-spin text-white/20" />}
+              </div>
+            </div>
+          )}
 
-        <div className="shrink-0 p-3 border-t border-white/[0.06] flex justify-center">
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={busy}
-            aria-label="Refresh similar tracks"
-            title="Refresh"
-            className="p-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] disabled:opacity-40 text-white/80 hover:text-white transition-colors"
-          >
-            {refreshing ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <RefreshCw size={18} />
-            )}
-          </button>
+          <div className="shrink-0 p-3 border-t border-white/[0.06] flex justify-center">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={busy}
+              aria-label="Refresh similar tracks"
+              title="Refresh"
+              className="p-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] disabled:opacity-40 text-white/80 hover:text-white transition-colors"
+            >
+              {refreshing ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <RefreshCw size={18} />
+              )}
+            </button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+      {playlistModal}
+    </>
   );
 }
