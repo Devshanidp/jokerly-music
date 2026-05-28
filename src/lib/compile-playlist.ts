@@ -40,7 +40,11 @@ export function parseSelectedArtists(value: unknown): CompileArtist[] {
 
       typeof (artist as CompileArtist).id === "string" &&
 
-      typeof (artist as CompileArtist).name === "string"
+      (artist as CompileArtist).id.trim().length > 0 &&
+
+      typeof (artist as CompileArtist).name === "string" &&
+
+      (artist as CompileArtist).name.trim().length > 0
 
   );
 

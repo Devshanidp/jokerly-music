@@ -653,18 +653,17 @@ export default function PlaylistsClient() {
             onTracksAdded={() => fetchTracks(selectedPlaylist.id)}
           />
         )}
-        {editArtistsOpen && (
-          <EditMixArtistsSheet
-            open={editArtistsOpen}
-            playlistId={pl.id}
-            playlistName={pl.name}
-            initialArtists={mixArtistRecords}
-            onClose={() => setEditArtistsOpen(false)}
-            onSaved={(artists, description, addedCount, removedCount) => {
-              void handleArtistsSaved(pl.id, artists, description, addedCount, removedCount);
-            }}
-          />
-        )}
+        <EditMixArtistsSheet
+          key={pl.id}
+          open={editArtistsOpen}
+          playlistId={pl.id}
+          playlistName={pl.name}
+          initialArtists={mixArtistRecords}
+          onClose={() => setEditArtistsOpen(false)}
+          onSaved={(artists, description, addedCount, removedCount) => {
+            void handleArtistsSaved(pl.id, artists, description, addedCount, removedCount);
+          }}
+        />
         {artistMixFab}
       </div>
     );

@@ -11,10 +11,42 @@ import {
   trackMatchesArtist,
   type MixArtist,
 } from "@/lib/playlist-meta";
+import { searchSpotify } from "@/lib/spotify";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60;
+
+function normalizeIncomingArtists(value: unknown): MixArtist[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((artist) => {
+      if (typeof artist !== "object" || artist === null) return null;
+      const name = typeof (artist as MixArtist).name === "string" ? (artist as MixArtist).name.trim() : "";
+      if (!name) return null;
+      const id = typeof (artist as MixArtist).id === "string" ? (artist as MixArtist).id.trim() : "";
+      return { id, name };
+    })
+    .filter((artist): artist is MixArtist => artist !== null);
+}
+
+async function resolveMixArtistsServer(artists: MixArtist[], token: string): Promise<MixArtist[]> {
+  const resolved: MixArtist[] = [];
+  for (const artist of artists) {
+    if (artist.id) {
+      resolved.push(artist);
+      continue;
+    }
+    const data = (await searchSpotify(artist.name, "artist", token, 8)) as {
+      artists?: { items?: { id: string; name: string }[] };
+    };
+    const items = data.artists?.items ?? [];
+    const match =
+      items.find((item) => item.name.toLowerCase() === artist.name.toLowerCase()) ?? items[0];
+    if (match?.id) resolved.push({ id: match.id, name: match.name });
+  }
+  return resolved;
+}
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -43,10 +75,25 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const body = (await req.json().catch(() => ({}))) as { selectedArtists?: unknown };
-  const selectedArtists = parseSelectedArtists(body.selectedArtists) as MixArtist[];
+  const incoming = normalizeIncomingArtists(body.selectedArtists);
+  if (incoming.length === 0) {
+    return NextResponse.json({ error: "At least one artist required" }, { status: 400 });
+  }
+
+  let selectedArtists = await resolveMixArtistsServer(incoming, session.accessToken);
+  selectedArtists = parseSelectedArtists(selectedArtists) as MixArtist[];
 
   if (selectedArtists.length === 0) {
-    return NextResponse.json({ error: "At least one artist required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Could not resolve artists — remove and re-add them from search" },
+      { status: 400 }
+    );
+  }
+  if (selectedArtists.length < incoming.length) {
+    return NextResponse.json(
+      { error: "Some artists could not be resolved — remove and re-add them from search" },
+      { status: 400 }
+    );
   }
 
   const supabase = await createClient();
