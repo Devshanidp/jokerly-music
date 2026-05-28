@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
-import { Pin, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash, ArrowLeft, ListMusic, FolderInput } from "lucide-react";
+import { Pin, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash, ArrowLeft, ListMusic, FolderInput, LayoutGrid, List } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -31,6 +31,10 @@ interface PlaylistTrack {
 interface Props {
   pinned: PinnedPlaylist[];
 }
+
+type PlaylistViewMode = "grid" | "list";
+const PLAYLIST_VIEW_KEY = "jokerly-playlist-view";
+const playlistCardBorder = "border border-white/[0.12]";
 
 // ── Cover art ──────────────────────────────────────────────────────────────
 function CoverArt({ tracks, imageUrl, name, size = 130 }: { tracks?: PlaylistTrack[]; imageUrl?: string | null; name: string; size?: number }) {
@@ -135,6 +139,7 @@ function SortableTrackRow({
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function PinnedPlaylistSection({ pinned }: Props) {
+  const [viewMode, setViewMode] = useState<PlaylistViewMode>("grid");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tracksMap, setTracksMap] = useState<Record<string, PlaylistTrack[]>>({});
   const [loading, setLoading] = useState<string | null>(null);
@@ -143,6 +148,24 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   const [addFromPlaylist, setAddFromPlaylist] = useState(false);
   const { setQueueAndPlay, isPlayerReady } = usePlayerStore();
   const { toast } = useToastStore();
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PLAYLIST_VIEW_KEY);
+      if (saved === "grid" || saved === "list") setViewMode(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setPlaylistViewMode = (mode: PlaylistViewMode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem(PLAYLIST_VIEW_KEY, mode);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -326,29 +349,82 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     );
   }
 
-  // ── Grid view ────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="grid grid-cols-3 gap-2">
-        {pinned.map((pl) => {
-          const tracks = tracksMap[pl.playlist_id];
-          return (
-            <div key={pl.id}
-              onClick={() => openPlaylist(pl.playlist_id)}
-              className="rounded-lg overflow-hidden border cursor-pointer transition-all duration-200 active:scale-[0.97] hover:border-white/[0.12]"
-              style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.07)" }}
-            >
-              <div className="relative aspect-square w-full overflow-hidden" style={{ background: "var(--surface)" }}>
-                <CoverArt tracks={tracks} imageUrl={pl.playlist_image || null} name={pl.playlist_name} size={80} />
-                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
-              </div>
-              <div className="px-1 py-1">
-                <p className="text-white text-[9px] font-semibold truncate leading-tight">{pl.playlist_name}</p>
-              </div>
-            </div>
-          );
-        })}
+      <div className="flex justify-end mb-2">
+        <div
+          className="flex items-center rounded-xl border border-white/[0.12] p-0.5"
+          style={{ background: "var(--surface)" }}
+          role="group"
+          aria-label="Pinned playlist layout"
+        >
+          <button
+            type="button"
+            onClick={() => setPlaylistViewMode("grid")}
+            title="Grid view"
+            aria-pressed={viewMode === "grid"}
+            className={`p-1.5 rounded-lg transition-colors ${viewMode === "grid" ? "bg-white/[0.12] text-white" : "text-white/40 hover:text-white/70"}`}
+          >
+            <LayoutGrid size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setPlaylistViewMode("list")}
+            title="List view"
+            aria-pressed={viewMode === "list"}
+            className={`p-1.5 rounded-lg transition-colors ${viewMode === "list" ? "bg-white/[0.12] text-white" : "text-white/40 hover:text-white/70"}`}
+          >
+            <List size={14} />
+          </button>
+        </div>
       </div>
+
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {pinned.map((pl) => {
+            const tracks = tracksMap[pl.playlist_id];
+            return (
+              <div
+                key={pl.id}
+                onClick={() => openPlaylist(pl.playlist_id)}
+                className={`rounded-xl overflow-hidden ${playlistCardBorder} cursor-pointer transition-all duration-200 active:scale-[0.98] hover:border-white/25 hover:bg-white/[0.02] shadow-sm`}
+                style={{ background: "var(--card)" }}
+              >
+                <div className="relative aspect-square w-full overflow-hidden border-b border-white/[0.08]" style={{ background: "var(--surface)" }}>
+                  <CoverArt tracks={tracks} imageUrl={pl.playlist_image || null} name={pl.playlist_name} size={80} />
+                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                </div>
+                <div className="p-2">
+                  <p className="text-white text-[10px] font-semibold truncate leading-tight">{pl.playlist_name}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div
+          className={`rounded-xl overflow-hidden divide-y divide-white/[0.10] ${playlistCardBorder}`}
+          style={{ background: "var(--card)" }}
+        >
+          {pinned.map((pl) => {
+            const tracks = tracksMap[pl.playlist_id];
+            return (
+              <div
+                key={pl.id}
+                onClick={() => openPlaylist(pl.playlist_id)}
+                className="flex items-center gap-3 p-3 cursor-pointer transition-colors hover:bg-white/[0.04]"
+              >
+                <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-white/[0.10]" style={{ background: "var(--surface)" }}>
+                  <CoverArt tracks={tracks} imageUrl={pl.playlist_image || null} name={pl.playlist_name} size={48} />
+                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                </div>
+                <p className="flex-1 text-white text-sm font-semibold truncate">{pl.playlist_name}</p>
+                <Play size={14} className="shrink-0 text-white/25" />
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
     </>

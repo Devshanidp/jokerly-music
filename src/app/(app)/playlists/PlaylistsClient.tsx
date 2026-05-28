@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X, LayoutGrid, List } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -27,6 +27,10 @@ import { isMixPlaylist, parseMixArtistRecords, parseMixArtists } from "@/lib/pla
 
 interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
+type PlaylistViewMode = "grid" | "list";
+const PLAYLIST_VIEW_KEY = "jokerly-playlist-view";
+
+const playlistCardBorder = "border border-white/[0.12]";
 interface PlaylistTrack { id: string; track_uri: string; track_name: string; track_image?: string | null; track_artist?: string | null; added_at: string; position: number; }
 interface PinnedArtist { id: string; artist_id: string; artist_name: string; artist_image: string; }
 
@@ -144,6 +148,7 @@ function CoverArt({ tracks, imageUrl, name, size = 160 }: { tracks?: PlaylistTra
 // ── Main component ──────────────────────────────────────────────────────────
 export default function PlaylistsClient() {
   const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
+  const [viewMode, setViewMode] = useState<PlaylistViewMode>("grid");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showArtistMixSheet, setShowArtistMixSheet] = useState(false);
@@ -172,6 +177,24 @@ export default function PlaylistsClient() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PLAYLIST_VIEW_KEY);
+      if (saved === "grid" || saved === "list") setViewMode(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setPlaylistViewMode = (mode: PlaylistViewMode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem(PLAYLIST_VIEW_KEY, mode);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -651,20 +674,47 @@ export default function PlaylistsClient() {
   return (
     <div className="w-full space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-xl font-bold text-white tracking-tight">Your Playlists</h2>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
             {playlists.length > 0 ? `${playlists.length} playlist${playlists.length !== 1 ? "s" : ""}` : ""}
           </p>
         </div>
-        <button
-          onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg"
-          style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
-        >
-          <Plus size={15} /> New
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <div
+            className="flex items-center rounded-xl border border-white/[0.12] p-0.5"
+            style={{ background: "var(--surface)" }}
+            role="group"
+            aria-label="Playlist layout"
+          >
+            <button
+              type="button"
+              onClick={() => setPlaylistViewMode("grid")}
+              title="Grid view"
+              aria-pressed={viewMode === "grid"}
+              className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-white/[0.12] text-white" : "text-white/40 hover:text-white/70"}`}
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setPlaylistViewMode("list")}
+              title="List view"
+              aria-pressed={viewMode === "list"}
+              className={`p-2 rounded-lg transition-colors ${viewMode === "list" ? "bg-white/[0.12] text-white" : "text-white/40 hover:text-white/70"}`}
+            >
+              <List size={16} />
+            </button>
+          </div>
+          <button
+            onClick={() => setCreating(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg"
+            style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
+          >
+            <Plus size={15} /> New
+          </button>
+        </div>
       </div>
 
       {/* Create form */}
@@ -695,17 +745,31 @@ export default function PlaylistsClient() {
 
       {/* Skeleton */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="rounded-2xl overflow-hidden animate-pulse border border-white/[0.05]" style={{ background: "var(--card)" }}>
-              <div className="aspect-square" style={{ background: "var(--surface)" }} />
-              <div className="p-3 space-y-2">
-                <div className="h-3 rounded-full w-3/4" style={{ background: "rgba(255,255,255,0.07)" }} />
-                <div className="h-2.5 rounded-full w-1/2" style={{ background: "rgba(255,255,255,0.04)" }} />
+        viewMode === "grid" ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className={`rounded-xl overflow-hidden animate-pulse ${playlistCardBorder}`} style={{ background: "var(--card)" }}>
+                <div className="aspect-square" style={{ background: "var(--surface)" }} />
+                <div className="p-3 space-y-2 border-t border-white/[0.08]">
+                  <div className="h-3 rounded-full w-3/4" style={{ background: "rgba(255,255,255,0.07)" }} />
+                  <div className="h-2.5 rounded-full w-1/2" style={{ background: "rgba(255,255,255,0.04)" }} />
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className={`rounded-xl overflow-hidden divide-y divide-white/[0.08] ${playlistCardBorder}`} style={{ background: "var(--card)" }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 animate-pulse">
+                <div className="w-14 h-14 rounded-lg shrink-0" style={{ background: "var(--surface)" }} />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 rounded-full w-2/3" style={{ background: "rgba(255,255,255,0.07)" }} />
+                  <div className="h-2.5 rounded-full w-1/3" style={{ background: "rgba(255,255,255,0.04)" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       ) : playlists.length === 0 ? (
         <div className="text-center py-24" style={{ color: "var(--text-muted)" }}>
           <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: "var(--card)" }}>
@@ -714,8 +778,8 @@ export default function PlaylistsClient() {
           <p className="text-sm font-medium">No playlists yet</p>
           <p className="text-xs mt-1 opacity-60">Tap + to mix artists, or New for an empty playlist</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 gap-2">
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {playlists.map((pl) => {
             const mixArtists = parseMixArtists(pl.description);
             const isPinned = pinned.has(pl.id);
@@ -726,35 +790,70 @@ export default function PlaylistsClient() {
               <div
                 key={pl.id}
                 onClick={() => !isDeleting && openPlaylist(pl)}
-                className={`rounded-lg overflow-hidden border cursor-pointer transition-all duration-200 active:scale-[0.97] ${isDeleting ? "opacity-40 pointer-events-none" : "hover:border-white/[0.12]"}`}
-                style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.07)" }}
+                className={`rounded-xl overflow-hidden ${playlistCardBorder} cursor-pointer transition-all duration-200 active:scale-[0.98] shadow-sm ${isDeleting ? "opacity-40 pointer-events-none" : "hover:border-white/25 hover:bg-white/[0.02]"}`}
+                style={{ background: "var(--card)" }}
               >
-                {/* Cover art square */}
-                <div className="relative aspect-square w-full overflow-hidden" style={{ background: "var(--surface)" }}>
+                <div className="relative aspect-square w-full overflow-hidden border-b border-white/[0.08]" style={{ background: "var(--surface)" }}>
                   <CoverArt tracks={tracks} imageUrl={pl.images?.[0]?.url} name={pl.name} size={90} />
                   {isPinned && (
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                    <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-[#E8282B] border-2 border-black/30 shadow" />
                   )}
-                  {/* Play overlay */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity" style={{ background: "rgba(0,0,0,0.35)" }}>
-                    <div className="w-6 h-6 rounded-full bg-[#E8282B] flex items-center justify-center shadow-lg">
-                      <Play size={10} fill="white" className="text-white ml-0.5" />
+                    <div className="w-8 h-8 rounded-full bg-[#E8282B] flex items-center justify-center shadow-lg">
+                      <Play size={12} fill="white" className="text-white ml-0.5" />
                     </div>
                   </div>
                 </div>
-
-                {/* Info */}
-                <div className="p-1.5">
-                  <p className="text-white text-[10px] font-semibold truncate leading-tight">{pl.name}</p>
+                <div className="p-2.5">
+                  <p className="text-white text-xs font-semibold truncate leading-tight">{pl.name}</p>
                   {mixArtists.length > 0 && (
-                    <p className="text-[9px] mt-0.5 truncate leading-tight" style={{ color: "rgba(255,255,255,0.45)" }}>
+                    <p className="text-[10px] mt-0.5 truncate leading-tight" style={{ color: "rgba(255,255,255,0.45)" }}>
                       {mixArtists.join(" · ")}
                     </p>
                   )}
-                  <p className="text-[9px] mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>
+                  <p className="text-[10px] mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>
                     {pl.tracks?.total ?? 0} tracks
                   </p>
                 </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div
+          className={`rounded-xl overflow-hidden divide-y divide-white/[0.10] ${playlistCardBorder}`}
+          style={{ background: "var(--card)" }}
+        >
+          {playlists.map((pl) => {
+            const mixArtists = parseMixArtists(pl.description);
+            const isPinned = pinned.has(pl.id);
+            const isDeleting = deleting.has(pl.id);
+            const tracks = tracksMap[pl.id];
+
+            return (
+              <div
+                key={pl.id}
+                onClick={() => !isDeleting && openPlaylist(pl)}
+                className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${isDeleting ? "opacity-40 pointer-events-none" : "hover:bg-white/[0.04]"}`}
+              >
+                <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-white/[0.10]" style={{ background: "var(--surface)" }}>
+                  <CoverArt tracks={tracks} imageUrl={pl.images?.[0]?.url} name={pl.name} size={56} />
+                  {isPinned && (
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-semibold truncate">{pl.name}</p>
+                  {mixArtists.length > 0 && (
+                    <p className="text-xs mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.45)" }}>
+                      {mixArtists.join(" · ")}
+                    </p>
+                  )}
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    {pl.tracks?.total ?? 0} tracks
+                  </p>
+                </div>
+                <Play size={16} className="shrink-0 text-white/25" />
               </div>
             );
           })}
