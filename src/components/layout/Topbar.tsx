@@ -6,6 +6,7 @@ import Image from "next/image";
 import { X, User, Settings, Bell, Loader2, RefreshCw } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { SPOTIFY_SCOPES } from "@/lib/spotify-scopes";
+import { APP_NAME, APP_TAGLINE } from "@/lib/app";
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession();
@@ -253,8 +254,11 @@ export default function Topbar() {
             onPointerDown={(e) => go(e, "/")}
             onClick={(e) => e.preventDefault()}
             className="flex items-center gap-2.5 shrink-0">
-            <Image src="/icon-96.png" alt="Jokerly" width={34} height={34} className="rounded-xl" />
-            <span className="text-[#E8282B] font-bold text-lg tracking-tight">Jokerly</span>
+            <Image src="/icon-96.png" alt={APP_NAME} width={34} height={34} className="rounded-xl" />
+            <span className="flex flex-col items-start leading-tight">
+              <span className="text-[#E8282B] font-bold text-lg tracking-tight">{APP_NAME}</span>
+              <span className="text-[10px] text-white/35 font-medium">{APP_TAGLINE}</span>
+            </span>
           </button>
 
           {/* Right side */}

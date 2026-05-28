@@ -103,7 +103,11 @@ export async function getArtist(artistId: string, accessToken: string) {
 }
 
 export async function getArtistTopTracks(artistId: string, accessToken: string) {
-  return spotifyFetch(`${SPOTIFY_BASE}/artists/${artistId}/top-tracks?market=IN`, accessToken, 5000);
+  return spotifyFetch(
+    `${SPOTIFY_BASE}/artists/${artistId}/top-tracks?market=from_token`,
+    accessToken,
+    5000
+  );
 }
 
 export async function getRelatedArtists(artistId: string, accessToken: string) {

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { APP_NAME } from "@/lib/app";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getSession } from "next-auth/react";
 export interface PlayableTrack {
@@ -45,7 +46,9 @@ interface PlayerState {
   setQueueAndPlay: (tracks: PlayableTrack[], index: number) => Promise<void>;
   updateTrackUri: (index: number, uri: string | null, imageUrl?: string | null, durationMs?: number) => void;
   playIndex: (index: number) => void;
-  togglePlay: () => void;
+  pausePlayback: () => Promise<void>;
+  resumePlayback: () => Promise<void>;
+  togglePlay: () => Promise<void>;
   seek: (ratio: number) => void;
   stop: () => void;
   setRepeatMode: (mode: RepeatMode) => Promise<void>;
@@ -76,6 +79,7 @@ interface SpotifyPlayer {
   connect: () => Promise<boolean>;
   disconnect: () => void;
   togglePlay: () => Promise<void>;
+  getCurrentState: () => Promise<SpotifyPlayerState | null>;
   seek: (positionMs: number) => Promise<void>;
   pause: () => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
@@ -121,17 +125,11 @@ function setupMediaSessionHandlers() {
   if (typeof navigator === "undefined" || !navigator.mediaSession) return;
 
   navigator.mediaSession.setActionHandler("play", () => {
-    const snapshot = usePlayerStore.getState();
-    if (!snapshot.isPlaying && snapshot.currentTrack) {
-      Promise.resolve(snapshot.togglePlay()).catch(() => {});
-    }
+    Promise.resolve(usePlayerStore.getState().resumePlayback()).catch(() => {});
   });
 
   navigator.mediaSession.setActionHandler("pause", () => {
-    const snapshot = usePlayerStore.getState();
-    if (snapshot.isPlaying) {
-      Promise.resolve(snapshot.togglePlay()).catch(() => {});
-    }
+    Promise.resolve(usePlayerStore.getState().pausePlayback()).catch(() => {});
   });
 }
 
@@ -441,7 +439,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
 
     const player = new Spotify.Player({
-      name: "Jokerly Web Player",
+      name: `${APP_NAME} Web Player`,
       getOAuthToken: async (cb) => {
         try {
           const session = await getSession();
@@ -575,7 +573,11 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
   setQueueAndPlay: async (tracks, index) => {
     requestAudioFocus(); // steal iOS audio focus synchronously within the user gesture
-    set({ queue: tracks });
+    set({
+      queue: tracks,
+      isPlayerExpanded: true,
+      isQueueOpen: false,
+    });
     get().playIndex(index);
   },
 
@@ -601,9 +603,14 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   playIndex: async (index) => {
-    const { queue, deviceId, currentTrack, isPlaying, isTransitioning } = get();
+    const { queue, deviceId, currentTrack, isPlaying, isTransitioning, queueIndex, progressMs } =
+      get();
     if (index < 0 || index >= queue.length) return;
-    if (isTransitioning) return;
+    if (isTransitioning) {
+      const stalled = !isPlaying && (queueIndex === index || get().pendingIndex === index);
+      if (!stalled) return;
+      set({ isTransitioning: false, pendingIndex: null });
+    }
 
     const nextTrack = queue[index];
     const uriEntries = queue
@@ -655,12 +662,18 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
           }),
     });
 
+    const resumeSameTrack =
+      index === queueIndex &&
+      !isPlaying &&
+      progressMs > 0 &&
+      currentTrack?.uri === nextTrack.uri;
+
     try {
       await playerApi("play", {
         deviceId,
         uris: uriEntries.map((item) => item.uri),
         offset: { position: targetPosition },
-        positionMs: 0,
+        positionMs: resumeSameTrack ? progressMs : 0,
       });
     } catch (e) {
       const errorText = parseErrorText(e);
@@ -695,28 +708,95 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       pendingIndex: null,
       isPlaying: true,
       isTransitioning: false,
-      progressMs: 0,
+      progressMs: resumeSameTrack ? progressMs : 0,
       durationMs: nextTrack.durationMs ?? 0,
     });
     updateMediaSessionState(true);
   },
 
-  togglePlay: async () => {
-    const { player, isPlaying } = get();
-    if (!player) return;
+  pausePlayback: async () => {
+    const { player, isPlaying, isTransitioning } = get();
+    if (!isPlaying || isTransitioning) return;
 
-    if (isPlaying) {
-      // User-initiated pause should not trigger interruption auto-resume.
-      suppressAutoResumeUntil = Date.now() + 3000;
-      stopAutoResumeLoop();
-      updateMediaSessionState(false); // proactive update
-    } else {
-      suppressAutoResumeUntil = 0;
-      requestAudioFocus(); // steal iOS audio focus when resuming
-      updateMediaSessionState(true); // proactive update
+    suppressAutoResumeUntil = Date.now() + 8000;
+    stopAutoResumeLoop();
+    updateMediaSessionState(false);
+    const { progressMs, durationMs } = get();
+    set({ isPlaying: false, isTransitioning: false });
+
+    if (
+      typeof navigator !== "undefined" &&
+      "mediaSession" in navigator &&
+      "setPositionState" in navigator.mediaSession &&
+      durationMs > 0
+    ) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: durationMs / 1000,
+          playbackRate: 1,
+          position: Math.max(0, progressMs) / 1000,
+        });
+      } catch {
+        // ignore unsupported position state
+      }
     }
 
-    await player.togglePlay();
+    if (player) {
+      await player.pause().catch(() => {});
+    }
+  },
+
+  resumePlayback: async () => {
+    const { player, isPlaying, queueIndex, queue, deviceId, currentTrack, progressMs } = get();
+    if (isPlaying) return;
+
+    requestAudioFocus();
+    suppressAutoResumeUntil = 0;
+
+    const track = queueIndex >= 0 ? queue[queueIndex] : null;
+
+    if (player && deviceId && track?.uri && currentTrack?.uri === track.uri) {
+      try {
+        const sdkState = (await player.getCurrentState()) as SpotifyPlayerState | null;
+        if (
+          sdkState?.paused &&
+          sdkState.track_window.current_track.uri === track.uri
+        ) {
+          ignorePausedUntil = Date.now() + 1400;
+          set({
+            isPlaying: true,
+            isTransitioning: false,
+            progressMs: sdkState.position,
+            durationMs: sdkState.duration,
+          });
+          updateMediaSessionState(true);
+          await player.togglePlay();
+          return;
+        }
+      } catch {
+        // Fall through to API play with saved position.
+      }
+    }
+
+    if (queueIndex >= 0 && track?.uri) {
+      await get().playIndex(queueIndex);
+      return;
+    }
+
+    if (player) {
+      updateMediaSessionState(true);
+      set({ isPlaying: true });
+      await player.togglePlay().catch(() => {});
+    }
+  },
+
+  togglePlay: async () => {
+    const { isPlaying } = get();
+    if (isPlaying) {
+      await get().pausePlayback();
+      return;
+    }
+    await get().resumePlayback();
   },
 
   seek: async (ratio) => {

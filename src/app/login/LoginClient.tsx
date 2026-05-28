@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Loader2, LogIn } from "lucide-react";
 import Image from "next/image";
 import { SPOTIFY_SCOPES } from "@/lib/spotify-scopes";
+import { APP_NAME, APP_TAGLINE } from "@/lib/app";
 
 export default function LoginClient() {
   const [loading, setLoading] = useState(false);
@@ -30,10 +31,10 @@ export default function LoginClient() {
         {/* Logo */}
         <div className="space-y-3">
           <div className="flex items-center justify-center">
-            <Image src="/logo.png" alt="Jokerly" width={80} height={80} className="rounded-2xl" unoptimized />
+            <Image src="/logo.png" alt={APP_NAME} width={80} height={80} className="rounded-2xl" unoptimized />
           </div>
-          <h1 className="text-5xl font-bold text-white tracking-tight">Jokerly</h1>
-          <p className="text-base" style={{ color: "rgba(255,255,255,0.45)" }}>Your personal music universe</p>
+          <h1 className="text-5xl font-bold text-white tracking-tight">{APP_NAME}</h1>
+          <p className="text-base" style={{ color: "rgba(255,255,255,0.45)" }}>{APP_TAGLINE}</p>
         </div>
 
         {/* Features */}

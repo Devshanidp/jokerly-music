@@ -161,7 +161,7 @@ async function createSpotifyPlaylist(
       method: "POST",
       body: JSON.stringify({
         name: playlist.name,
-        description: playlist.description || "Transferred from Jokerly Music",
+        description: playlist.description || "Transferred from JkMusic",
         public: isPublic,
       }),
     }

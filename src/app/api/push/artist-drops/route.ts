@@ -73,7 +73,7 @@ export async function POST() {
 
     const payload = toPushPayload({
       title: `${artist.artist_name} dropped new music`,
-      body: latest.name ?? "Tap to listen on Jokerly",
+      body: latest.name ?? "Tap to listen on JkMusic",
       url: `/search?q=${encodeURIComponent(artist.artist_name)}`,
       icon: latest.images?.[0]?.url ?? "/icon-192.png",
     });

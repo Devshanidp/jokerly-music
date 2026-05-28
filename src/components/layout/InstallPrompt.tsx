@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/app";
+
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
@@ -76,12 +78,12 @@ export default function InstallPrompt() {
       >
         {/* Icon */}
         <div className="relative w-12 h-12 rounded-2xl overflow-hidden shrink-0 shadow-lg">
-          <Image src="/icon-192.png" alt="Jokerly" fill sizes="48px" className="object-cover" />
+          <Image src="/icon-192.png" alt={APP_NAME} fill sizes="48px" className="object-cover" />
         </div>
 
         {/* Text */}
         <div className="flex-1 min-w-0">
-          <p className="text-white font-bold text-sm leading-tight">Install Jokerly</p>
+          <p className="text-white font-bold text-sm leading-tight">Install {APP_NAME}</p>
           {isIos ? (
             <p className="text-white/45 text-xs mt-0.5 leading-snug">
               Tap <span className="text-white/70">Share</span> then{" "}

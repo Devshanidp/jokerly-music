@@ -9,7 +9,9 @@ import { signOut, useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import QueueSheet from "@/components/player/QueueSheet";
 import LyricsPanel from "@/components/player/LyricsPanel";
+import SimilarMusicSection from "@/components/player/SimilarMusicSection";
 import { useToastStore } from "@/store/toast";
+import { APP_NAME } from "@/lib/app";
 
 function formatTime(seconds: number) {
   if (!isFinite(seconds)) return "0:00";
@@ -181,47 +183,29 @@ export default function PlayerBar() {
     }
   }, [playWithTransition, queue, updateTrackUri]);
 
-  const ensurePlayingForAction = useCallback((action: "pause" | "next" | "prev" | "switch") => {
-    const currentlyPlaying = usePlayerStore.getState().isPlaying;
-    if (currentlyPlaying) return true;
-
-    const actionLabel = action === "pause"
-      ? "pause"
-      : action === "next"
-        ? "next"
-        : action === "prev"
-          ? "go to previous"
-        : "switch songs";
-
-    toast(`Cannot ${actionLabel} because music is not playing.`, "error");
-    return false;
-  }, [toast]);
-
   const handleNextTrack = useCallback(() => {
-    if (!ensurePlayingForAction("next")) return;
     const state = usePlayerStore.getState();
     const next = state.getNextIndex();
     if (next === null || next === state.queueIndex) return;
-    fetchAndPlay(next);
-  }, [ensurePlayingForAction, fetchAndPlay]);
+    void fetchAndPlay(next);
+  }, [fetchAndPlay]);
 
   const handlePrevTrack = useCallback(() => {
-    if (!ensurePlayingForAction("prev")) return;
     const state = usePlayerStore.getState();
     const prev = state.getPrevIndex();
     if (prev === null || prev === state.queueIndex) return;
-    fetchAndPlay(prev);
-  }, [ensurePlayingForAction, fetchAndPlay]);
+    void fetchAndPlay(prev);
+  }, [fetchAndPlay]);
 
-  const handlePlayPause = useCallback(() => {
-    togglePlay();
+  const handlePlayPause = useCallback(async () => {
+    await togglePlay();
   }, [togglePlay]);
 
   const handleQueuePlayIndex = useCallback((index: number) => {
-    if (!ensurePlayingForAction("switch")) return false;
-    fetchAndPlay(index);
+    usePlayerStore.setState({ isPlayerExpanded: true, isQueueOpen: false });
+    void fetchAndPlay(index);
     return true;
-  }, [ensurePlayingForAction, fetchAndPlay]);
+  }, [fetchAndPlay]);
 
   useEffect(() => {
     if (!endedToken) return;
@@ -296,8 +280,8 @@ export default function PlayerBar() {
     const artwork = buildMediaArtwork(currentTrack.image);
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentTrack.name || "Now Playing",
-      artist: currentTrack.artist || "Jokerly",
-      album: "Jokerly",
+      artist: currentTrack.artist || APP_NAME,
+      album: APP_NAME,
       artwork,
     });
   }, [currentTrack]);
@@ -309,10 +293,11 @@ export default function PlayerBar() {
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
-    navigator.mediaSession.setActionHandler("play", () => togglePlay());
+    navigator.mediaSession.setActionHandler("play", () => {
+      Promise.resolve(usePlayerStore.getState().resumePlayback()).catch(() => {});
+    });
     navigator.mediaSession.setActionHandler("pause", () => {
-      if (!ensurePlayingForAction("pause")) return;
-      togglePlay();
+      Promise.resolve(usePlayerStore.getState().pausePlayback()).catch(() => {});
     });
     navigator.mediaSession.setActionHandler("previoustrack", () => {
       handlePrevTrack();
@@ -329,7 +314,7 @@ export default function PlayerBar() {
         try { navigator.mediaSession.setActionHandler(a, null); } catch {}
       });
     };
-  }, [togglePlay, fetchAndPlay, ensurePlayingForAction, handleNextTrack, handlePrevTrack]);
+  }, [handleNextTrack, handlePrevTrack]);
 
   // Sleep timer countdown
   useEffect(() => {
@@ -350,6 +335,49 @@ export default function PlayerBar() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [sleepTimerEndsAt]);
+
+  const playerHistoryPushedRef = useRef(false);
+  const nowPlayingScrollRef = useRef<HTMLDivElement | null>(null);
+  const sheetTouchStartY = useRef(0);
+  const [sheetOffset, setSheetOffset] = useState(0);
+  const [isDraggingSheet, setIsDraggingSheet] = useState(false);
+
+  const collapseNowPlaying = useCallback(() => {
+    usePlayerStore.setState({ isPlayerExpanded: false });
+    setSheetOffset(0);
+    setIsDraggingSheet(false);
+    if (playerHistoryPushedRef.current) {
+      playerHistoryPushedRef.current = false;
+      window.history.back();
+    }
+  }, []);
+
+  const expandNowPlaying = useCallback(() => {
+    if (!playerHistoryPushedRef.current) {
+      window.history.pushState({ jkPlayer: true }, "");
+      playerHistoryPushedRef.current = true;
+    }
+    usePlayerStore.setState({ isPlayerExpanded: true });
+  }, []);
+
+  useEffect(() => {
+    if (!expanded) return;
+
+    if (!playerHistoryPushedRef.current) {
+      window.history.pushState({ jkPlayer: true }, "");
+      playerHistoryPushedRef.current = true;
+    }
+
+    const onPopState = () => {
+      playerHistoryPushedRef.current = false;
+      usePlayerStore.setState({ isPlayerExpanded: false });
+      setSheetOffset(0);
+      setIsDraggingSheet(false);
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [expanded]);
 
   if (sdkError && !currentTrack) {
     return (
@@ -375,8 +403,8 @@ export default function PlayerBar() {
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
   const pendingTrack = pendingIndex !== null ? queue[pendingIndex] ?? null : null;
 
-  // Play button state
-  const playBusy = (!currentTrack || !isPlaying) && (fetching || isTransitioning || (!isPlayerReady && !sdkError));
+  // Play button state — keep play tappable when paused so users can start playback
+  const playBusy = fetching || (isTransitioning && isPlaying);
   const playDisabled = noTrackUri || playBusy;
 
   const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
@@ -392,30 +420,70 @@ export default function PlayerBar() {
     seek((e.clientX - rect.left) / rect.width);
   };
 
+  const onSheetTouchStart = (e: React.TouchEvent) => {
+    const scrollTop = nowPlayingScrollRef.current?.scrollTop ?? 0;
+    if (scrollTop > 8) return;
+    sheetTouchStartY.current = e.touches[0]?.clientY ?? 0;
+    setIsDraggingSheet(true);
+  };
+
+  const onSheetTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingSheet) return;
+    const dy = (e.touches[0]?.clientY ?? 0) - sheetTouchStartY.current;
+    if (dy > 0) setSheetOffset(dy);
+  };
+
+  const onSheetTouchEnd = () => {
+    if (!isDraggingSheet) return;
+    setIsDraggingSheet(false);
+    setSheetOffset((offset) => {
+      if (offset > 100) collapseNowPlaying();
+      return 0;
+    });
+  };
+
   return (
     <>
       {/* ── Queue Sheet ── */}
       {isQueueOpen ? <QueueSheet onPlayIndex={handleQueuePlayIndex} /> : null}
 
-      {/* ── Expanded Now Playing ── */}
+      {/* ── Full-screen Now Playing (back / swipe down minimizes) ── */}
       {expanded && (
-        <div className="fixed inset-0 z-50 p-4 sm:p-6 flex items-end sm:items-center justify-center"
-          style={{ background: "rgba(6,4,16,0.96)", backdropFilter: "blur(28px)" }}
-          onClick={() => usePlayerStore.setState({ isPlayerExpanded: false })}>
-          <div className="w-full max-w-sm max-h-[92vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="rounded-3xl border border-white/[0.08] p-5 shadow-2xl shadow-black/80 flex flex-col min-h-0 max-h-full overflow-hidden"
-              style={{ background: "var(--surface)" }}>
-              <div className="mb-4 flex items-center justify-between shrink-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/30">Now Playing</p>
-                <button onClick={() => usePlayerStore.setState({ isPlayerExpanded: false })}
-                  className="rounded-xl p-2 text-white/30 hover:bg-white/[0.07] hover:text-white transition-colors">
-                  <ChevronDown size={18} />
-                </button>
-              </div>
+        <div
+          className="fixed inset-0 z-50 flex flex-col"
+          style={{
+            background: "var(--background)",
+            transform: `translateY(${sheetOffset}px)`,
+            transition: isDraggingSheet ? "none" : "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
+            paddingTop: "env(safe-area-inset-top, 0px)",
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          }}
+          onTouchStart={onSheetTouchStart}
+          onTouchMove={onSheetTouchMove}
+          onTouchEnd={onSheetTouchEnd}
+        >
+          <div className="shrink-0 flex justify-center pt-2 pb-1">
+            <div className="w-10 h-1 rounded-full bg-white/20" aria-hidden />
+          </div>
 
-              <div className="space-y-5 overflow-y-auto min-h-0 flex-1 pr-0.5 scrollbar-hide">
+          <div className="px-4 pb-2 flex items-center justify-between shrink-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/30">Now Playing</p>
+            <button
+              type="button"
+              onClick={collapseNowPlaying}
+              className="rounded-xl p-2 text-white/30 hover:bg-white/[0.07] hover:text-white transition-colors"
+              aria-label="Minimize player"
+            >
+              <ChevronDown size={18} />
+            </button>
+          </div>
+
+          <div
+            ref={nowPlayingScrollRef}
+            className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 space-y-5 scrollbar-hide"
+          >
                 {/* Album art */}
-                <div className="relative mx-auto aspect-square w-full max-h-[38vh] overflow-hidden rounded-3xl shadow-2xl shadow-black/60 shrink-0"
+                <div className="relative mx-auto aspect-square w-full max-h-[min(44vh,360px)] overflow-hidden rounded-3xl shadow-2xl shadow-black/60 shrink-0"
                   style={{ background: "var(--card)" }}>
                   {currentTrack.image ? (
                     <Image src={currentTrack.image} alt={currentTrack.name} fill unoptimized className="object-cover" sizes="400px" />
@@ -461,21 +529,23 @@ export default function PlayerBar() {
                   </div>
                 </div>
 
-                {/* Volume */}
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="shrink-0 text-white/30 hover:text-white transition-colors">
-                    <VolumeIcon size={16} />
+                {/* Track actions */}
+                <div className="flex items-center justify-center gap-3">
+                  <button onClick={handleLike} title={isLiked ? "Unlike" : "Like"}
+                    className={`shrink-0 p-2.5 rounded-2xl transition-colors ${isLiked ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10"}`}>
+                    <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
                   </button>
-                  <input
-                    type="range" min={0} max={1} step={0.02} value={volume}
-                    onChange={(e) => setVolume(parseFloat(e.target.value))}
-                    className="flex-1 h-1 rounded-full appearance-none cursor-pointer accent-[#E8282B]"
-                    style={{ background: `linear-gradient(to right, #E8282B ${volume * 100}%, rgba(255,255,255,0.12) ${volume * 100}%)` }}
-                  />
-                  <span className="text-xs tabular-nums text-white/25 w-7 text-right">{Math.round(volume * 100)}</span>
+                  <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
+                    className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors disabled:opacity-40">
+                    {resolvingAdd ? <Loader2 size={18} className="animate-spin" /> : <ListPlus size={18} />}
+                  </button>
+                  <button onClick={() => setShowLyrics(true)} title="Lyrics"
+                    className={`shrink-0 p-2.5 rounded-2xl transition-colors ${showLyrics ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}>
+                    <MicVocal size={18} />
+                  </button>
                 </div>
 
-                {/* Controls */}
+                {/* Playback controls */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-center gap-5">
                   <button onClick={toggleShuffle} title="Shuffle"
@@ -505,21 +575,9 @@ export default function PlayerBar() {
                   </button>
                   </div>
                   <div className="flex items-center justify-center gap-2">
-                    <button onClick={handleLike} title={isLiked ? "Unlike" : "Like"}
-                      className={`shrink-0 p-2.5 rounded-2xl transition-colors ${isLiked ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10"}`}>
-                      <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
-                    </button>
-                    <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
-                      className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors disabled:opacity-40">
-                      {resolvingAdd ? <Loader2 size={18} className="animate-spin" /> : <ListPlus size={18} />}
-                    </button>
-                    <button onClick={() => { usePlayerStore.setState({ isQueueOpen: true, isPlayerExpanded: false }); }} title="Queue"
+                    <button onClick={() => { collapseNowPlaying(); usePlayerStore.setState({ isQueueOpen: true }); }} title="Queue"
                       className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-white hover:bg-white/[0.07] transition-colors">
                       <ListOrdered size={18} />
-                    </button>
-                    <button onClick={() => setShowLyrics(true)} title="Lyrics"
-                      className={`shrink-0 p-2.5 rounded-2xl transition-colors ${showLyrics ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}>
-                      <MicVocal size={18} />
                     </button>
                     <div className="relative">
                       <button
@@ -560,7 +618,7 @@ export default function PlayerBar() {
 
                   {showLyrics && (
                     <div
-                      className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+                      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
                       style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}
                       onClick={() => setShowLyrics(false)}
                     >
@@ -592,23 +650,13 @@ export default function PlayerBar() {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    usePlayerStore.setState({
-                      isQueueOpen: true,
-                      isPlayerExpanded: false,
-                      queueSheetTab: "similar",
-                    })
-                  }
-                  className="w-full rounded-2xl border border-[#E8282B]/25 bg-[#E8282B]/10 px-4 py-3 text-sm font-semibold text-[#E8282B] hover:bg-[#E8282B]/15 transition-colors shrink-0"
-                >
-                  Open similar music (5 tracks + refresh)
-                </button>
-
                 <p className="text-center text-xs text-white/20 shrink-0">{Math.max(queueIndex + 1, 1)} / {queue.length} in queue</p>
-              </div>
-            </div>
+
+                <SimilarMusicSection
+                  key={`${currentTrack.uri ?? ""}::${currentTrack.name}::${currentTrack.artist}`}
+                  track={currentTrack}
+                  variant="embedded"
+                />
           </div>
         </div>
       )}
@@ -628,7 +676,7 @@ export default function PlayerBar() {
 
           {/* Artwork + track info */}
           <button
-            onClick={() => usePlayerStore.setState({ isPlayerExpanded: true })}
+            onClick={expandNowPlaying}
             className="flex items-center gap-3 min-w-0 flex-1 text-left group/info"
             title="Open player"
           >

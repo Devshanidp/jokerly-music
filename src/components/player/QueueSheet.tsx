@@ -177,13 +177,11 @@ export default function QueueSheet({ onPlayIndex }: Props) {
             <h2 className="text-white font-bold text-lg">
               {tab === "queue" ? "Queue" : "Similar"}
             </h2>
-            <p className="text-xs text-white/30 mt-0.5">
-              {tab === "queue"
-                ? `${queue.length} track${queue.length !== 1 ? "s" : ""}`
-                : seedTrack
-                  ? `Like ${seedTrack.name}`
-                  : "Based on now playing"}
-            </p>
+            {tab === "queue" && (
+              <p className="text-xs text-white/30 mt-0.5">
+                {queue.length} track{queue.length !== 1 ? "s" : ""}
+              </p>
+            )}
           </div>
           <button
             onClick={() => usePlayerStore.setState({ isQueueOpen: false })}
@@ -246,12 +244,7 @@ export default function QueueSheet({ onPlayIndex }: Props) {
                         isCurrent={isCurrent}
                         isCurrentlyPlaying={isCurrentlyPlaying}
                         onPlay={() => {
-                          const didStart = onPlayIndex(i);
-                          if (didStart !== false) {
-                            window.requestAnimationFrame(() => {
-                              usePlayerStore.setState({ isQueueOpen: false });
-                            });
-                          }
+                          onPlayIndex(i);
                         }}
                         onRemove={(e) => { e.stopPropagation(); removeFromQueue(i); }}
                       />

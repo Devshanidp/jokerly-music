@@ -1,4 +1,3 @@
-import { translateLinesToEnglish, translateToEnglish } from "@/lib/translate-to-english";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 30;
@@ -53,22 +52,15 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ notFound: true });
       }
 
-      const translatedTexts = await translateLinesToEnglish(lines.map((line) => line.text));
-      const syncedLines = lines.map((line, index) => ({
-        timeMs: line.timeMs,
-        text: translatedTexts[index] ?? line.text,
-      }));
-
       return NextResponse.json(
-        { syncedLines, translated: true },
+        { syncedLines: lines },
         { headers: { "Cache-Control": "private, max-age=86400" } }
       );
     }
 
     if (data.plainLyrics?.trim()) {
-      const plainText = await translateToEnglish(data.plainLyrics);
       return NextResponse.json(
-        { plainText, translated: true },
+        { plainText: data.plainLyrics.trim() },
         { headers: { "Cache-Control": "private, max-age=86400" } }
       );
     }
