@@ -67,7 +67,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       }
       const spotifyToken = token as SpotifyToken;
-      if (Date.now() < (spotifyToken.accessTokenExpires ?? 0)) return token;
+      const expiresAt = spotifyToken.accessTokenExpires ?? 0;
+      // Refresh slightly before expiry so client/SDK calls don't hit 401.
+      if (Date.now() < expiresAt - 60_000) return token;
       return refreshAccessToken(spotifyToken);
     },
     async session({ session, token }) {

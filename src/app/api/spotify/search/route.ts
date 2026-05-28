@@ -27,7 +27,6 @@ export async function GET(req: NextRequest) {
 
   try {
     const token = session.accessToken as string;
-    console.log("[search] token prefix:", token?.slice(0, 20), "len:", token?.length, "q:", q, "type:", type, "limit:", limit);
     const data = await searchSpotify(q, type, token, limit);
     return NextResponse.json({
       tracks: data.tracks?.items ?? [],

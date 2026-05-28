@@ -420,35 +420,37 @@ export default function HomeClient() {
     setSuggestionsLoading(true);
     setShowSuggestions(true); // show dropdown with spinner immediately
     setSuggestionFilter("all");
-    const token = session?.accessToken as string | undefined;
     suggestTimer.current = setTimeout(async () => {
-      if (!token) { setSuggestionsLoading(false); return; }
+      if (!isSessionHealthy) { setSuggestionsLoading(false); return; }
       try {
-        const spotifySearch = async (type: string, limit: number) => {
-          const res = await fetch(
-            `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}&limit=${limit}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          return res.ok ? res.json() : { tracks: { items: [] }, artists: { items: [] }, albums: { items: [] } };
+        const apiSearch = async (type: string, limit: number) => {
+          const params = new URLSearchParams({ q: query, type, limit: String(limit) });
+          const res = await fetch(`/api/spotify/search?${params}`, {
+            credentials: "same-origin",
+            cache: "no-store",
+          });
+          return res.ok
+            ? res.json()
+            : { tracks: [], artists: [], albums: [] };
         };
         const [tracksRes, artistsRes, albumsRes] = await Promise.allSettled([
-          spotifySearch("track", 5),
-          spotifySearch("artist", 3),
-          spotifySearch("album", 4),
+          apiSearch("track", 5),
+          apiSearch("artist", 3),
+          apiSearch("album", 4),
         ]);
         const trackSugs: Suggestion[] = tracksRes.status === "fulfilled"
-          ? (tracksRes.value.tracks?.items ?? []).slice(0, 5).map((t: SpotifyTrack) => ({
+          ? (tracksRes.value.tracks ?? []).slice(0, 5).map((t: SpotifyTrack) => ({
               type: "track" as const, name: t.name, sub: artistNames(t), image: trackImage(t) ?? null, id: t.id, uri: t.uri, durationMs: t.duration_ms,
             }))
           : [];
         const artistSugs: Suggestion[] = artistsRes.status === "fulfilled"
-          ? (artistsRes.value.artists?.items ?? []).slice(0, 3).map((a: SpotifyArtist) => ({
+          ? (artistsRes.value.artists ?? []).slice(0, 3).map((a: SpotifyArtist) => ({
               type: "artist" as const, name: a.name, sub: a.followers?.total != null ? `${a.followers.total.toLocaleString()} followers` : "Artist",
               image: artistImage(a) ?? null, id: a.id,
             }))
           : [];
         const albumSugs: Suggestion[] = albumsRes.status === "fulfilled"
-          ? (albumsRes.value.albums?.items ?? []).slice(0, 4).map((a: SpotifyAlbum) => ({
+          ? (albumsRes.value.albums ?? []).slice(0, 4).map((a: SpotifyAlbum) => ({
               type: "album" as const,
               name: a.name,
               sub: Array.isArray(a.artists) ? a.artists.map((ar) => ar.name).join(", ") : "Album",
@@ -465,7 +467,7 @@ export default function HomeClient() {
       } catch { setSuggestions([]); setShowSuggestions(false); } finally { setSuggestionsLoading(false); }
     }, 200);
     return () => clearTimeout(suggestTimer.current);
-  }, [query, session?.accessToken]);
+  }, [query, isSessionHealthy]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
