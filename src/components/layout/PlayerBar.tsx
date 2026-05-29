@@ -364,13 +364,22 @@ export default function PlayerBar() {
         <p className="text-[#E8282B] text-sm truncate">{sdkError}</p>
         {sdkError.includes("Premium") ||
         sdkError.includes("auth") ||
-        sdkError.includes("DRM") ||
-        sdkError.includes("Protected audio") ? null : (
+        sdkError.includes("session expired") ? (
           <button onClick={() => signOut({ callbackUrl: "/login" })}
             className="shrink-0 text-xs bg-[#E8282B] text-white px-3 py-1.5 rounded-xl font-medium">
             Re-login
           </button>
-        )}
+        ) : session?.accessToken ? (
+          <button
+            onClick={() => {
+              usePlayerStore.setState({ player: null, deviceId: null, isPlayerReady: false, sdkError: null });
+              initializePlayer(session.accessToken as string);
+            }}
+            className="shrink-0 text-xs bg-white/10 text-white px-3 py-1.5 rounded-xl font-medium hover:bg-white/15"
+          >
+            Retry
+          </button>
+        ) : null}
       </div>
     );
   }

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getSession } from "next-auth/react";
-import { checkPlaybackEnvironment, formatPlaybackEnvironmentError } from "@/lib/eme-support";
+import { formatPlaybackEnvironmentError, getInsecurePlaybackMessage } from "@/lib/eme-support";
 export interface PlayableTrack {
   name: string;
   artist: string;
@@ -363,9 +363,9 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     set({ accessToken, sdkError: null });
     if (get().player) return;
 
-    const env = await checkPlaybackEnvironment();
-    if (!env.ok) {
-      set({ isPlayerReady: false, sdkError: env.message });
+    const insecureMessage = getInsecurePlaybackMessage();
+    if (insecureMessage) {
+      set({ isPlayerReady: false, sdkError: insecureMessage });
       return;
     }
 
@@ -423,7 +423,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     player.addListener("ready", (payload) => {
       const ready = payload as { device_id: string };
       clearPlayRetry(true);
-      set({ deviceId: ready.device_id, isPlayerReady: true });
+      set({ deviceId: ready.device_id, isPlayerReady: true, sdkError: null });
       // Do NOT call /me/player with play:false here — it pauses any currently
       // active Spotify session on the user's account. The device_id is already
       // embedded in every subsequent /me/player/play call, which activates this
@@ -538,8 +538,10 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     const connected = await player.connect();
     if (connected) {
-      set({ player });
+      set({ player, sdkError: null });
       player.setVolume(get().volume).catch(() => {});
+    } else {
+      set({ sdkError: "Could not connect to Spotify. Tap play to try again." });
     }
   },
 
