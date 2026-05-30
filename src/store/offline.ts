@@ -132,6 +132,7 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
       if (success) ok++;
       else fail++;
     }
+    await get().refreshTracks();
     return { ok, fail };
   },
 }));
