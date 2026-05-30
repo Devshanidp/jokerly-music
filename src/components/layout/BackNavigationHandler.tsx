@@ -144,6 +144,10 @@ export default function BackNavigationHandler() {
     setShowExitDialog(false);
     allowAppExitRef.current = true;
     window.history.back();
+    window.setTimeout(() => {
+      allowAppExitRef.current = true;
+      window.history.back();
+    }, 50);
   }, []);
 
   return (
