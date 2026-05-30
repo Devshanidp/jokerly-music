@@ -3,10 +3,12 @@
 import { create } from "zustand";
 import {
   getOfflineTrack,
+  listAllOfflineTracks,
   listOfflineTrackKeys,
   offlineTrackKey,
   removeOfflineTrack,
   saveOfflineTrack,
+  type OfflineTrackRecord,
 } from "@/lib/offline-library";
 
 export interface DownloadableTrack {
@@ -19,8 +21,10 @@ export interface DownloadableTrack {
 interface OfflineState {
   downloadedKeys: Set<string>;
   downloadingKeys: Set<string>;
+  tracks: OfflineTrackRecord[];
   hydrated: boolean;
   hydrate: () => Promise<void>;
+  refreshTracks: () => Promise<void>;
   isDownloaded: (uri: string, name: string, artist: string) => boolean;
   isDownloading: (uri: string, name: string, artist: string) => boolean;
   downloadTrack: (track: DownloadableTrack) => Promise<boolean>;
@@ -31,14 +35,28 @@ interface OfflineState {
 export const useOfflineStore = create<OfflineState>((set, get) => ({
   downloadedKeys: new Set(),
   downloadingKeys: new Set(),
+  tracks: [],
   hydrated: false,
+
+  refreshTracks: async () => {
+    try {
+      const tracks = await listAllOfflineTracks();
+      set({
+        tracks,
+        downloadedKeys: new Set(tracks.map((t) => t.key)),
+      });
+    } catch {
+      set({ tracks: [] });
+    }
+  },
 
   hydrate: async () => {
     try {
       const keys = await listOfflineTrackKeys();
-      set({ downloadedKeys: new Set(keys), hydrated: true });
+      const tracks = await listAllOfflineTracks();
+      set({ downloadedKeys: new Set(keys), tracks, hydrated: true });
     } catch {
-      set({ hydrated: true });
+      set({ hydrated: true, tracks: [] });
     }
   },
 
@@ -80,12 +98,11 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
         blob
       );
 
+      await get().refreshTracks();
       set((s) => {
         const downloadingKeys = new Set(s.downloadingKeys);
         downloadingKeys.delete(key);
-        const downloadedKeys = new Set(s.downloadedKeys);
-        downloadedKeys.add(key);
-        return { downloadingKeys, downloadedKeys };
+        return { downloadingKeys };
       });
       return true;
     } catch {
@@ -101,11 +118,10 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
   removeDownload: async (uri, name, artist) => {
     const key = offlineTrackKey(uri, name, artist);
     await removeOfflineTrack(key);
-    set((s) => {
-      const downloadedKeys = new Set(s.downloadedKeys);
-      downloadedKeys.delete(key);
-      return { downloadedKeys };
-    });
+    set((s) => ({
+      downloadedKeys: new Set([...s.downloadedKeys].filter((k) => k !== key)),
+      tracks: s.tracks.filter((t) => t.key !== key),
+    }));
   },
 
   downloadPlaylist: async (tracks) => {

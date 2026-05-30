@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, ListMusic, Heart } from "lucide-react";
+import { Home, ListMusic, Heart, Download } from "lucide-react";
 import { usePlayerStore } from "@/store/player";
 
 type NavTarget = "/" | "/playlists" | "/liked";

@@ -80,3 +80,18 @@ export async function listOfflineTrackKeys(): Promise<string[]> {
   db.close();
   return keys;
 }
+
+/** Metadata only (no audio blobs) for the Downloaded library screen. */
+export async function listAllOfflineTracks(): Promise<OfflineTrackRecord[]> {
+  const db = await openDb();
+  const rows = await new Promise<Array<OfflineTrackRecord & { blob?: Blob }>>((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).getAll();
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve((req.result as Array<OfflineTrackRecord & { blob?: Blob }>) ?? []);
+  });
+  db.close();
+  return rows
+    .map(({ blob: _blob, ...meta }) => meta)
+    .sort((a, b) => b.downloadedAt - a.downloadedAt);
+}
