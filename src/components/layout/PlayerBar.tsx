@@ -4,6 +4,7 @@ import { useEffect, useCallback, useState, useRef } from "react";
 import { usePlayerStore } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
 import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal } from "lucide-react";
+import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
@@ -686,6 +687,18 @@ export default function PlayerBar() {
               className={`p-2 rounded-xl transition-colors ${isLiked ? "text-[#E8282B]" : "text-white/30 hover:text-[#E8282B]"}`}>
               <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
             </button>
+            {currentTrack.uri ? (
+              <TrackDownloadButton
+                track={{
+                  uri: currentTrack.uri,
+                  name: currentTrack.name,
+                  artist: currentTrack.artist,
+                  image: currentTrack.image,
+                }}
+                size={16}
+                className="!opacity-100 p-2 rounded-xl"
+              />
+            ) : null}
             <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
               className="p-2 rounded-xl text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors disabled:opacity-30">
               {resolvingAdd ? <Loader2 size={16} className="animate-spin" /> : <ListPlus size={16} />}

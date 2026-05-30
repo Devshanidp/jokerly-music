@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { createPortal } from "react-dom";
-import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X, LayoutGrid, List } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X, LayoutGrid, List, Shuffle } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -25,6 +25,10 @@ import ArtistSheet from "@/components/music/ArtistSheet";
 import { SpotifyArtist } from "@/types/spotify";
 import { useLikesStore } from "@/store/likes";
 import { isMixPlaylist, parseMixArtistRecords, parseMixArtists } from "@/lib/playlist-meta";
+import { shuffleArray } from "@/lib/shuffle";
+import PlaylistActionsMenu from "@/components/playlist/PlaylistActionsMenu";
+import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
+import { useOfflineStore } from "@/store/offline";
 
 interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
@@ -108,6 +112,14 @@ function SortableTrackRow({
       >
         <Heart size={12} fill={isLiked ? "currentColor" : "none"} />
       </button>
+      <TrackDownloadButton
+        track={{
+          uri: track.track_uri,
+          name: track.track_name,
+          artist: track.track_artist ?? "",
+          image: track.track_image,
+        }}
+      />
       <button onClick={(e) => { e.stopPropagation(); onRemove(); }}
         disabled={removingKey === rmKey}
         className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
@@ -172,7 +184,9 @@ export default function PlaylistsClient() {
   const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToastStore();
-  const { setQueueAndPlay, currentTrack, isPlayerExpanded } = usePlayerStore();
+  const { setQueueAndPlay, currentTrack, isPlayerExpanded, deviceId } = usePlayerStore();
+  const downloadPlaylistOffline = useOfflineStore((s) => s.downloadPlaylist);
+  const [downloadingPlaylistId, setDownloadingPlaylistId] = useState<string | null>(null);
   const hasPlayer = currentTrack !== null;
 
   useEffect(() => {
@@ -307,11 +321,54 @@ export default function PlaylistsClient() {
     fetchTracks(pl.id);
   };
 
-  const playTrack = (tracks: PlaylistTrack[], index: number) => {
-    const queue: PlayableTrack[] = tracks.map((t) => ({
-      name: t.track_name, artist: t.track_artist ?? "", image: t.track_image ?? undefined, uri: t.track_uri,
+  const toPlayableQueue = (tracks: PlaylistTrack[]): PlayableTrack[] =>
+    tracks.map((t) => ({
+      name: t.track_name,
+      artist: t.track_artist ?? "",
+      image: t.track_image ?? undefined,
+      uri: t.track_uri,
     }));
-    setQueueAndPlay(queue, index);
+
+  const playTrack = (tracks: PlaylistTrack[], index: number) => {
+    setQueueAndPlay(toPlayableQueue(tracks), index);
+  };
+
+  const shufflePlayPlaylist = async (tracks: PlaylistTrack[]) => {
+    if (!tracks.length) return;
+    const shuffled = shuffleArray(toPlayableQueue(tracks));
+    usePlayerStore.setState({ shuffleEnabled: true });
+    if (deviceId) {
+      await fetch("/api/spotify/player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "shuffle", deviceId, state: true }),
+      }).catch(() => {});
+    }
+    setQueueAndPlay(shuffled, 0);
+    toast("Shuffle play");
+  };
+
+  const downloadPlaylistOfflineTracks = async (playlistId: string, tracks: PlaylistTrack[]) => {
+    if (!tracks.length) return;
+    setDownloadingPlaylistId(playlistId);
+    try {
+      const { ok, fail } = await downloadPlaylistOffline(
+        tracks.map((t) => ({
+          uri: t.track_uri,
+          name: t.track_name,
+          artist: t.track_artist ?? "",
+          image: t.track_image,
+        }))
+      );
+      toast(
+        fail > 0
+          ? `Offline: ${ok} saved, ${fail} unavailable`
+          : `Downloaded ${ok} tracks for offline`,
+        ok > 0 ? "success" : "error"
+      );
+    } finally {
+      setDownloadingPlaylistId(null);
+    }
   };
 
   const createPlaylist = async () => {
@@ -532,6 +589,15 @@ export default function PlaylistsClient() {
             <ArrowLeft size={16} /> Back
           </button>
           <div className="flex-1" />
+          <PlaylistActionsMenu
+            isPinned={isPinned}
+            pinning={pinning === pl.id}
+            trackCount={tracks.length}
+            downloadingPlaylist={downloadingPlaylistId === pl.id}
+            onShufflePlay={() => shufflePlayPlaylist(tracks)}
+            onTogglePin={() => togglePin(pl)}
+            onDownloadOffline={() => downloadPlaylistOfflineTracks(pl.id, tracks)}
+          />
           <button onClick={() => setAddFromPlaylist(true)}
             title="Add tracks from another playlist"
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -620,15 +686,34 @@ export default function PlaylistsClient() {
           </div>
         </div>
 
-        {/* Play all */}
         {tracks.length > 0 && (
-          <button
-            onClick={() => playTrack(tracks, 0)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 shadow-lg"
-            style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
-          >
-            <PlayCircle size={16} /> Play all
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => playTrack(tracks, 0)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 shadow-lg"
+              style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
+            >
+              <PlayCircle size={16} /> Play all
+            </button>
+            <button
+              onClick={() => shufflePlayPlaylist(tracks)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95"
+            >
+              <Shuffle size={16} className="text-[#E8282B]" /> Shuffle
+            </button>
+            <button
+              onClick={() => downloadPlaylistOfflineTracks(pl.id, tracks)}
+              disabled={downloadingPlaylistId === pl.id}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95 disabled:opacity-40"
+            >
+              {downloadingPlaylistId === pl.id ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Download size={16} />
+              )}
+              Download offline
+            </button>
+          </div>
         )}
 
         {/* Track list */}
@@ -806,8 +891,28 @@ export default function PlaylistsClient() {
               >
                 <div className="relative aspect-square w-full overflow-hidden border-b border-white/[0.08]" style={{ background: "var(--surface)" }}>
                   <CoverArt tracks={tracks} imageUrl={pl.images?.[0]?.url} name={pl.name} size={56} />
+                  <div className="absolute top-1 right-1 z-10">
+                    <PlaylistActionsMenu
+                      isPinned={isPinned}
+                      pinning={pinning === pl.id}
+                      trackCount={tracks?.length ?? pl.tracks?.total ?? 0}
+                      downloadingPlaylist={downloadingPlaylistId === pl.id}
+                      onShufflePlay={() => {
+                        const list = tracksMap[pl.id] ?? [];
+                        if (list.length) shufflePlayPlaylist(list);
+                        else toast("Open playlist to load tracks first");
+                      }}
+                      onTogglePin={() => togglePin(pl)}
+                      onDownloadOffline={() => {
+                        const list = tracksMap[pl.id] ?? [];
+                        if (list.length) downloadPlaylistOfflineTracks(pl.id, list);
+                        else toast("Open playlist to load tracks first");
+                      }}
+                      onOpen={() => openPlaylist(pl)}
+                    />
+                  </div>
                   {isPinned && (
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E8282B] border border-black/30 shadow" />
+                    <span className="absolute top-1 left-1 w-2 h-2 rounded-full bg-[#E8282B] border border-black/30 shadow" />
                   )}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity" style={{ background: "rgba(0,0,0,0.35)" }}>
                     <div className="w-6 h-6 rounded-full bg-[#E8282B] flex items-center justify-center shadow-lg">
@@ -864,7 +969,24 @@ export default function PlaylistsClient() {
                     {pl.tracks?.total ?? 0} tracks
                   </p>
                 </div>
-                <Play size={14} className="shrink-0 text-white/25" />
+                <PlaylistActionsMenu
+                  isPinned={isPinned}
+                  pinning={pinning === pl.id}
+                  trackCount={tracks?.length ?? pl.tracks?.total ?? 0}
+                  downloadingPlaylist={downloadingPlaylistId === pl.id}
+                  onShufflePlay={() => {
+                    const list = tracksMap[pl.id] ?? [];
+                    if (list.length) shufflePlayPlaylist(list);
+                    else toast("Open playlist to load tracks first");
+                  }}
+                  onTogglePin={() => togglePin(pl)}
+                  onDownloadOffline={() => {
+                    const list = tracksMap[pl.id] ?? [];
+                    if (list.length) downloadPlaylistOfflineTracks(pl.id, list);
+                    else toast("Open playlist to load tracks first");
+                  }}
+                  onOpen={() => openPlaylist(pl)}
+                />
               </div>
             );
           })}

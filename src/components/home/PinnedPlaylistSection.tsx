@@ -3,7 +3,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import Image from "next/image";
-import { Pin, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash, ArrowLeft, ListMusic, FolderInput, LayoutGrid, List } from "lucide-react";
+import { Pin, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash, ArrowLeft, ListMusic, FolderInput, LayoutGrid, List, Shuffle, Download } from "lucide-react";
+import PlaylistActionsMenu from "@/components/playlist/PlaylistActionsMenu";
+import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
+import { shuffleArray } from "@/lib/shuffle";
+import { useOfflineStore } from "@/store/offline";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -128,6 +132,14 @@ function SortableTrackRow({
         className="shrink-0 p-1.5 rounded-lg transition-all text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 sm:opacity-0 sm:group-hover:opacity-100">
         <ListPlus size={13} />
       </button>
+      <TrackDownloadButton
+        track={{
+          uri: track.track_uri,
+          name: track.track_name,
+          artist: track.track_artist ?? "",
+          image: track.track_image,
+        }}
+      />
       <button onClick={(e) => { e.stopPropagation(); onRemove(); }}
         disabled={removingKey === rmKey}
         className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
@@ -147,7 +159,9 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   const [removingTrack, setRemovingTrack] = useState<string | null>(null);
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [addFromPlaylist, setAddFromPlaylist] = useState(false);
-  const { setQueueAndPlay, isPlayerReady } = usePlayerStore();
+  const { setQueueAndPlay, isPlayerReady, deviceId } = usePlayerStore();
+  const downloadPlaylistOffline = useOfflineStore((s) => s.downloadPlaylist);
+  const [downloadingPlaylistId, setDownloadingPlaylistId] = useState<string | null>(null);
   const { toast } = useToastStore();
 
   useEffect(() => {
@@ -225,14 +239,62 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     fetchTracks(id);
   };
 
+  const toPlayable = useCallback(
+    (list: PlaylistTrack[]): PlayableTrack[] =>
+      list.map((t) => ({
+        name: t.track_name,
+        artist: t.track_artist ?? "",
+        image: t.track_image ?? undefined,
+        uri: t.track_uri,
+      })),
+    []
+  );
+
   const playAll = useCallback((playlistId: string, startIndex = 0) => {
     const list = tracksMap[playlistId] ?? [];
     if (!list.length) return;
-    const queue: PlayableTrack[] = list.map((t) => ({
-      name: t.track_name, artist: t.track_artist ?? "", image: t.track_image ?? undefined, uri: t.track_uri,
-    }));
-    setQueueAndPlay(queue, startIndex);
-  }, [tracksMap, setQueueAndPlay]);
+    setQueueAndPlay(toPlayable(list), startIndex);
+  }, [tracksMap, setQueueAndPlay, toPlayable]);
+
+  const shufflePlay = useCallback(
+    async (playlistId: string) => {
+      const list = tracksMap[playlistId] ?? [];
+      if (!list.length) return;
+      const shuffled = shuffleArray(toPlayable(list));
+      usePlayerStore.setState({ shuffleEnabled: true });
+      if (deviceId) {
+        await fetch("/api/spotify/player", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "shuffle", deviceId, state: true }),
+        }).catch(() => {});
+      }
+      setQueueAndPlay(shuffled, 0);
+    },
+    [tracksMap, deviceId, setQueueAndPlay, toPlayable]
+  );
+
+  const downloadOffline = useCallback(
+    async (playlistId: string) => {
+      const list = tracksMap[playlistId] ?? [];
+      if (!list.length) return;
+      setDownloadingPlaylistId(playlistId);
+      try {
+        const { ok, fail } = await downloadPlaylistOffline(
+          list.map((t) => ({
+            uri: t.track_uri,
+            name: t.track_name,
+            artist: t.track_artist ?? "",
+            image: t.track_image,
+          }))
+        );
+        toast(fail > 0 ? `Offline: ${ok} saved, ${fail} failed` : `Downloaded ${ok} tracks`, ok > 0 ? "success" : "error");
+      } finally {
+        setDownloadingPlaylistId(null);
+      }
+    },
+    [tracksMap, downloadPlaylistOffline, toast]
+  );
 
   const removeTrack = async (playlistId: string, trackId: string) => {
     const key = `${playlistId}::${trackId}`;
@@ -291,6 +353,14 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
             <ArrowLeft size={16} /> Back
           </button>
           <div className="flex-1" />
+          <PlaylistActionsMenu
+            isPinned
+            trackCount={tracks.length}
+            downloadingPlaylist={downloadingPlaylistId === selectedId}
+            onShufflePlay={() => shufflePlay(selectedId)}
+            onTogglePin={() => toast("Already on speed dial")}
+            onDownloadOffline={() => downloadOffline(selectedId)}
+          />
           <button onClick={() => setAddFromPlaylist(true)}
             title="Add tracks from another playlist"
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors"
@@ -310,11 +380,22 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
         </div>
 
         {tracks.length > 0 && (
-          <button onClick={() => playAll(selectedId, 0)} disabled={!isPlayerReady}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-40"
-            style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}>
-            <PlayCircle size={16} /> Play all
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => playAll(selectedId, 0)} disabled={!isPlayerReady}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-40"
+              style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}>
+              <PlayCircle size={16} /> Play all
+            </button>
+            <button onClick={() => shufflePlay(selectedId)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06]">
+              <Shuffle size={16} className="text-[#E8282B]" /> Shuffle
+            </button>
+            <button onClick={() => downloadOffline(selectedId)} disabled={downloadingPlaylistId === selectedId}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06] disabled:opacity-40">
+              {downloadingPlaylistId === selectedId ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              Download offline
+            </button>
+          </div>
         )}
 
         <div className="rounded-2xl overflow-hidden border" style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.06)" }}>
@@ -397,7 +478,18 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
               >
                 <div className="relative aspect-square w-full overflow-hidden border-b border-white/[0.08]" style={{ background: "var(--surface)" }}>
                   <CoverArt tracks={tracks} imageUrl={pl.playlist_image || null} name={pl.playlist_name} size={52} />
-                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                  <div className="absolute top-0.5 right-0.5 z-10">
+                    <PlaylistActionsMenu
+                      isPinned
+                      trackCount={tracks?.length ?? 0}
+                      downloadingPlaylist={downloadingPlaylistId === pl.playlist_id}
+                      onShufflePlay={() => shufflePlay(pl.playlist_id)}
+                      onTogglePin={() => toast("Pinned to speed dial")}
+                      onDownloadOffline={() => downloadOffline(pl.playlist_id)}
+                      onOpen={() => openPlaylist(pl.playlist_id)}
+                    />
+                  </div>
+                  <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
                 </div>
                 <div className="p-1.5">
                   <p className="text-white text-[9px] font-semibold truncate leading-tight">{pl.playlist_name}</p>

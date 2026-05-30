@@ -2,6 +2,17 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getSession } from "next-auth/react";
 import { formatPlaybackEnvironmentError, getInsecurePlaybackMessage } from "@/lib/eme-support";
+import {
+  getOfflineDurationMs,
+  isOfflinePlaying,
+  pauseOfflinePlayback,
+  playOfflineBlob,
+  resumeOfflinePlayback,
+  seekOfflinePlayback,
+  stopOfflinePlayback,
+} from "@/lib/offline-player";
+import { fetchOfflineBlob } from "@/store/offline";
+import { useOfflineStore } from "@/store/offline";
 export interface PlayableTrack {
   name: string;
   artist: string;
@@ -36,6 +47,7 @@ interface PlayerState {
   isQueueOpen: boolean;
   queueSheetTab: "queue" | "similar";
   sleepTimerEndsAt: number | null;
+  isOfflinePlayback: boolean;
 
   initializePlayer: (accessToken: string) => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
@@ -358,6 +370,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   isQueueOpen: false,
   queueSheetTab: "queue",
   sleepTimerEndsAt: null,
+  isOfflinePlayback: false,
 
   initializePlayer: async (accessToken) => {
     set({ accessToken, sdkError: null });
@@ -573,11 +586,45 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   playIndex: async (index) => {
-    const { queue, deviceId, currentTrack, isPlaying, isTransitioning, queueIndex } = get();
+    const { queue, deviceId, currentTrack, isPlaying, isTransitioning, queueIndex, player } = get();
     if (index < 0 || index >= queue.length) return;
     if (isTransitioning) return;
 
     const nextTrack = queue[index];
+
+    const tryOffline =
+      typeof navigator !== "undefined" &&
+      !navigator.onLine &&
+      useOfflineStore.getState().isDownloaded(nextTrack.uri ?? "", nextTrack.name, nextTrack.artist);
+    if (tryOffline) {
+      const blob = await fetchOfflineBlob(nextTrack.uri ?? "", nextTrack.name, nextTrack.artist);
+      if (blob) {
+        stopOfflinePlayback();
+        if (player) await player.pause().catch(() => {});
+        userPausedIntent = false;
+        set({
+          queueIndex: index,
+          currentTrack: nextTrack,
+          pendingIndex: null,
+          isTransitioning: false,
+          isPlaying: true,
+          isOfflinePlayback: true,
+          progressMs: 0,
+          durationMs: 30_000,
+        });
+        updateMediaSessionState(true);
+        await playOfflineBlob(
+          blob,
+          (ms) => set({ progressMs: ms, durationMs: getOfflineDurationMs() || 30_000 }),
+          () => {
+            const next = get().getNextIndex();
+            if (next !== null) get().playIndex(next);
+            else set({ isPlaying: false, isOfflinePlayback: false });
+          }
+        );
+        return;
+      }
+    }
 
     // Same track — resume without restarting from 0:00.
     if (
@@ -679,6 +726,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       pendingIndex: null,
       isPlaying: true,
       isTransitioning: false,
+      isOfflinePlayback: false,
       progressMs: 0,
       durationMs: nextTrack.durationMs ?? 0,
     });
@@ -686,6 +734,14 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   pausePlayback: async () => {
+    if (get().isOfflinePlayback) {
+      if (!isOfflinePlaying()) return;
+      pauseOfflinePlayback();
+      set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+      updateMediaSessionState(false);
+      return;
+    }
+
     const { player, isPlaying } = get();
     if (!player || !isPlaying) return;
 
@@ -705,6 +761,14 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   resumePlayback: async () => {
+    if (get().isOfflinePlayback) {
+      if (isOfflinePlaying()) return;
+      resumeOfflinePlayback();
+      set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+      updateMediaSessionState(true);
+      return;
+    }
+
     const { player, isPlaying, currentTrack, queue, queueIndex } = get();
     if (!player || isPlaying) return;
 
@@ -733,6 +797,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   seek: async (ratio) => {
+    if (get().isOfflinePlayback) {
+      seekOfflinePlayback(ratio);
+      set({ progressMs: Math.floor((getOfflineDurationMs() || 30_000) * ratio) });
+      return;
+    }
+
     const { player, durationMs } = get();
     if (!player || !isFinite(durationMs) || durationMs <= 0) return;
     const target = Math.max(0, Math.min(durationMs, Math.floor(durationMs * ratio)));
@@ -745,6 +815,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     suppressAutoResumeUntil = Date.now() + 60_000;
     pendingPlayOnReadyIndex = null;
     clearPlayRetry();
+    stopOfflinePlayback();
     if (player) {
       await player.pause().catch(() => {});
     }
@@ -752,6 +823,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       currentTrack: null,
       isPlaying: false,
       isTransitioning: false,
+      isOfflinePlayback: false,
       pendingIndex: null,
       queue: [],
       queueIndex: -1,
@@ -901,6 +973,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     isQueueOpen: false,
     queueSheetTab: "queue",
     sleepTimerEndsAt: null,
+  isOfflinePlayback: false,
     endedToken: 0,
     isPlayerReady: false,
     sdkError: null,

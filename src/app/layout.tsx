@@ -6,6 +6,7 @@ import ThemeProvider from "@/components/layout/ThemeProvider";
 import ServiceWorkerRegister from "@/components/layout/ServiceWorkerRegister";
 import InstallPrompt from "@/components/layout/InstallPrompt";
 import BackNavigationHandler from "@/components/layout/BackNavigationHandler";
+import OfflineBootstrap from "@/components/layout/OfflineBootstrap";
 import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <SessionWrapper>
             <BackNavigationHandler />
+            <OfflineBootstrap />
             {children}
           </SessionWrapper>
         </ThemeProvider>
