@@ -11,11 +11,37 @@ export const maxDuration = 60;
 
 const GENRE_MAP: Record<string, string> = { "r&b": "r-n-b" };
 const MAX_EXCLUDE_IDS = 80;
-const CACHE_TTL_MS = 90_000;
-const CACHE_MAX = 64;
+const CACHE_TTL_MS = 300_000;
+const CACHE_MAX = 96;
+const STALE_GRACE_MS = 600_000;
 
 type CacheEntry = { tracks: SimilarTrack[]; rateLimited: boolean; expires: number };
 const similarCache = new Map<string, CacheEntry>();
+
+function trackPrefix(
+  trackId: string | null,
+  trackUri: string | null,
+  trackName: string,
+  artistName: string
+) {
+  return [trackId ?? "", trackUri ?? "", trackName, artistName].join("::");
+}
+
+function findStaleFallback(
+  trackId: string | null,
+  trackUri: string | null,
+  trackName: string,
+  artistName: string
+): CacheEntry | null {
+  const prefix = trackPrefix(trackId, trackUri, trackName, artistName);
+  let best: CacheEntry | null = null;
+  for (const [key, entry] of similarCache) {
+    if (!key.startsWith(prefix) || entry.tracks.length === 0) continue;
+    if (entry.expires + STALE_GRACE_MS < Date.now()) continue;
+    if (!best || entry.tracks.length > best.tracks.length) best = entry;
+  }
+  return best;
+}
 
 function normalizeList(items: unknown[]): SimilarTrack[] {
   return items.map(normalizeSimilarTrack).filter((t): t is SimilarTrack => !!t);
@@ -94,15 +120,26 @@ export async function GET(req: NextRequest) {
         refreshSeed,
       });
 
-      if (tracks.length > 0 || !rateLimited) {
+      if (tracks.length > 0) {
         similarCache.set(key, {
           tracks,
-          rateLimited,
+          rateLimited: false,
           expires: Date.now() + CACHE_TTL_MS,
         });
         if (similarCache.size > CACHE_MAX) {
           const oldest = similarCache.keys().next().value;
           if (oldest) similarCache.delete(oldest);
+        }
+        return json(tracks, false);
+      }
+
+      if (rateLimited) {
+        const stale = findStaleFallback(trackId, trackUri, trackName, artistName);
+        if (stale) {
+          const filtered = stale.tracks.filter((t) => !excludeIds.includes(t.id));
+          if (filtered.length > 0) {
+            return json(filtered.slice(0, limit), true);
+          }
         }
       }
 

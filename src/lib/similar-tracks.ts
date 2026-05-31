@@ -36,13 +36,21 @@ type FetchState = {
   searchCalls: number;
 };
 
-async function spotifyGet(url: string, accessToken: string): Promise<unknown | null> {
+async function spotifyGet(
+  url: string,
+  accessToken: string,
+  state?: FetchState
+): Promise<unknown | null> {
+  if (state?.rateLimited) return null;
   try {
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
       signal: AbortSignal.timeout(8_000),
     });
-    if (res.status === 429) return null;
+    if (res.status === 429) {
+      if (state) state.rateLimited = true;
+      return null;
+    }
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -210,9 +218,10 @@ async function topTracksForArtist(
 
 async function fetchTrackMeta(
   trackId: string,
-  accessToken: string
+  accessToken: string,
+  state: FetchState
 ): Promise<SimilarTrack | null> {
-  const data = await spotifyGet(`${SPOTIFY_BASE}/tracks/${trackId}`, accessToken);
+  const data = await spotifyGet(`${SPOTIFY_BASE}/tracks/${trackId}`, accessToken, state);
   return normalizeSimilarTrack(data);
 }
 
@@ -236,9 +245,10 @@ async function resolveArtistIdOnce(
 
 async function fetchAlbumTracks(
   albumId: string,
-  accessToken: string
+  accessToken: string,
+  state: FetchState
 ): Promise<SimilarTrack[]> {
-  const album = (await spotifyGet(`${SPOTIFY_BASE}/albums/${albumId}`, accessToken)) as {
+  const album = (await spotifyGet(`${SPOTIFY_BASE}/albums/${albumId}`, accessToken, state)) as {
     id?: string;
     name?: string;
     images?: { url: string }[];
@@ -250,7 +260,8 @@ async function fetchAlbumTracks(
 
   const tracksData = (await spotifyGet(
     `${SPOTIFY_BASE}/albums/${albumId}/tracks?limit=50`,
-    accessToken
+    accessToken,
+    state
   )) as { items?: unknown[] } | null;
 
   const merged: unknown[] = (tracksData?.items ?? []).map((item) => ({
@@ -326,7 +337,7 @@ export async function fetchSimilarTracks(
   const resolvedTrackId = excludeId;
   let meta: SimilarTrack | null = null;
   if (resolvedTrackId) {
-    meta = await fetchTrackMeta(resolvedTrackId, accessToken);
+    meta = await fetchTrackMeta(resolvedTrackId, accessToken, state);
   }
 
   const artistIdsFromMeta = (meta?.artists ?? [])
@@ -356,15 +367,15 @@ export async function fetchSimilarTracks(
   const orderedArtists = [
     ...artistQueue.slice(start),
     ...artistQueue.slice(0, start),
-  ].slice(0, refreshSeed > 0 ? 3 : 2);
+  ].slice(0, refreshSeed > 0 ? 2 : 1);
 
   for (const artistId of orderedArtists) {
     pool.push(...(await topTracksForArtist(artistId, accessToken, state)));
-    if (state.rateLimited) break;
+    if (state.rateLimited || pool.length >= limit * 2) break;
   }
 
-  if (seed.albumId && !state.rateLimited) {
-    pool.push(...(await fetchAlbumTracks(seed.albumId, accessToken)));
+  if (seed.albumId && !state.rateLimited && pool.length < limit) {
+    pool.push(...(await fetchAlbumTracks(seed.albumId, accessToken, state)));
   }
 
   let result = dedupeTracks(

@@ -11,6 +11,15 @@ import { spotifyTrackIdFromUri } from "@/lib/spotify-track-id";
 const INITIAL_LIMIT = 15;
 const MORE_LIMIT = 10;
 const MAX_EXCLUDE_IDS = 80;
+const CLIENT_CACHE_TTL_MS = 300_000;
+const RATE_LIMIT_COOLDOWN_MS = 45_000;
+
+type ClientCacheEntry = { tracks: SpotifyTrack[]; expires: number };
+const similarClientCache = new Map<string, ClientCacheEntry>();
+
+function clientCacheKey(track: PlayableTrack) {
+  return `${track.uri ?? ""}::${track.name}::${track.artist ?? ""}`;
+}
 
 interface Props {
   track: PlayableTrack;
@@ -64,6 +73,8 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
   const [empty, setEmpty] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
+  const [usingCachedSimilar, setUsingCachedSimilar] = useState(false);
+  const rateLimitUntilRef = useRef(0);
   const [modalTrack, setModalTrack] = useState<{
     uri: string;
     name: string;
@@ -79,10 +90,32 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
   const hasMoreRef = useRef(true);
   const { setQueueAndPlay, currentTrack, isPlaying } = usePlayerStore();
 
+  const applyClientCache = useCallback((key: string) => {
+    const cached = similarClientCache.get(key);
+    if (!cached || cached.expires < Date.now()) return false;
+    const currentUri = track.uri ?? "";
+    const currentId = spotifyTrackIdFromUri(track.uri);
+    const items = cached.tracks.filter((item) => {
+      if (currentUri && item.uri === currentUri) return false;
+      if (currentId && item.id === currentId) return false;
+      return true;
+    });
+    if (items.length === 0) return false;
+    for (const item of items) shownIdsRef.current.add(item.id);
+    setSimilarTracks(items);
+    setEmpty(false);
+    setUsingCachedSimilar(true);
+    hasMoreRef.current = items.length >= 3;
+    return true;
+  }, [track.artist, track.name, track.uri]);
+
   const fetchTracks = useCallback(
     async (mode: "initial" | "more" | "refresh") => {
       const generation = ++fetchGenRef.current;
       const limit = mode === "initial" || mode === "refresh" ? INITIAL_LIMIT : MORE_LIMIT;
+      const cacheKey = clientCacheKey(track);
+
+      if (mode === "more" && Date.now() < rateLimitUntilRef.current) return;
 
       if (!track.name?.trim()) {
         setSimilarTracks([]);
@@ -98,6 +131,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         setEmpty(false);
         setSessionExpired(false);
         setRateLimited(false);
+        setUsingCachedSimilar(false);
       } else if (mode === "more") {
         if (!hasMoreRef.current || loadingMore || loading) return;
         setLoadingMore(true);
@@ -107,6 +141,11 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         setEmpty(false);
         setSessionExpired(false);
         setRateLimited(false);
+        setUsingCachedSimilar(false);
+        if (applyClientCache(cacheKey)) {
+          setLoading(false);
+          return;
+        }
       }
 
       try {
@@ -124,7 +163,6 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         if (exclude.length > 0) params.set("exclude", exclude.join(","));
 
         const res = await fetch(`/api/spotify/recommendations?${params}`, {
-          cache: "no-store",
           credentials: "same-origin",
         });
         if (generation !== fetchGenRef.current) return;
@@ -135,17 +173,20 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
           rateLimited?: boolean;
         };
 
-        if (res.status === 429 || data.rateLimited) {
+        const limited = res.status === 429 || !!data.rateLimited;
+        if (limited) {
           setRateLimited(true);
+          rateLimitUntilRef.current = Date.now() + RATE_LIMIT_COOLDOWN_MS;
         }
 
-        if (!res.ok) {
+        if (!res.ok && !(limited && (data.tracks?.length ?? 0) > 0)) {
           const expired =
             res.status === 401 ||
             data.error === "Token expired, please re-login" ||
             data.error === "Unauthorized";
           if (expired) setSessionExpired(true);
           if (mode === "initial" || mode === "refresh") {
+            if (applyClientCache(cacheKey)) return;
             setSimilarTracks([]);
             setEmpty(true);
           }
@@ -172,13 +213,24 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
 
         if (generation !== fetchGenRef.current) return;
 
+        if (items.length === 0 && limited && (mode === "initial" || mode === "refresh")) {
+          if (applyClientCache(cacheKey)) return;
+        }
+
         if (mode === "initial" || mode === "refresh") {
           if (items.length > 0) {
             setSimilarTracks(items);
             setEmpty(false);
+            setUsingCachedSimilar(false);
+            similarClientCache.set(cacheKey, {
+              tracks: items,
+              expires: Date.now() + CLIENT_CACHE_TTL_MS,
+            });
           } else if (mode === "refresh") {
+            if (limited && applyClientCache(cacheKey)) return;
             setEmpty(similarTracks.length === 0);
           } else {
+            if (limited && applyClientCache(cacheKey)) return;
             setSimilarTracks([]);
             setEmpty(true);
           }
@@ -206,7 +258,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         setRefreshing(false);
       }
     },
-    [track.artist, track.name, track.uri, loading, loadingMore, similarTracks.length]
+    [track.artist, track.name, track.uri, loading, loadingMore, similarTracks.length, applyClientCache]
   );
 
   useEffect(() => {
@@ -224,7 +276,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
       refreshSeedRef.current = 0;
       hasMoreRef.current = true;
       void fetchTracks("initial");
-    }, 400);
+    }, 700);
     return () => window.clearTimeout(timer);
   }, [track.artist, track.name, track.uri, fetchTracks]);
 
@@ -234,7 +286,9 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) void fetchTracks("more");
+        if (entries[0]?.isIntersecting && Date.now() >= rateLimitUntilRef.current) {
+          void fetchTracks("more");
+        }
       },
       { rootMargin: "120px" }
     );
@@ -434,6 +488,11 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
             </div>
           ) : (
             <>
+              {usingCachedSimilar && rateLimited ? (
+                <p className="text-[10px] text-center text-amber-400/80 px-2 mb-2">
+                  Showing cached similar tracks — Spotify is busy. Try refresh in a minute.
+                </p>
+              ) : null}
               <div>{trackRows}</div>
               <div ref={loadMoreRef} className="h-6 flex items-center justify-center py-2">
                 {loadingMore && <Loader2 size={16} className="animate-spin text-white/20" />}
