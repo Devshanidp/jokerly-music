@@ -16,7 +16,10 @@ function loginErrorMessage(code: string | null): string | null {
   if (code === "AccessDenied") {
     return "Spotify denied access. Add your email in Spotify Developer → User Management (Development mode), then try again.";
   }
-  return `Sign-in failed (${code}). Try again or use Switch account in settings.`;
+  if (code === "OAuthCallback" || code === "Callback") {
+    return "Spotify rejected the login. In Vercel, set SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET from your new Spotify app, set NEXTAUTH_URL to https://music.devshanidp.xyz, add that redirect URI in Spotify Dashboard, then redeploy.";
+  }
+  return `Sign-in failed (${code}). Open https://music.devshanidp.xyz/login (not www), then try again.`;
 }
 
 export default function LoginClient() {

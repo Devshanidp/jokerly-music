@@ -110,7 +110,7 @@ export default function PlaylistActionsMenu({
             ) : (
               <Pin size={15} className={isPinned ? "text-[#E8282B]" : "text-white/50"} />
             ),
-            isPinned ? "Remove from speed dial" : "Pin to speed dial",
+            isPinned ? "Remove from pinned" : "Pin to pinned",
             onTogglePin,
             pinning
           )}

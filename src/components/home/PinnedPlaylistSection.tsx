@@ -162,7 +162,33 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   const { setQueueAndPlay, isPlayerReady, deviceId } = usePlayerStore();
   const downloadPlaylistOffline = useOfflineStore((s) => s.downloadPlaylist);
   const [downloadingPlaylistId, setDownloadingPlaylistId] = useState<string | null>(null);
+  const [pinningId, setPinningId] = useState<string | null>(null);
   const { toast } = useToastStore();
+
+  const removeFromPinned = useCallback(
+    async (playlistId: string) => {
+      setPinningId(playlistId);
+      try {
+        const res = await fetch("/api/pinned", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playlist_id: playlistId }),
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data.error ?? "Failed to remove from pinned");
+        }
+        if (selectedId === playlistId) setSelectedId(null);
+        window.dispatchEvent(new CustomEvent("pinned-playlists-updated"));
+        toast("Removed from pinned", "success");
+      } catch (e) {
+        toast((e as Error).message ?? "Could not remove from pinned", "error");
+      } finally {
+        setPinningId(null);
+      }
+    },
+    [selectedId, toast]
+  );
 
   useEffect(() => {
     try {
@@ -355,10 +381,11 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
           <div className="flex-1" />
           <PlaylistActionsMenu
             isPinned
+            pinning={pinningId === selectedId}
             trackCount={tracks.length}
             downloadingPlaylist={downloadingPlaylistId === selectedId}
             onShufflePlay={() => shufflePlay(selectedId)}
-            onTogglePin={() => toast("Already on speed dial")}
+            onTogglePin={() => void removeFromPinned(selectedPl.playlist_id)}
             onDownloadOffline={() => downloadOffline(selectedId)}
           />
           <button onClick={() => setAddFromPlaylist(true)}
@@ -485,10 +512,11 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
                   <PlaylistActionsMenu
                     variant="card"
                     isPinned
+                    pinning={pinningId === pl.playlist_id}
                     trackCount={tracks?.length ?? 0}
                     downloadingPlaylist={downloadingPlaylistId === pl.playlist_id}
                     onShufflePlay={() => shufflePlay(pl.playlist_id)}
-                    onTogglePin={() => toast("Pinned to speed dial")}
+                    onTogglePin={() => void removeFromPinned(pl.playlist_id)}
                     onDownloadOffline={() => downloadOffline(pl.playlist_id)}
                     onOpen={() => openPlaylist(pl.playlist_id)}
                   />
@@ -515,7 +543,16 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
                   <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
                 </div>
                 <p className="flex-1 text-white text-xs font-semibold truncate">{pl.playlist_name}</p>
-                <Play size={12} className="shrink-0 text-white/25" />
+                <PlaylistActionsMenu
+                  isPinned
+                  pinning={pinningId === pl.playlist_id}
+                  trackCount={tracks?.length ?? 0}
+                  downloadingPlaylist={downloadingPlaylistId === pl.playlist_id}
+                  onShufflePlay={() => shufflePlay(pl.playlist_id)}
+                  onTogglePin={() => void removeFromPinned(pl.playlist_id)}
+                  onDownloadOffline={() => downloadOffline(pl.playlist_id)}
+                  onOpen={() => openPlaylist(pl.playlist_id)}
+                />
               </div>
             );
           })}
