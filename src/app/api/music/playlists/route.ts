@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getApiSession, unauthorized } from "@/lib/api-auth";
 import { compilePlaylist, parseSelectedArtists } from "@/lib/compile-playlist";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
@@ -6,8 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 60;
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
 
   const supabase = await createClient();
 
@@ -36,9 +36,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.userId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
 
   const body = (await req.json().catch(() => ({}))) as {
     name?: unknown;

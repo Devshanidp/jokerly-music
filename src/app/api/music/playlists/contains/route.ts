@@ -1,12 +1,12 @@
-import { auth } from "@/lib/auth";
+import { getApiSession, unauthorized } from "@/lib/api-auth";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/music/playlists/contains?uri=<track-uri>
 // Returns { playlistIds: string[] } — the playlists that already contain this track
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.userId) return NextResponse.json({ playlistIds: [] });
+  const session = await getApiSession();
+  if (!session) return NextResponse.json({ playlistIds: [] });
 
   const uri = new URL(req.url).searchParams.get("uri");
   if (!uri) return NextResponse.json({ playlistIds: [] });

@@ -1,6 +1,6 @@
 import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
+import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 
 
 
@@ -51,8 +51,8 @@ async function catalogPlayerRequest(path: string, accessToken: string, init: Req
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const session = await getApiSessionWithToken();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

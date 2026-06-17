@@ -1,5 +1,5 @@
 import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { getWebPush, toPushPayload } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -16,8 +16,8 @@ async function catalogGet(url: string, token: string) {
 }
 
 export async function POST() {
-  const session = await auth();
-  if (!session?.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSessionWithToken();
+  if (!session) return unauthorized();
 
   const supabase = await createClient();
 

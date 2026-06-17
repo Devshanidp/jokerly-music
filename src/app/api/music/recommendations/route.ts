@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { getUserTopTracks, searchCatalog } from "@/lib/music-api";
 import {
   fetchSimilarTracks,
@@ -79,13 +79,11 @@ function json(tracks: SimilarTrack[], rateLimited = false) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const session = await getApiSessionWithToken();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if ((session as { error?: string }).error === "RefreshAccessTokenError") {
-    return NextResponse.json({ error: "Token expired, please re-login" }, { status: 401 });
-  }
+  
 
   const { searchParams } = new URL(req.url);
   const trackId = searchParams.get("trackId");

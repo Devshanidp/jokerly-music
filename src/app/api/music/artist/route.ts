@@ -1,5 +1,5 @@
 import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { getArtist } from "@/lib/music-api";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -110,8 +110,8 @@ async function fetchArtistAlbums(artistId: string, token: string): Promise<any[]
 }
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSessionWithToken();
+  if (!session) return unauthorized();
 
   const { searchParams } = new URL(req.url);
   const id   = searchParams.get("id");

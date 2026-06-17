@@ -1,10 +1,10 @@
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { getRelatedArtists } from "@/lib/music-api";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const session = await getApiSessionWithToken();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

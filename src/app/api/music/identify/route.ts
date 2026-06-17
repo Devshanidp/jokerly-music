@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { searchCatalog } from "@/lib/music-api";
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
@@ -81,8 +81,8 @@ function pickBestMatch(payload: AcoustIdResponse) {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.accessToken) {
+  const session = await getApiSessionWithToken();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

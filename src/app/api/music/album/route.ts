@@ -1,5 +1,5 @@
 import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 20;
@@ -20,8 +20,8 @@ async function catalogGet(url: string, token: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSessionWithToken();
+  if (!session) return unauthorized();
 
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
