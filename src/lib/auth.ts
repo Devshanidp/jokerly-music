@@ -24,9 +24,15 @@ type MusicToken = JWT & {
   refreshToken?: string;
   accessTokenExpires?: number;
   userId?: string;
+  /** @deprecated Legacy JWT field from before userId rename */
+  spotifyId?: string;
   authScope?: string;
   error?: string;
 };
+
+function resolveUserId(token: MusicToken): string | undefined {
+  return token.userId ?? token.spotifyId ?? (typeof token.sub === "string" ? token.sub : undefined);
+}
 
 export async function refreshAccessToken(token: MusicToken): Promise<MusicToken> {
   if (!token.refreshToken) return { ...token, error: "RefreshAccessTokenError" };
@@ -91,23 +97,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
+        const userId =
+          account.providerAccountId ??
+          (typeof account.userId === "string" ? account.userId : undefined) ??
+          (typeof token.sub === "string" ? token.sub : undefined);
         return {
           ...token,
           accessToken: account.access_token,
           refreshToken: account.refresh_token ?? (token as MusicToken).refreshToken,
           accessTokenExpires: account.expires_at ? account.expires_at * 1000 : Date.now() + 3600 * 1000,
-          userId: account.providerAccountId,
+          userId,
           authScope: account.scope,
         };
       }
       const musicToken = token as MusicToken;
-      const expiresAt = musicToken.accessTokenExpires ?? 0;
-      if (Date.now() < expiresAt - 60_000) return token;
-      return refreshAccessToken(musicToken);
+      const userId = resolveUserId(musicToken);
+      const withUserId = userId && !musicToken.userId ? { ...musicToken, userId } : musicToken;
+      const expiresAt = withUserId.accessTokenExpires ?? 0;
+      if (Date.now() < expiresAt - 60_000) return withUserId;
+      return refreshAccessToken(withUserId);
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string;
-      session.userId = token.userId as string;
+      session.userId = resolveUserId(token as MusicToken) as string;
       session.authScope = token.authScope as string | undefined;
       session.error = token.error as string | undefined;
       return session;
