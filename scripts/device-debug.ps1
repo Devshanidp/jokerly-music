@@ -16,7 +16,7 @@ Write-Host ""
 Write-Host "=== Jokerly device debug ===" -ForegroundColor Cyan
 Write-Host "PC LAN IP: $ip"
 Write-Host "Dev URL:   https://${ip}:3000  (accept self-signed cert on phone)"
-Write-Host "Prod URL:  https://music.devshanidp.xyz  (TWA / full Spotify auth)"
+Write-Host "Prod URL:  https://music.devshanidp.xyz  (TWA / full account auth)"
 Write-Host ""
 
 $adb = Get-Command adb -ErrorAction SilentlyContinue

@@ -12,6 +12,6 @@ export function GET() {
     hint:
       missing.length > 0
         ? "Set missing vars in Vercel → Environment Variables, then redeploy."
-        : "If login still fails, update SPOTIFY_CLIENT_ID/SECRET to your new Spotify app and match redirect URI.",
+        : "If login still fails, update MUSIC_CLIENT_ID/SECRET to your new app credentials and match redirect URI.",
   });
 }

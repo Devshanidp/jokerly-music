@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, Mic2, Plus, Search, Users, X } from "lucide-react";
 import Image from "next/image";
 import { formatMixDescription } from "@/lib/playlist-meta";
-import { SpotifyPlaylist } from "@/types";
-import { SpotifyArtist, artistImage } from "@/types/spotify";
+import { MusicPlaylist } from "@/types";
+import { MusicArtist, artistImage } from "@/types/music-catalog";
 import { useToastStore } from "@/store/toast";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
@@ -18,7 +18,7 @@ interface SelectedArtist {
 interface Props {
   open: boolean;
   onClose: () => void;
-  onCreated: (playlist: SpotifyPlaylist, addedCount: number) => void;
+  onCreated: (playlist: MusicPlaylist, addedCount: number) => void;
 }
 
 export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreated }: Props) {
@@ -26,7 +26,7 @@ export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreate
 
   const [name, setName] = useState("");
   const [artistQuery, setArtistQuery] = useState("");
-  const [artistResults, setArtistResults] = useState<SpotifyArtist[]>([]);
+  const [artistResults, setArtistResults] = useState<MusicArtist[]>([]);
   const [selectedArtists, setSelectedArtists] = useState<SelectedArtist[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -72,9 +72,9 @@ export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreate
         try {
           const ids = selectedArtists.map((artist) => artist.id).join(",");
           const res = await fetch(
-            `/api/spotify/artist/related?ids=${encodeURIComponent(ids)}&exclude=${encodeURIComponent(ids)}`
+            `/api/music/artist/related?ids=${encodeURIComponent(ids)}&exclude=${encodeURIComponent(ids)}`
           );
-          const data = (await res.json().catch(() => ({}))) as { artists?: SpotifyArtist[]; error?: string };
+          const data = (await res.json().catch(() => ({}))) as { artists?: MusicArtist[]; error?: string };
           if (!res.ok) throw new Error(data.error ?? "Could not load related artists");
           setArtistResults((data.artists ?? []).filter((artist) => !selectedIds.has(artist.id)));
         } catch (e) {
@@ -92,9 +92,9 @@ export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreate
     searchTimer.current = setTimeout(async () => {
       try {
         const res = await fetch(
-          `/api/spotify/search?q=${encodeURIComponent(query)}&type=artist&limit=10`
+          `/api/music/search?q=${encodeURIComponent(query)}&type=artist&limit=10`
         );
-        const data = (await res.json().catch(() => ({}))) as { artists?: SpotifyArtist[]; error?: string };
+        const data = (await res.json().catch(() => ({}))) as { artists?: MusicArtist[]; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Could not search artists");
         setArtistResults((data.artists ?? []).filter((artist) => !selectedIds.has(artist.id)));
       } catch (e) {
@@ -108,7 +108,7 @@ export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreate
     return () => clearTimeout(searchTimer.current);
   }, [artistQuery, open, selectedArtists, toast]);
 
-  const addArtist = (artist: SpotifyArtist) => {
+  const addArtist = (artist: MusicArtist) => {
     setSelectedArtists((prev) => {
       if (prev.find((item) => item.id === artist.id)) return prev;
       return [...prev, { id: artist.id, name: artist.name, image: artist.images?.[0]?.url ?? null }];
@@ -125,7 +125,7 @@ export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreate
     if (!name.trim() || selectedArtists.length === 0) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/spotify/playlists", {
+      const res = await fetch("/api/music/playlists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -136,7 +136,7 @@ export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreate
           selectedArtists: selectedArtists.map((artist) => ({ id: artist.id, name: artist.name })),
         }),
       });
-      const created = (await res.json().catch(() => ({}))) as SpotifyPlaylist & {
+      const created = (await res.json().catch(() => ({}))) as MusicPlaylist & {
         addedCount?: number;
         error?: string;
       };

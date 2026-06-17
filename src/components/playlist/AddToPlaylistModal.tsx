@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, Loader2, Music, ListMusic, AlertCircle, Plus, Check } from "lucide-react";
-import { SpotifyPlaylist } from "@/types";
+import { MusicPlaylist } from "@/types";
 import Image from "next/image";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
@@ -19,12 +19,12 @@ interface Props {
 }
 
 // Module-level cache so playlists load instantly on re-open
-let playlistCache: SpotifyPlaylist[] | null = null;
+let playlistCache: MusicPlaylist[] | null = null;
 
 export default function AddToPlaylistModal({ track, onClose }: Props) {
   useBackHandler(true, onClose);
 
-  const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>(playlistCache ?? []);
+  const [playlists, setPlaylists] = useState<MusicPlaylist[]>(playlistCache ?? []);
   const [loading, setLoading] = useState(true);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState<string | null>(null);
@@ -43,10 +43,10 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
     }
 
     // Always refresh from server so newly created playlists appear immediately
-    const playlistsPromise = fetch("/api/spotify/playlists", { cache: "no-store" })
+    const playlistsPromise = fetch("/api/music/playlists", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
-        const items: SpotifyPlaylist[] = d.items ?? [];
+        const items: MusicPlaylist[] = d.items ?? [];
         playlistCache = items;
         return items;
       })
@@ -54,7 +54,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
 
     // Check which playlists already have this track
     const containsPromise = fetch(
-      `/api/spotify/playlists/contains?uri=${encodeURIComponent(track.uri)}`
+      `/api/music/playlists/contains?uri=${encodeURIComponent(track.uri)}`
     )
       .then((r) => r.json())
       .catch(() => ({ playlistIds: [] }));
@@ -70,13 +70,13 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
     if (e.target === backdropRef.current) onClose();
   };
 
-  const doAdd = async (playlist: SpotifyPlaylist) => {
+  const doAdd = async (playlist: MusicPlaylist) => {
     if (adding || added.has(playlist.id)) return;
     setAdding(playlist.id);
     setAddError(null);
 
     try {
-      const res = await fetch(`/api/spotify/playlists/${playlist.id}`, {
+      const res = await fetch(`/api/music/playlists/${playlist.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,13 +109,13 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
     setSavingNew(true);
     setAddError(null);
     try {
-      const res = await fetch("/api/spotify/playlists", {
+      const res = await fetch("/api/music/playlists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim(), description: "" }),
       });
       if (!res.ok) throw new Error("Failed to create playlist");
-      const created = (await res.json()) as SpotifyPlaylist;
+      const created = (await res.json()) as MusicPlaylist;
       playlistCache = null; // invalidate so next open re-fetches
       setPlaylists((prev) => [created, ...prev]);
       setNewName("");
@@ -128,7 +128,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
     }
   };
 
-  const handlePlaylistClick = (playlist: SpotifyPlaylist) => {
+  const handlePlaylistClick = (playlist: MusicPlaylist) => {
     if (adding || added.has(playlist.id)) return;
     doAdd(playlist);
   };

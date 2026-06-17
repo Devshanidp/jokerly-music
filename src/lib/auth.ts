@@ -1,9 +1,16 @@
 import NextAuth from "next-auth";
 import type { JWT } from "next-auth/jwt";
-import Spotify from "next-auth/providers/spotify";
+import type { NextAuthConfig } from "next-auth";
 import { authConfig } from "./auth.config";
 import { getMissingAuthEnv } from "./auth-env";
-import { SPOTIFY_SCOPES } from "./spotify-scopes";
+import { MUSIC_AUTH_SCOPES } from "./music-scopes";
+import {
+  CATALOG_ACCOUNTS_AUTHORIZE,
+  CATALOG_ACCOUNTS_TOKEN,
+  CATALOG_API_V1,
+} from "./catalog-endpoints";
+import { musicClientId, musicClientSecret } from "./music-auth-env";
+import { AUTH_PROVIDER_ID } from "./catalog-endpoints";
 
 const missingAuthEnv = getMissingAuthEnv();
 if (missingAuthEnv.length > 0) {
@@ -12,25 +19,25 @@ if (missingAuthEnv.length > 0) {
   );
 }
 
-type SpotifyToken = JWT & {
+type MusicToken = JWT & {
   accessToken?: string;
   refreshToken?: string;
   accessTokenExpires?: number;
-  spotifyId?: string;
-  spotifyScope?: string;
+  userId?: string;
+  authScope?: string;
   error?: string;
 };
 
-export async function refreshAccessToken(token: SpotifyToken): Promise<SpotifyToken> {
+export async function refreshAccessToken(token: MusicToken): Promise<MusicToken> {
   if (!token.refreshToken) return { ...token, error: "RefreshAccessTokenError" };
 
   try {
-    const res = await fetch("https://accounts.spotify.com/api/token", {
+    const res = await fetch(CATALOG_ACCOUNTS_TOKEN, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         Authorization: `Basic ${Buffer.from(
-          `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+          `${musicClientId()}:${musicClientSecret()}`
         ).toString("base64")}`,
       },
       body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: token.refreshToken }),
@@ -48,42 +55,60 @@ export async function refreshAccessToken(token: SpotifyToken): Promise<SpotifyTo
   }
 }
 
+const musicProvider: NextAuthConfig["providers"][number] = {
+  id: AUTH_PROVIDER_ID,
+  name: "Music",
+  type: "oauth",
+  clientId: musicClientId(),
+  clientSecret: musicClientSecret(),
+  checks: ["state"],
+  authorization: {
+    url: CATALOG_ACCOUNTS_AUTHORIZE,
+    params: { scope: MUSIC_AUTH_SCOPES, show_dialog: "true" },
+  },
+  token: CATALOG_ACCOUNTS_TOKEN,
+  userinfo: `${CATALOG_API_V1}/me`,
+  profile(profile) {
+    const p = profile as {
+      id: string;
+      display_name?: string;
+      email?: string;
+      images?: { url: string }[];
+    };
+    return {
+      id: p.id,
+      name: p.display_name ?? "Listener",
+      email: p.email,
+      image: p.images?.[0]?.url,
+    };
+  },
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  providers: [
-    Spotify({
-      clientId: process.env.SPOTIFY_CLIENT_ID!,
-      clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
-      checks: ["state"],
-      authorization: {
-        url: "https://accounts.spotify.com/authorize",
-        params: { scope: SPOTIFY_SCOPES, show_dialog: "true" },
-      },
-    }),
-  ],
+  providers: [musicProvider],
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
         return {
           ...token,
           accessToken: account.access_token,
-          refreshToken: account.refresh_token ?? (token as SpotifyToken).refreshToken,
+          refreshToken: account.refresh_token ?? (token as MusicToken).refreshToken,
           accessTokenExpires: account.expires_at ? account.expires_at * 1000 : Date.now() + 3600 * 1000,
-          spotifyId: account.providerAccountId,
-          spotifyScope: account.scope,
+          userId: account.providerAccountId,
+          authScope: account.scope,
         };
       }
-      const spotifyToken = token as SpotifyToken;
-      const expiresAt = spotifyToken.accessTokenExpires ?? 0;
-      // Refresh slightly before expiry so client/SDK calls don't hit 401.
+      const musicToken = token as MusicToken;
+      const expiresAt = musicToken.accessTokenExpires ?? 0;
       if (Date.now() < expiresAt - 60_000) return token;
-      return refreshAccessToken(spotifyToken);
+      return refreshAccessToken(musicToken);
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string;
-      session.spotifyId = token.spotifyId as string;
-      session.spotifyScope = token.spotifyScope as string | undefined;
+      session.userId = token.userId as string;
+      session.authScope = token.authScope as string | undefined;
       session.error = token.error as string | undefined;
       return session;
     },

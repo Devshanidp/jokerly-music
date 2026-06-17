@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SpotifyArtist, SpotifyTrack, artistImage, trackImage, artistNames } from "@/types/spotify";
+import { MusicArtist, MusicTrack, artistImage, trackImage, artistNames } from "@/types/music-catalog";
 import { X, Loader2, ExternalLink, Music, Play, Pause, ListPlus, Pin, Heart, Share2 } from "lucide-react";
 import Image from "next/image";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
@@ -11,11 +11,11 @@ import ExportToYouTubeMusicModal from "@/components/export/ExportToYouTubeMusicM
 import { useBackHandler } from "@/hooks/useBackHandler";
 
 interface Props {
-  artist: SpotifyArtist;
+  artist: MusicArtist;
   onClose: () => void;
 }
 
-function toPlayable(t: SpotifyTrack): PlayableTrack {
+function toPlayable(t: MusicTrack): PlayableTrack {
   return {
     name: t.name,
     artist: artistNames(t),
@@ -28,9 +28,9 @@ function toPlayable(t: SpotifyTrack): PlayableTrack {
 export default function ArtistSheet({ artist, onClose }: Props) {
   useBackHandler(true, onClose);
 
-  const [info, setInfo] = useState<SpotifyArtist | null>(null);
-  const [topTracks, setTopTracks] = useState<SpotifyTrack[]>([]);
-  const [moreTracks, setMoreTracks] = useState<SpotifyTrack[]>([]);
+  const [info, setInfo] = useState<MusicArtist | null>(null);
+  const [topTracks, setTopTracks] = useState<MusicTrack[]>([]);
+  const [moreTracks, setMoreTracks] = useState<MusicTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [exportModal, setExportModal] = useState(false);
@@ -54,7 +54,7 @@ export default function ArtistSheet({ artist, onClose }: Props) {
   }, [artist.id]);
 
   useEffect(() => {
-    fetch(`/api/spotify/artist?id=${encodeURIComponent(artist.id)}&name=${encodeURIComponent(artist.name)}`)
+    fetch(`/api/music/artist?id=${encodeURIComponent(artist.id)}&name=${encodeURIComponent(artist.name)}`)
       .then((r) => r.ok ? r.json() : Promise.reject(r.status))
       .then((d) => {
         setInfo(d.info ?? null);
@@ -110,7 +110,7 @@ export default function ArtistSheet({ artist, onClose }: Props) {
     });
   };
 
-  const handlePlay = (track: SpotifyTrack) => {
+  const handlePlay = (track: MusicTrack) => {
     const index = allTracks.findIndex((t) => t.id === track.id);
     if (index === -1) return;
     setQueueAndPlay(allTracks.map(toPlayable), index);
@@ -143,7 +143,7 @@ export default function ArtistSheet({ artist, onClose }: Props) {
             {/* Close + external + like + pin + export */}
             <div className="absolute top-3 right-3 flex items-center gap-1">
               <a
-                href={displayArtist.external_urls?.spotify}
+                href={displayArtist.external_urls?.web}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
@@ -284,7 +284,7 @@ export default function ArtistSheet({ artist, onClose }: Props) {
 }
 
 function TrackRow({ track, rank, isCurrentlyPlaying, onPlay, onAddToPlaylist }: {
-  track: SpotifyTrack;
+  track: MusicTrack;
   rank: number;
   isCurrentlyPlaying: boolean;
   onPlay: () => void;

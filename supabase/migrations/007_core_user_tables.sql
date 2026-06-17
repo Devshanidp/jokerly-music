@@ -1,4 +1,4 @@
--- Core user tables used by API routes (auth via NextAuth Spotify id, not Supabase Auth JWT)
+-- Core user tables used by API routes (auth via NextAuth user id, not Supabase Auth JWT)
 
 create table if not exists user_language_prefs (
   user_id text primary key,

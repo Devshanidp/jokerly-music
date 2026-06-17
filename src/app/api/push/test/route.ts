@@ -16,7 +16,7 @@ export async function POST() {
   const { data, error } = await supabase
     .from("push_subscriptions")
     .select("endpoint,p256dh,auth")
-    .eq("user_id", session.spotifyId);
+    .eq("user_id", session.userId);
 
   if (isPushStorageUnavailable(error)) return NextResponse.json({ ok: false, available: false, sent: 0 });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -48,7 +48,7 @@ export async function POST() {
     } catch (err: any) {
       const statusCode = err?.statusCode as number | undefined;
       if (statusCode === 404 || statusCode === 410) {
-        await supabase.from("push_subscriptions").delete().eq("user_id", session.spotifyId).eq("endpoint", row.endpoint);
+        await supabase.from("push_subscriptions").delete().eq("user_id", session.userId).eq("endpoint", row.endpoint);
       }
     }
   }

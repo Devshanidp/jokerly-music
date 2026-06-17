@@ -1,7 +1,8 @@
-import { getArtistTopTracks, searchSpotify, SpotifyError } from "@/lib/spotify";
-import { spotifyTrackIdFromUri } from "@/lib/spotify-track-id";
+import { CATALOG_API_V1, CATALOG_OPEN, CATALOG_TRACK_URI_PREFIX, CATALOG_ARTIST_URI_PREFIX } from "@/lib/catalog-endpoints";
+import { getArtistTopTracks, searchCatalog, CatalogApiError } from "@/lib/music-api";
+import { trackIdFromUri } from "@/lib/track-uri";
 
-const SPOTIFY_BASE = "https://api.spotify.com/v1";
+
 const MAX_SEARCH_CALLS_PER_REQUEST = 2;
 
 export type SimilarTrack = {
@@ -11,7 +12,7 @@ export type SimilarTrack = {
   artists: { id?: string; name: string }[];
   album?: { id?: string; name?: string; images?: { url: string }[] };
   duration_ms?: number;
-  external_urls?: { spotify: string };
+  external_urls?: { web: string };
 };
 
 export type SimilarFetchResult = {
@@ -36,7 +37,7 @@ type FetchState = {
   searchCalls: number;
 };
 
-async function spotifyGet(
+async function catalogGet(
   url: string,
   accessToken: string,
   state?: FetchState
@@ -75,7 +76,7 @@ export function normalizeSimilarTrack(raw: unknown): SimilarTrack | null {
   if (!id) return null;
 
   const uri =
-    (typeof item.uri === "string" ? item.uri : null) ?? `spotify:track:${id}`;
+    (typeof item.uri === "string" ? item.uri : null) ?? `${CATALOG_TRACK_URI_PREFIX}${id}`;
   const name = typeof item.name === "string" ? item.name : null;
   if (!name) return null;
 
@@ -105,7 +106,7 @@ export function normalizeSimilarTrack(raw: unknown): SimilarTrack | null {
       : undefined,
     duration_ms:
       typeof item.duration_ms === "number" ? item.duration_ms : undefined,
-    external_urls: item.external_urls as { spotify: string } | undefined,
+    external_urls: item.external_urls as { web: string } | undefined,
   };
 }
 
@@ -182,9 +183,9 @@ async function safeSearch(
   }
   state.searchCalls += 1;
   try {
-    return await searchSpotify(query, type, accessToken, limit, offset);
+    return await searchCatalog(query, type, accessToken, limit, offset);
   } catch (e) {
-    if (e instanceof SpotifyError && e.status === 429) state.rateLimited = true;
+    if (e instanceof CatalogApiError && e.status === 429) state.rateLimited = true;
     return null;
   }
 }
@@ -211,7 +212,7 @@ async function topTracksForArtist(
     const data = (await getArtistTopTracks(artistId, accessToken)) as { tracks?: unknown[] };
     return compactTracks(data?.tracks ?? []);
   } catch (e) {
-    if (e instanceof SpotifyError && e.status === 429) state.rateLimited = true;
+    if (e instanceof CatalogApiError && e.status === 429) state.rateLimited = true;
     return [];
   }
 }
@@ -221,7 +222,7 @@ async function fetchTrackMeta(
   accessToken: string,
   state: FetchState
 ): Promise<SimilarTrack | null> {
-  const data = await spotifyGet(`${SPOTIFY_BASE}/tracks/${trackId}`, accessToken, state);
+  const data = await catalogGet(`${CATALOG_API_V1}/tracks/${trackId}`, accessToken, state);
   return normalizeSimilarTrack(data);
 }
 
@@ -248,18 +249,18 @@ async function fetchAlbumTracks(
   accessToken: string,
   state: FetchState
 ): Promise<SimilarTrack[]> {
-  const album = (await spotifyGet(`${SPOTIFY_BASE}/albums/${albumId}`, accessToken, state)) as {
+  const album = (await catalogGet(`${CATALOG_API_V1}/albums/${albumId}`, accessToken, state)) as {
     id?: string;
     name?: string;
     images?: { url: string }[];
     release_date?: string;
     album_type?: string;
-    external_urls?: { spotify: string };
+    external_urls?: { web: string };
   } | null;
   if (!album?.id) return [];
 
-  const tracksData = (await spotifyGet(
-    `${SPOTIFY_BASE}/albums/${albumId}/tracks?limit=50`,
+  const tracksData = (await catalogGet(
+    `${CATALOG_API_V1}/albums/${albumId}/tracks?limit=50`,
     accessToken,
     state
   )) as { items?: unknown[] } | null;
@@ -330,7 +331,7 @@ export async function fetchSimilarTracks(
   const refreshSeed = Math.max(0, options.refreshSeed ?? 0);
   const excludeUri = options.trackUri ?? null;
   const excludeId =
-    options.trackId?.trim() || spotifyTrackIdFromUri(options.trackUri) || null;
+    options.trackId?.trim() || trackIdFromUri(options.trackUri) || null;
   const excludeIds = new Set(excluded);
   const state: FetchState = { rateLimited: false, searchCalls: 0 };
 

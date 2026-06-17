@@ -225,7 +225,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
       for (const pl of pinned) {
         if (controller.signal.aborted) break;
         try {
-          const res = await fetch(`/api/spotify/playlists/${encodeURIComponent(pl.playlist_id)}`, { signal: controller.signal });
+          const res = await fetch(`/api/music/playlists/${encodeURIComponent(pl.playlist_id)}`, { signal: controller.signal });
           if (!res.ok) continue;
           const data = await res.json();
           setTracksMap((prev) => prev[pl.playlist_id] ? prev : { ...prev, [pl.playlist_id]: data.items ?? [] });
@@ -249,7 +249,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   const fetchTracks = useCallback(async (id: string) => {
     setLoading(id);
     try {
-      const res = await fetch(`/api/spotify/playlists/${encodeURIComponent(id)}?_t=${Date.now()}`);
+      const res = await fetch(`/api/music/playlists/${encodeURIComponent(id)}?_t=${Date.now()}`);
       if (!res.ok) throw new Error("Failed to load tracks");
       const data = await res.json();
       setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
@@ -289,7 +289,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
       const shuffled = shuffleArray(toPlayable(list));
       usePlayerStore.setState({ shuffleEnabled: true });
       if (deviceId) {
-        await fetch("/api/spotify/player", {
+        await fetch("/api/music/player", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "shuffle", deviceId, state: true }),
@@ -326,7 +326,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     const key = `${playlistId}::${trackId}`;
     setRemovingTrack(key);
     try {
-      const res = await fetch(`/api/spotify/playlists/${playlistId}/tracks`, {
+      const res = await fetch(`/api/music/playlists/${playlistId}/tracks`, {
         method: "DELETE", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trackId }),
       });
@@ -348,7 +348,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     if (oldIdx === -1 || newIdx === -1) return;
     const reordered = arrayMove(tracks, oldIdx, newIdx);
     setTracksMap((prev) => ({ ...prev, [playlistId]: reordered }));
-    fetch(`/api/spotify/playlists/${playlistId}`, {
+    fetch(`/api/music/playlists/${playlistId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order: reordered.map((t) => t.id) }),
     }).catch(() => toast("Could not save order"));

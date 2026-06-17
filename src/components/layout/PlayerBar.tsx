@@ -132,7 +132,7 @@ export default function PlayerBar() {
         return;
       }
       const res = await fetch(
-        `/api/spotify/resolve?track=${encodeURIComponent(currentTrack.name)}&artist=${encodeURIComponent(currentTrack.artist)}`
+        `/api/music/resolve?track=${encodeURIComponent(currentTrack.name)}&artist=${encodeURIComponent(currentTrack.artist)}`
       );
       const data = await res.json();
       if (data.uri) {
@@ -189,7 +189,7 @@ export default function PlayerBar() {
     setFetching(true);
     try {
       const res = await fetch(
-        `/api/spotify/resolve?track=${encodeURIComponent(track.name)}&artist=${encodeURIComponent(track.artist)}`
+        `/api/music/resolve?track=${encodeURIComponent(track.name)}&artist=${encodeURIComponent(track.artist)}`
       );
       const data = await res.json();
       resolveCache.set(cacheKey, data);

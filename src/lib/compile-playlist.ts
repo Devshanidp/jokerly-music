@@ -1,8 +1,9 @@
+import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 
 
-const SPOTIFY_API = "https://api.spotify.com/v1";
+
 
 
 
@@ -10,7 +11,7 @@ export type CompileArtist = { id: string; name: string };
 
 
 
-type SpotifyTrack = {
+type MusicTrack = {
 
   id?: string;
 
@@ -52,13 +53,13 @@ export function parseSelectedArtists(value: unknown): CompileArtist[] {
 
 
 
-class SpotifyAuthError extends Error {
+class CatalogAuthError extends Error {
 
   constructor() {
 
     super("Session expired — please log in again");
 
-    this.name = "SpotifyAuthError";
+    this.name = "CatalogAuthError";
 
   }
 
@@ -66,7 +67,7 @@ class SpotifyAuthError extends Error {
 
 
 
-async function spotifyGet(url: string, token: string): Promise<unknown | null> {
+async function catalogGet(url: string, token: string): Promise<unknown | null> {
 
   try {
 
@@ -78,7 +79,7 @@ async function spotifyGet(url: string, token: string): Promise<unknown | null> {
 
     });
 
-    if (response.status === 401) throw new SpotifyAuthError();
+    if (response.status === 401) throw new CatalogAuthError();
 
     if (!response.ok) return null;
 
@@ -86,7 +87,7 @@ async function spotifyGet(url: string, token: string): Promise<unknown | null> {
 
   } catch (error) {
 
-    if (error instanceof SpotifyAuthError) throw error;
+    if (error instanceof CatalogAuthError) throw error;
 
     return null;
 
@@ -96,11 +97,11 @@ async function spotifyGet(url: string, token: string): Promise<unknown | null> {
 
 
 
-async function fetchTopTracks(artistId: string, token: string): Promise<SpotifyTrack[]> {
+async function fetchTopTracks(artistId: string, token: string): Promise<MusicTrack[]> {
 
-  const noMarket = (await spotifyGet(`${SPOTIFY_API}/artists/${artistId}/top-tracks`, token)) as {
+  const noMarket = (await catalogGet(`${CATALOG_API_V1}/artists/${artistId}/top-tracks`, token)) as {
 
-    tracks?: SpotifyTrack[];
+    tracks?: MusicTrack[];
 
   } | null;
 
@@ -108,13 +109,13 @@ async function fetchTopTracks(artistId: string, token: string): Promise<SpotifyT
 
 
 
-  const usMarket = (await spotifyGet(
+  const usMarket = (await catalogGet(
 
-    `${SPOTIFY_API}/artists/${artistId}/top-tracks?market=US`,
+    `${CATALOG_API_V1}/artists/${artistId}/top-tracks?market=US`,
 
     token
 
-  )) as { tracks?: SpotifyTrack[] } | null;
+  )) as { tracks?: MusicTrack[] } | null;
 
   return usMarket?.tracks ?? [];
 
@@ -122,7 +123,7 @@ async function fetchTopTracks(artistId: string, token: string): Promise<SpotifyT
 
 
 
-async function searchAllTracks(name: string, artistId: string, token: string): Promise<SpotifyTrack[]> {
+async function searchAllTracks(name: string, artistId: string, token: string): Promise<MusicTrack[]> {
 
   const queries = [`artist:"${name}"`, `artist:${name}`, name];
 
@@ -130,13 +131,13 @@ async function searchAllTracks(name: string, artistId: string, token: string): P
 
     queries.map((query) =>
 
-      spotifyGet(
+      catalogGet(
 
-        `${SPOTIFY_API}/search?q=${encodeURIComponent(query)}&type=track&limit=50`,
+        `${CATALOG_API_V1}/search?q=${encodeURIComponent(query)}&type=track&limit=50`,
 
         token
 
-      ).then((data) => (data as { tracks?: { items?: SpotifyTrack[] } } | null)?.tracks?.items ?? [])
+      ).then((data) => (data as { tracks?: { items?: MusicTrack[] } } | null)?.tracks?.items ?? [])
 
     )
 
@@ -146,7 +147,7 @@ async function searchAllTracks(name: string, artistId: string, token: string): P
 
   const seen = new Set<string>();
 
-  const result: SpotifyTrack[] = [];
+  const result: MusicTrack[] = [];
 
 
 
@@ -182,11 +183,11 @@ async function searchAllTracks(name: string, artistId: string, token: string): P
 
 
 
-async function fetchAlbumTracks(artistId: string, token: string): Promise<SpotifyTrack[]> {
+async function fetchAlbumTracks(artistId: string, token: string): Promise<MusicTrack[]> {
 
-  const albums = (await spotifyGet(
+  const albums = (await catalogGet(
 
-    `${SPOTIFY_API}/artists/${artistId}/albums?include_groups=album,single&limit=10`,
+    `${CATALOG_API_V1}/artists/${artistId}/albums?include_groups=album,single&limit=10`,
 
     token
 
@@ -198,17 +199,17 @@ async function fetchAlbumTracks(artistId: string, token: string): Promise<Spotif
 
 
 
-  const tracks: SpotifyTrack[] = [];
+  const tracks: MusicTrack[] = [];
 
   for (const album of items.slice(0, 5)) {
 
-    const albumData = (await spotifyGet(
+    const albumData = (await catalogGet(
 
-      `${SPOTIFY_API}/albums/${album.id}/tracks?limit=50`,
+      `${CATALOG_API_V1}/albums/${album.id}/tracks?limit=50`,
 
       token
 
-    )) as { items?: SpotifyTrack[] } | null;
+    )) as { items?: MusicTrack[] } | null;
 
     const albumTracks = albumData?.items ?? [];
 
@@ -236,17 +237,17 @@ async function fetchAlbumTracks(artistId: string, token: string): Promise<Spotif
 
 
 
-async function fetchArtistTracks(artist: CompileArtist, token: string): Promise<SpotifyTrack[]> {
+async function fetchArtistTracks(artist: CompileArtist, token: string): Promise<MusicTrack[]> {
 
   const topTracks = await fetchTopTracks(artist.id, token);
 
   const seen = new Set<string>();
 
-  const merged: SpotifyTrack[] = [];
+  const merged: MusicTrack[] = [];
 
 
 
-  const addTrack = (track: SpotifyTrack) => {
+  const addTrack = (track: MusicTrack) => {
 
     const key = track.id ?? track.uri;
 

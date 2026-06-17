@@ -13,7 +13,7 @@ import {
   useSortable, arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SpotifyPlaylist } from "@/types";
+import { MusicPlaylist } from "@/types";
 import Image from "next/image";
 import { useToastStore } from "@/store/toast";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
@@ -22,7 +22,7 @@ import AddFromPlaylistModal from "@/components/playlist/AddFromPlaylistModal";
 import CreateMultiArtistPlaylistSheet from "@/components/playlist/CreateMultiArtistPlaylistSheet";
 import EditMixArtistsSheet from "@/components/playlist/EditMixArtistsSheet";
 import ArtistSheet from "@/components/music/ArtistSheet";
-import { SpotifyArtist } from "@/types/spotify";
+import { MusicArtist } from "@/types/music-catalog";
 import { useLikesStore } from "@/store/likes";
 import { isMixPlaylist, parseMixArtistRecords, parseMixArtists } from "@/lib/playlist-meta";
 import { shuffleArray } from "@/lib/shuffle";
@@ -160,7 +160,7 @@ function CoverArt({ tracks, imageUrl, name, size = 160 }: { tracks?: PlaylistTra
 
 // ── Main component ──────────────────────────────────────────────────────────
 export default function PlaylistsClient() {
-  const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
+  const [playlists, setPlaylists] = useState<MusicPlaylist[]>([]);
   const [viewMode, setViewMode] = useState<PlaylistViewMode>("grid");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -181,7 +181,7 @@ export default function PlaylistsClient() {
   const [editArtistsOpen, setEditArtistsOpen] = useState(false);
   const [pinnedArtists, setPinnedArtists] = useState<PinnedArtist[]>([]);
   const [removingPinnedArtist, setRemovingPinnedArtist] = useState<string | null>(null);
-  const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
+  const [selectedArtist, setSelectedArtist] = useState<MusicArtist | null>(null);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToastStore();
   const { setQueueAndPlay, currentTrack, isPlayerExpanded, deviceId } = usePlayerStore();
@@ -238,7 +238,7 @@ export default function PlaylistsClient() {
     if (oldIdx === -1 || newIdx === -1) return;
     const reordered = arrayMove(tracks, oldIdx, newIdx);
     setTracksMap((prev) => ({ ...prev, [playlistId]: reordered }));
-    fetch(`/api/spotify/playlists/${playlistId}`, {
+    fetch(`/api/music/playlists/${playlistId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order: reordered.map((t) => t.id) }),
@@ -249,7 +249,7 @@ export default function PlaylistsClient() {
     setLoading(true);
     try {
       const [plRes, pinRes] = await Promise.all([
-        fetch("/api/spotify/playlists", { cache: "no-store" }),
+        fetch("/api/music/playlists", { cache: "no-store" }),
         fetch("/api/pinned", { cache: "no-store" }),
       ]);
       if (!plRes.ok) throw new Error("Failed to load playlists");
@@ -267,7 +267,7 @@ export default function PlaylistsClient() {
   const fetchTracks = useCallback(async (id: string) => {
     setLoadingTracks(id);
     try {
-      const res = await fetch(`/api/spotify/playlists/${id}?_t=${Date.now()}`);
+      const res = await fetch(`/api/music/playlists/${id}?_t=${Date.now()}`);
       const data = await res.json();
       setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
     } catch {
@@ -296,7 +296,7 @@ export default function PlaylistsClient() {
     if (playlists.length === 0) return;
     playlists.forEach((pl) => {
       if (tracksMap[pl.id]) return;
-      fetch(`/api/spotify/playlists/${pl.id}`)
+      fetch(`/api/music/playlists/${pl.id}`)
         .then((r) => r.json())
         .then((data) => setTracksMap((prev) => ({ ...prev, [pl.id]: data.items ?? [] })))
         .catch(() => {});
@@ -316,7 +316,7 @@ export default function PlaylistsClient() {
     return () => window.removeEventListener("playlist-updated", handler);
   }, [fetchTracks, selectedId]);
 
-  const openPlaylist = (pl: SpotifyPlaylist) => {
+  const openPlaylist = (pl: MusicPlaylist) => {
     setSelectedId(pl.id);
     fetchTracks(pl.id);
   };
@@ -338,7 +338,7 @@ export default function PlaylistsClient() {
     const shuffled = shuffleArray(toPlayableQueue(tracks));
     usePlayerStore.setState({ shuffleEnabled: true });
     if (deviceId) {
-      await fetch("/api/spotify/player", {
+      await fetch("/api/music/player", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "shuffle", deviceId, state: true }),
@@ -375,12 +375,12 @@ export default function PlaylistsClient() {
     if (!newName.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/spotify/playlists", {
+      const res = await fetch("/api/music/playlists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim(), description: newDesc.trim() }),
       });
-      const created = (await res.json().catch(() => ({}))) as SpotifyPlaylist & { error?: string };
+      const created = (await res.json().catch(() => ({}))) as MusicPlaylist & { error?: string };
       if (!res.ok) throw new Error(created.error ?? "Failed to create playlist");
 
       setPlaylists((prev) => [created, ...prev.filter((p) => p.id !== created.id)]);
@@ -394,7 +394,7 @@ export default function PlaylistsClient() {
     }
   };
 
-  const handleArtistMixCreated = async (playlist: SpotifyPlaylist, addedCount: number) => {
+  const handleArtistMixCreated = async (playlist: MusicPlaylist, addedCount: number) => {
     setPlaylists((prev) => [playlist, ...prev.filter((p) => p.id !== playlist.id)]);
     setSelectedId(playlist.id);
     await fetchTracks(playlist.id);
@@ -477,7 +477,7 @@ export default function PlaylistsClient() {
     const key = `${playlistId}::${trackId}`;
     setRemovingTrack(key);
     try {
-      const res = await fetch(`/api/spotify/playlists/${playlistId}/tracks`, {
+      const res = await fetch(`/api/music/playlists/${playlistId}/tracks`, {
         method: "DELETE", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trackId }),
       });
@@ -497,7 +497,7 @@ export default function PlaylistsClient() {
     if (!edit) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/spotify/playlists/${edit.id}`, {
+      const res = await fetch(`/api/music/playlists/${edit.id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: edit.name, description: edit.description }),
       });
@@ -514,7 +514,7 @@ export default function PlaylistsClient() {
     }
   };
 
-  const togglePin = async (pl: SpotifyPlaylist) => {
+  const togglePin = async (pl: MusicPlaylist) => {
     setPinning(pl.id);
     try {
       if (pinned.has(pl.id)) {
@@ -537,7 +537,7 @@ export default function PlaylistsClient() {
     if (!window.confirm("Delete this playlist?")) return;
     setDeleting((prev) => new Set(prev).add(playlistId));
     try {
-      const res = await fetch(`/api/spotify/playlists/${playlistId}`, { method: "DELETE" });
+      const res = await fetch(`/api/music/playlists/${playlistId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete playlist");
       setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
       setPinned((prev) => { const s = new Set(prev); s.delete(playlistId); return s; });
@@ -549,7 +549,7 @@ export default function PlaylistsClient() {
     }
   };
 
-  const handleDownloadM3U = (playlist: SpotifyPlaylist, playlistTracks: PlaylistTrack[]) => {
+  const handleDownloadM3U = (playlist: MusicPlaylist, playlistTracks: PlaylistTrack[]) => {
     const m3uContent = [
       "#EXTM3U",
       ...playlistTracks.map((track) => `#EXTINF:-1,${track.track_artist ?? "Unknown Artist"} - ${track.track_name}`),
@@ -1008,7 +1008,7 @@ export default function PlaylistsClient() {
               <div key={pa.id} className="relative shrink-0 group" style={{ width: 72 }}>
                 <button
                   type="button"
-                  onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { spotify: "" }, popularity: 0, type: "artist", uri: "" } as SpotifyArtist)}
+                  onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { web: "" }, popularity: 0, type: "artist", uri: "" } as MusicArtist)}
                   className="flex flex-col items-center gap-1.5 w-full"
                 >
                   <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/40 transition-all">

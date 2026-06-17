@@ -1,3 +1,4 @@
+import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
 import { auth } from "@/lib/auth";
 import { getWebPush, toPushPayload } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
@@ -8,7 +9,7 @@ function isPushStorageUnavailable(error: { code?: string; message?: string } | n
   return error.code === "42P01" || error.message?.toLowerCase().includes("push_subscriptions") || error.message?.toLowerCase().includes("artist_release_seen") || false;
 }
 
-async function spotifyGet(url: string, token: string) {
+async function catalogGet(url: string, token: string) {
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) return null;
   return res.json();
@@ -21,9 +22,9 @@ export async function POST() {
   const supabase = await createClient();
 
   const [likedRes, subRes, seenRes] = await Promise.all([
-    supabase.from("liked_artists").select("artist_id,artist_name").eq("user_id", session.spotifyId).limit(20),
-    supabase.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", session.spotifyId),
-    supabase.from("artist_release_seen").select("artist_id,last_release_id").eq("user_id", session.spotifyId),
+    supabase.from("liked_artists").select("artist_id,artist_name").eq("user_id", session.userId).limit(20),
+    supabase.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", session.userId),
+    supabase.from("artist_release_seen").select("artist_id,last_release_id").eq("user_id", session.userId),
   ]);
 
   if (likedRes.error) return NextResponse.json({ error: likedRes.error.message }, { status: 500 });
@@ -48,8 +49,8 @@ export async function POST() {
   let notified = 0;
 
   for (const artist of liked) {
-    const data = await spotifyGet(
-      `https://api.spotify.com/v1/artists/${encodeURIComponent(artist.artist_id)}/albums?include_groups=album,single&limit=1&market=from_token`,
+    const data = await catalogGet(
+      `${CATALOG_API_V1}/artists/${encodeURIComponent(artist.artist_id)}/albums?include_groups=album,single&limit=1&market=from_token`,
       session.accessToken as string
     );
 
@@ -59,7 +60,7 @@ export async function POST() {
     const previous = seenMap.get(artist.artist_id);
     await supabase.from("artist_release_seen").upsert(
       {
-        user_id: session.spotifyId,
+        user_id: session.userId,
         artist_id: artist.artist_id,
         artist_name: artist.artist_name,
         last_release_id: latest.id,
@@ -91,7 +92,7 @@ export async function POST() {
       } catch (err: any) {
         const statusCode = err?.statusCode as number | undefined;
         if (statusCode === 404 || statusCode === 410) {
-          await supabase.from("push_subscriptions").delete().eq("user_id", session.spotifyId).eq("endpoint", sub.endpoint);
+          await supabase.from("push_subscriptions").delete().eq("user_id", session.userId).eq("endpoint", sub.endpoint);
         }
       }
     }

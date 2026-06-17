@@ -79,7 +79,7 @@ export const useOfflineStore = create<OfflineState>((set, get) => ({
         track: track.name,
         artist: track.artist || "Unknown",
       });
-      const metaRes = await fetch(`/api/spotify/preview?${params}`);
+      const metaRes = await fetch(`/api/music/preview?${params}`);
       const meta = (await metaRes.json()) as { previewUrl?: string | null; imageUrl?: string | null };
       if (!meta.previewUrl) return false;
 

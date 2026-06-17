@@ -1,4 +1,4 @@
-/** Spotify Web Playback SDK uses EME; only map known DRM failures to a friendly message. */
+/** Web Playback SDK uses EME; only map known DRM failures to a friendly message. */
 
 export function formatPlaybackEnvironmentError(raw?: string): string {
   const text = (raw ?? "").toLowerCase();

@@ -1,9 +1,9 @@
-import { SpotifyAlbum } from "@/types";
+import { MusicAlbum } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 
 interface Props {
-  album: SpotifyAlbum;
+  album: MusicAlbum;
 }
 
 export default function AlbumCard({ album }: Props) {
@@ -11,7 +11,7 @@ export default function AlbumCard({ album }: Props) {
 
   return (
     <Link
-      href={album.external_urls.spotify}
+      href={album.external_urls.web}
       target="_blank"
       rel="noopener noreferrer"
       className="flex flex-col gap-2 p-3 rounded-xl hover:bg-zinc-800/60 transition-colors group"

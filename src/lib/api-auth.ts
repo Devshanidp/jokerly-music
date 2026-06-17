@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export async function getApiSession() {
   try {
     const session = await auth();
-    if (!session?.spotifyId) return null;
+    if (!session?.userId) return null;
     return session;
   } catch {
     return null;

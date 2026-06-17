@@ -12,7 +12,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("recently_played")
       .select("*")
-      .eq("user_id", session.spotifyId)
+      .eq("user_id", session.userId)
       .order("played_at", { ascending: false })
       .limit(20);
 
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     const supabase = await createClient();
     const { error } = await supabase.from("recently_played").upsert(
       {
-        user_id: session.spotifyId,
+        user_id: session.userId,
         track_uri: body.track_uri,
         track_name: body.track_name,
         track_artist: body.track_artist,
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    void supabase.rpc("trim_recently_played", { p_user_id: session.spotifyId });
+    void supabase.rpc("trim_recently_played", { p_user_id: session.userId });
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("[recently-played POST]", e);

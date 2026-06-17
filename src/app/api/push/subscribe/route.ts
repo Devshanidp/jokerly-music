@@ -20,7 +20,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("push_subscriptions")
     .select("id")
-    .eq("user_id", session.spotifyId)
+    .eq("user_id", session.userId)
     .limit(1);
 
   if (isPushStorageUnavailable(error)) {
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     .from("push_subscriptions")
     .upsert(
       {
-        user_id: session.spotifyId,
+        user_id: session.userId,
         endpoint: body.endpoint,
         p256dh: body.keys.p256dh,
         auth: body.keys.auth,
@@ -72,7 +72,7 @@ export async function DELETE(req: NextRequest) {
   const { error } = await supabase
     .from("push_subscriptions")
     .delete()
-    .eq("user_id", session.spotifyId)
+    .eq("user_id", session.userId)
     .eq("endpoint", body.endpoint);
 
   if (isPushStorageUnavailable(error)) {

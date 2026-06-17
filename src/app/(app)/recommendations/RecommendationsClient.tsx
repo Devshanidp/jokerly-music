@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Sparkles, RefreshCw, Music } from "lucide-react";
-import SpotifyTrackCard from "@/components/music/SpotifyTrackCard";
+import TrackCard from "@/components/music/TrackCard";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
-import { SpotifyTrack, trackImage, artistNames } from "@/types/spotify";
+import { MusicTrack, trackImage, artistNames } from "@/types/music-catalog";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 
 const GENRE_TAGS = ["pop", "rock", "hip-hop", "electronic", "jazz", "classical", "indie", "r&b"];
 
-function toPlayable(t: SpotifyTrack): PlayableTrack {
+function toPlayable(t: MusicTrack): PlayableTrack {
   return {
     name: t.name,
     artist: artistNames(t),
@@ -20,7 +20,7 @@ function toPlayable(t: SpotifyTrack): PlayableTrack {
 }
 
 export default function RecommendationsClient() {
-  const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
+  const [tracks, setTracks] = useState<MusicTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
   const [similarSeed, setSimilarSeed] = useState<{ name: string; artist: string } | null>(null);
@@ -33,7 +33,7 @@ export default function RecommendationsClient() {
     setSimilarSeed(null);
     setSelectedGenre(null);
     try {
-      const res = await fetch("/api/spotify/recommendations");
+      const res = await fetch("/api/music/recommendations");
       const data = await res.json();
       setTracks(data.tracks ?? []);
     } finally {
@@ -46,7 +46,7 @@ export default function RecommendationsClient() {
     setSelectedGenre(genre);
     setSimilarSeed(null);
     try {
-      const res = await fetch(`/api/spotify/recommendations?genre=${encodeURIComponent(genre)}`);
+      const res = await fetch(`/api/music/recommendations?genre=${encodeURIComponent(genre)}`);
       const data = await res.json();
       setTracks(data.tracks ?? []);
     } finally {
@@ -54,13 +54,13 @@ export default function RecommendationsClient() {
     }
   };
 
-  const fetchSimilar = async (track: SpotifyTrack) => {
+  const fetchSimilar = async (track: MusicTrack) => {
     const artist = artistNames(track);
     setLoading(true);
     setSimilarSeed({ name: track.name, artist });
     setSelectedGenre(null);
     try {
-      const res = await fetch(`/api/spotify/recommendations?trackId=${encodeURIComponent(track.id)}`);
+      const res = await fetch(`/api/music/recommendations?trackId=${encodeURIComponent(track.id)}`);
       const data = await res.json();
       setTracks(data.tracks ?? []);
     } finally {
@@ -68,18 +68,18 @@ export default function RecommendationsClient() {
     }
   };
 
-  const handlePlay = (track: SpotifyTrack) => {
+  const handlePlay = (track: MusicTrack) => {
     const index = tracks.findIndex((t) => t.id === track.id);
     if (index === -1) return;
     setQueueAndPlay(tracks.map(toPlayable), index);
   };
 
-  const isTrackPlaying = (track: SpotifyTrack) =>
+  const isTrackPlaying = (track: MusicTrack) =>
     currentTrack?.name === track.name &&
     currentTrack?.artist === artistNames(track) &&
     isPlaying;
 
-  const handleAddToPlaylist = (track: SpotifyTrack) => {
+  const handleAddToPlaylist = (track: MusicTrack) => {
     setModalTrack({ uri: track.uri, name: track.name });
   };
 
@@ -138,7 +138,7 @@ export default function RecommendationsClient() {
       ) : (
         <div className="space-y-1">
           {tracks.map((track, i) => (
-            <SpotifyTrackCard
+            <TrackCard
               key={track.id}
               track={track}
               rank={i + 1}

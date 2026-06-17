@@ -11,7 +11,7 @@ export default function PinnedClient() {
   const [pinnedAlbums, setPinnedAlbums] = useState<PinnedAlbum[]>([]);
   const [loading, setLoading] = useState(true);
   const [unpinning, setUnpinning] = useState<string | null>(null);
-  const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string; images: { url: string }[]; release_date: string; artists: { id: string; name: string; external_urls: { spotify: string } }[]; external_urls: { spotify: string }; total_tracks: number; album_type: string; uri: string } | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string; images: { url: string }[]; release_date: string; artists: { id: string; name: string; external_urls: { web: string } }[]; external_urls: { web: string }; total_tracks: number; album_type: string; uri: string } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -89,8 +89,8 @@ export default function PinnedClient() {
                       name: album.album_name,
                       images: album.album_image ? [{ url: album.album_image }] : [],
                       release_date: "",
-                      artists: [{ id: album.album_id, name: album.artist_name, external_urls: { spotify: "" } }],
-                      external_urls: { spotify: "" },
+                      artists: [{ id: album.album_id, name: album.artist_name, external_urls: { web: "" } }],
+                      external_urls: { web: "" },
                       total_tracks: 0,
                       album_type: "album",
                       uri: "",

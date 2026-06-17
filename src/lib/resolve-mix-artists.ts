@@ -1,7 +1,7 @@
 import type { MixArtist } from "@/lib/playlist-meta";
-import type { SpotifyArtist } from "@/types/spotify";
+import type { MusicArtist } from "@/types/music-catalog";
 
-/** Client: resolve missing Spotify IDs via app search API */
+/** Client: resolve missing catalog IDs via app search API */
 export async function resolveMixArtistsClient(artists: MixArtist[]): Promise<MixArtist[]> {
   return Promise.all(
     artists.map(async (artist) => {
@@ -9,9 +9,9 @@ export async function resolveMixArtistsClient(artists: MixArtist[]): Promise<Mix
         return { id: artist.id.trim(), name: artist.name };
       }
       const res = await fetch(
-        `/api/spotify/search?q=${encodeURIComponent(artist.name)}&type=artist&limit=8`
+        `/api/music/search?q=${encodeURIComponent(artist.name)}&type=artist&limit=8`
       );
-      const data = (await res.json().catch(() => ({}))) as { artists?: SpotifyArtist[] };
+      const data = (await res.json().catch(() => ({}))) as { artists?: MusicArtist[] };
       const match =
         data.artists?.find((item) => item.name.toLowerCase() === artist.name.toLowerCase()) ??
         data.artists?.[0];

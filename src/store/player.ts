@@ -13,11 +13,17 @@ import {
 } from "@/lib/offline-player";
 import { fetchOfflineBlob } from "@/store/offline";
 import { useOfflineStore } from "@/store/offline";
+import {
+  CATALOG_API_V1,
+  WEB_PLAYBACK_GLOBAL,
+  WEB_PLAYBACK_SDK_READY_CB,
+  WEB_PLAYBACK_SDK_SCRIPT,
+} from "@/lib/catalog-endpoints";
 export interface PlayableTrack {
   name: string;
   artist: string;
   image?: string;
-  uri?: string | null; // undefined = not yet resolved, null = not found on Spotify
+  uri?: string | null; // undefined = not yet resolved, null = not found in catalog
   durationMs?: number;
 }
 
@@ -34,7 +40,7 @@ interface PlayerState {
   durationMs: number;
   isPlayerReady: boolean;
   sdkError: string | null;
-  player: SpotifyPlayer | null;
+  player: WebPlayer | null;
   deviceId: string | null;
   accessToken: string | null;
   repeatMode: RepeatMode;
@@ -72,7 +78,7 @@ interface PlayerState {
   getPrevIndex: () => number | null;
 }
 
-interface SpotifyPlayerTrack {
+interface WebPlayerTrack {
   uri: string;
   name: string;
   duration_ms: number;
@@ -80,14 +86,14 @@ interface SpotifyPlayerTrack {
   album: { images: { url: string }[] };
 }
 
-interface SpotifyPlayerState {
+interface WebPlayerState {
   paused: boolean;
   position: number;
   duration: number;
-  track_window: { current_track: SpotifyPlayerTrack };
+  track_window: { current_track: WebPlayerTrack };
 }
 
-interface SpotifyPlayer {
+interface WebPlayer {
   addListener: (event: string, cb: (arg?: unknown) => void) => void;
   connect: () => Promise<boolean>;
   disconnect: () => void;
@@ -96,24 +102,25 @@ interface SpotifyPlayer {
   pause: () => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
   getVolume: () => Promise<number>;
-  getCurrentState: () => Promise<SpotifyPlayerState | null>;
+  getCurrentState: () => Promise<WebPlayerState | null>;
   activateElement?: () => Promise<void>;
 }
 
-interface SpotifyPlayerCtor {
+interface WebPlayerCtor {
   Player: new (options: {
     name: string;
     getOAuthToken: (cb: (token: string) => void) => void;
     volume?: number;
-  }) => SpotifyPlayer;
+  }) => WebPlayer;
 }
 
-function getSpotifyCtor(): SpotifyPlayerCtor | null {
+function getWebPlaybackCtor(): WebPlayerCtor | null {
   if (typeof window === "undefined") return null;
-  return (window as typeof window & { Spotify?: SpotifyPlayerCtor }).Spotify ?? null;
+  const win = window as typeof window & Record<string, WebPlayerCtor | undefined>;
+  return win[WEB_PLAYBACK_GLOBAL] ?? null;
 }
 
-// Spotify emits short-lived paused states during track switches.
+// SDK emits short-lived paused states during track switches.
 // Keep UI stable for a brief window right after a play request.
 
 // iOS audio focus — play a 1-sample silent buffer synchronously within every
@@ -218,41 +225,39 @@ function isAuthError(errorText: string) {
     normalized.includes("authentication") ||
     normalized.includes("access token") ||
     normalized.includes('"status":401') ||
-    normalized.includes("spotify api 401");
+    normalized.includes("catalog api 401");
 }
 
-async function loadSpotifySdk(): Promise<SpotifyPlayerCtor | null> {
-  const existing = getSpotifyCtor();
+async function loadWebPlaybackSdk(): Promise<WebPlayerCtor | null> {
+  const existing = getWebPlaybackCtor();
   if (existing) return existing;
   if (typeof window === "undefined") return null;
 
   await new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(() => reject(new Error("Spotify SDK timeout")), 10000);
-    const win = window as typeof window & {
-      onSpotifyWebPlaybackSDKReady?: () => void;
-    };
-    win.onSpotifyWebPlaybackSDKReady = () => {
+    const timeout = window.setTimeout(() => reject(new Error("Playback SDK timeout")), 10000);
+    const win = window as typeof window & Record<string, (() => void) | undefined>;
+    win[WEB_PLAYBACK_SDK_READY_CB] = () => {
       window.clearTimeout(timeout);
       resolve();
     };
 
-    const existingScript = document.querySelector('script[src="https://sdk.scdn.co/spotify-player.js"]');
+    const existingScript = document.querySelector(`script[src="${WEB_PLAYBACK_SDK_SCRIPT}"]`);
     if (existingScript) return;
 
     const script = document.createElement("script");
-    script.src = "https://sdk.scdn.co/spotify-player.js";
+    script.src = WEB_PLAYBACK_SDK_SCRIPT;
     script.async = true;
     script.onerror = () => {
       window.clearTimeout(timeout);
-      reject(new Error("Failed to load Spotify SDK"));
+      reject(new Error("Failed to load playback SDK"));
     };
     document.body.appendChild(script);
   });
 
-  return getSpotifyCtor();
+  return getWebPlaybackCtor();
 }
 
-function hydrateFromSdkState(state: SpotifyPlayerState | null) {
+function hydrateFromSdkState(state: WebPlayerState | null) {
   if (!state) {
     // A null state fires transiently during device transfers and SDK init.
     // Do NOT reset isPlaying here — the actual stopped/paused state arrives
@@ -330,8 +335,8 @@ function hydrateFromSdkState(state: SpotifyPlayerState | null) {
   }
 }
 
-async function spotifyApi(path: string, accessToken: string, options: RequestInit = {}) {
-  const res = await fetch(`https://api.spotify.com/v1${path}`, {
+async function catalogApi(path: string, accessToken: string, options: RequestInit = {}) {
+  const res = await fetch(`${CATALOG_API_V1}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -342,12 +347,12 @@ async function spotifyApi(path: string, accessToken: string, options: RequestIni
 
   if (!res.ok) {
     const details = await res.text().catch(() => "");
-    throw new Error(`Spotify API ${res.status}: ${details}`);
+    throw new Error(`Catalog API ${res.status}: ${details}`);
   }
 }
 
 async function playerApi(action: "play" | "repeat" | "shuffle", body: Record<string, unknown>) {
-  const res = await fetch("/api/spotify/player", {
+  const res = await fetch("/api/music/player", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action, ...body }),
@@ -395,23 +400,23 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
-    let Spotify: SpotifyPlayerCtor | null = null;
+    let playbackCtor: WebPlayerCtor | null = null;
     try {
-      Spotify = await loadSpotifySdk();
+      playbackCtor = await loadWebPlaybackSdk();
     } catch (e) {
-      set({ sdkError: (e as Error).message ?? "Failed to load Spotify player" });
+      set({ sdkError: (e as Error).message ?? "Failed to load the player" });
       return;
     }
-    if (!Spotify) {
-      set({ sdkError: "Spotify player unavailable" });
+    if (!playbackCtor) {
+      set({ sdkError: "Player unavailable" });
       return;
     }
 
-    const player = new Spotify.Player({
+    const player = new playbackCtor.Player({
       name: "JKMuusic Web Player",
       getOAuthToken: async (cb) => {
         try {
-          const res = await fetch("/api/spotify/token", {
+          const res = await fetch("/api/music/token", {
             credentials: "same-origin",
             cache: "no-store",
           });
@@ -430,7 +435,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
             set({
               isPlaying: false,
               isPlayerReady: false,
-              sdkError: "Spotify session expired. Sign in again to continue playback.",
+              sdkError: "Session expired. Sign in again to continue playback.",
             });
             cb("");
             return;
@@ -478,7 +483,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     player.addListener("player_state_changed", (state) => {
       const previous = get();
-      const nextState = (state as SpotifyPlayerState | null) ?? null;
+      const nextState = (state as WebPlayerState | null) ?? null;
       const prevSdkPosition = lastSdkPositionMs;
       if (nextState) lastSdkPositionMs = nextState.position;
 
@@ -536,7 +541,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       suppressAutoResumeUntil = Date.now() + 60_000;
       clearPlayRetry(true);
       try {
-        const res = await fetch("/api/spotify/token", {
+        const res = await fetch("/api/music/token", {
           credentials: "same-origin",
           cache: "no-store",
         });
@@ -559,11 +564,11 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         isPlaying: false,
         isTransitioning: false,
         isPlayerReady: false,
-        sdkError: "Spotify session expired. Sign in again to continue playback.",
+        sdkError: "Session expired. Sign in again to continue playback.",
       });
     });
     player.addListener("account_error", () => {
-      set({ isPlayerReady: false, sdkError: "Spotify Premium is required to use the player." });
+      set({ isPlayerReady: false, sdkError: "Premium subscription is required to use the player." });
     });
 
     const connected = await player.connect();
@@ -571,7 +576,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       set({ player, sdkError: null });
       player.setVolume(get().volume).catch(() => {});
     } else {
-      set({ sdkError: "Could not connect to Spotify. Tap play to try again." });
+      set({ sdkError: "Could not connect to the player. Tap play to try again." });
     }
   },
 

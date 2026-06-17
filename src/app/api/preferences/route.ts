@@ -20,7 +20,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("user_language_prefs")
       .select("languages, favorite_artists")
-      .eq("user_id", session.spotifyId)
+      .eq("user_id", session.userId)
       .maybeSingle();
 
     if (error) {
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const updateData: Record<string, unknown> = {
-    user_id: session.spotifyId,
+    user_id: session.userId,
     updated_at: new Date().toISOString(),
   };
 

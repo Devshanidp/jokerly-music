@@ -10,7 +10,7 @@ import PinnedPlaylistSection from "@/components/home/PinnedPlaylistSection";
 import PersonalizeSheet, { FavoriteArtist } from "@/components/home/PersonalizeSheet";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import AlbumSheet from "@/components/music/AlbumSheet";
-import { SpotifyTrack, SpotifyArtist, SpotifyAlbum, trackImage, artistImage, artistNames } from "@/types/spotify";
+import { MusicTrack, MusicArtist, MusicAlbum, trackImage, artistImage, artistNames } from "@/types/music-catalog";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import Image from "next/image";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
@@ -25,7 +25,7 @@ interface Suggestion {
   id: string;
   uri?: string;
   durationMs?: number;
-  album?: SpotifyAlbum;
+  album?: MusicAlbum;
 }
 
 type SuggestionFilter = "all" | "track" | "artist" | "album";
@@ -58,8 +58,8 @@ interface FeedSection {
   langId: string;
   label: string;
   emoji: string;
-  tracks: SpotifyTrack[];
-  artists: SpotifyArtist[];
+  tracks: MusicTrack[];
+  artists: MusicArtist[];
 }
 
 const suggestCache = new Map<string, Suggestion[]>();
@@ -70,7 +70,7 @@ interface HomeCache {
   favoriteArtists: FavoriteArtist[];
   pinned: PinnedPlaylist[];
   feedSections: FeedSection[];
-  forYouTracks: SpotifyTrack[];
+  forYouTracks: MusicTrack[];
   ts: number;
 }
 let homeCache: HomeCache | null = null;
@@ -79,7 +79,7 @@ const HOME_CACHE_TTL = 5 * 60 * 1000;
 function toPlayableFromSuggestion(s: Suggestion): PlayableTrack {
   return { name: s.name, artist: s.sub, image: s.image ?? undefined, uri: s.uri ?? null, durationMs: s.durationMs };
 }
-function toPlayableFromTrack(t: SpotifyTrack): PlayableTrack {
+function toPlayableFromTrack(t: MusicTrack): PlayableTrack {
   return { name: t.name, artist: artistNames(t), image: trackImage(t) ?? undefined, uri: t.uri, durationMs: t.duration_ms };
 }
 
@@ -153,7 +153,7 @@ export default function HomeClient() {
   const [feedLoading, setFeedLoading] = useState(!hasFreshCache);
   const [pinned, setPinned] = useState<PinnedPlaylist[]>(hasFreshCache ? homeCache!.pinned : []);
   const [pinnedLoading, setPinnedLoading] = useState(true);
-  const [forYouTracks, setForYouTracks] = useState<SpotifyTrack[]>(hasFreshCache ? homeCache!.forYouTracks : []);
+  const [forYouTracks, setForYouTracks] = useState<MusicTrack[]>(hasFreshCache ? homeCache!.forYouTracks : []);
   const [forYouLoading, setForYouLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showPersonalize, setShowPersonalize] = useState(false);
@@ -165,8 +165,8 @@ export default function HomeClient() {
   const [suggestionFilter, setSuggestionFilter] = useState<SuggestionFilter>("all");
   const [playingKey, setPlayingKey] = useState<string | null>(null);
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
-  const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
-  const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string; images: { url: string }[]; release_date: string; artists: { id: string; name: string; external_urls: { spotify: string } }[]; external_urls: { spotify: string }; total_tracks: number; album_type: string; uri: string } | null>(null);
+  const [selectedArtist, setSelectedArtist] = useState<MusicArtist | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string; images: { url: string }[]; release_date: string; artists: { id: string; name: string; external_urls: { web: string } }[]; external_urls: { web: string }; total_tracks: number; album_type: string; uri: string } | null>(null);
   const [pinnedArtists, setPinnedArtists] = useState<PinnedArtist[]>([]);
   const [removingPinnedArtist, setRemovingPinnedArtist] = useState<string | null>(null);
   const [pinnedAlbums, setPinnedAlbums] = useState<PinnedAlbum[]>([]);
@@ -290,7 +290,7 @@ export default function HomeClient() {
     if (!langList.length) return;
     setFeedLoading(true);
     if (bust) setFeedSections([]); // clear stale content immediately
-    const url = `/api/spotify/language-feed?langs=${langList.join(",")}${bust ? `&r=${Date.now()}` : ""}`;
+    const url = `/api/music/language-feed?langs=${langList.join(",")}${bust ? `&r=${Date.now()}` : ""}`;
     fetch(url, bust ? { cache: "no-store" } : {})
       .then((r) => r.json())
       .then((data) => {
@@ -320,10 +320,10 @@ export default function HomeClient() {
     setForYouLoading(true);
     if (bust) setForYouTracks([]);
     const ids = artists.map((a) => a.id).join(",");
-    fetch(`/api/spotify/for-you?artists=${ids}`, bust ? { cache: "no-store" } : {})
+    fetch(`/api/music/for-you?artists=${ids}`, bust ? { cache: "no-store" } : {})
       .then((r) => r.json())
       .then((data) => {
-        const tracks: SpotifyTrack[] = data.tracks ?? [];
+        const tracks: MusicTrack[] = data.tracks ?? [];
         setForYouTracks(tracks);
         if (homeCache) homeCache.forYouTracks = tracks;
       })
@@ -406,7 +406,7 @@ export default function HomeClient() {
     }
   };
 
-  const toggleArtistPin = async (artist: SpotifyArtist) => {
+  const toggleArtistPin = async (artist: MusicArtist) => {
     const alreadyPinned = pinnedArtists.some((pa) => pa.artist_id === artist.id);
     const img = artistImage(artist) ?? "";
     if (alreadyPinned) {
@@ -451,7 +451,7 @@ export default function HomeClient() {
       try {
         const apiSearch = async (type: string, limit: number) => {
           const params = new URLSearchParams({ q: query, type, limit: String(limit) });
-          const res = await fetch(`/api/spotify/search?${params}`, {
+          const res = await fetch(`/api/music/search?${params}`, {
             credentials: "same-origin",
             cache: "no-store",
           });
@@ -465,18 +465,18 @@ export default function HomeClient() {
           apiSearch("album", 4),
         ]);
         const trackSugs: Suggestion[] = tracksRes.status === "fulfilled"
-          ? (tracksRes.value.tracks ?? []).slice(0, 5).map((t: SpotifyTrack) => ({
+          ? (tracksRes.value.tracks ?? []).slice(0, 5).map((t: MusicTrack) => ({
               type: "track" as const, name: t.name, sub: artistNames(t), image: trackImage(t) ?? null, id: t.id, uri: t.uri, durationMs: t.duration_ms,
             }))
           : [];
         const artistSugs: Suggestion[] = artistsRes.status === "fulfilled"
-          ? (artistsRes.value.artists ?? []).slice(0, 3).map((a: SpotifyArtist) => ({
+          ? (artistsRes.value.artists ?? []).slice(0, 3).map((a: MusicArtist) => ({
               type: "artist" as const, name: a.name, sub: a.followers?.total != null ? `${a.followers.total.toLocaleString()} followers` : "Artist",
               image: artistImage(a) ?? null, id: a.id,
             }))
           : [];
         const albumSugs: Suggestion[] = albumsRes.status === "fulfilled"
-          ? (albumsRes.value.albums ?? []).slice(0, 4).map((a: SpotifyAlbum) => ({
+          ? (albumsRes.value.albums ?? []).slice(0, 4).map((a: MusicAlbum) => ({
               type: "album" as const,
               name: a.name,
               sub: Array.isArray(a.artists) ? a.artists.map((ar) => ar.name).join(", ") : "Album",
@@ -535,7 +535,7 @@ export default function HomeClient() {
           setIdentifying(true);
           const form = new FormData();
           form.append("audio", audioBlob, "clip.webm");
-          const res = await fetch("/api/spotify/identify", { method: "POST", body: form });
+          const res = await fetch("/api/music/identify", { method: "POST", body: form });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) { setIdentifyError(data.error ?? "Could not identify song"); return; }
           const match = data.match as IdentifiedMatch | undefined;
@@ -777,7 +777,7 @@ export default function HomeClient() {
               <div key={pa.id} className="relative shrink-0 group" style={{ width: 72 }}>
                 <button
                   type="button"
-                  onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { spotify: "" }, popularity: 0, type: "artist", uri: "" } as SpotifyArtist)}
+                  onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { web: "" }, popularity: 0, type: "artist", uri: "" } as MusicArtist)}
                   className="flex flex-col items-center gap-1.5 w-full"
                 >
                   <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/40 transition-all">
@@ -828,8 +828,8 @@ export default function HomeClient() {
                   name: album.album_name,
                   images: album.album_image ? [{ url: album.album_image }] : [],
                   release_date: "",
-                  artists: [{ id: album.album_id, name: album.artist_name, external_urls: { spotify: "" } }],
-                  external_urls: { spotify: "" },
+                  artists: [{ id: album.album_id, name: album.artist_name, external_urls: { web: "" } }],
+                  external_urls: { web: "" },
                   total_tracks: 0,
                   album_type: "album",
                   uri: "",

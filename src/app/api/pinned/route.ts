@@ -12,7 +12,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("pinned_playlists")
       .select("*")
-      .eq("user_id", session.spotifyId)
+      .eq("user_id", session.userId)
       .order("pinned_at", { ascending: false });
 
     if (error) {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await supabase
       .from("pinned_playlists")
       .upsert({
-        user_id: session.spotifyId,
+        user_id: session.userId,
         playlist_id: body.playlist_id,
         playlist_name: body.playlist_name,
         playlist_image: body.playlist_image ?? "",
@@ -71,7 +71,7 @@ export async function DELETE(req: NextRequest) {
     const { error } = await supabase
       .from("pinned_playlists")
       .delete()
-      .eq("user_id", session.spotifyId)
+      .eq("user_id", session.userId)
       .eq("playlist_id", playlist_id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -5,7 +5,7 @@ import { Check, Loader2, Mic2, Plus, Search, Users, X } from "lucide-react";
 import Image from "next/image";
 import type { MixArtist } from "@/lib/playlist-meta";
 import { mixArtistsNeedResolve, resolveMixArtistsClient } from "@/lib/resolve-mix-artists";
-import { SpotifyArtist, artistImage } from "@/types/spotify";
+import { MusicArtist, artistImage } from "@/types/music-catalog";
 import { useToastStore } from "@/store/toast";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
@@ -29,7 +29,7 @@ export default function EditMixArtistsSheet({
   useBackHandler(open, onClose);
 
   const [artistQuery, setArtistQuery] = useState("");
-  const [artistResults, setArtistResults] = useState<SpotifyArtist[]>([]);
+  const [artistResults, setArtistResults] = useState<MusicArtist[]>([]);
   const [selectedArtists, setSelectedArtists] = useState<MixArtist[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -57,7 +57,7 @@ export default function EditMixArtistsSheet({
     const loadArtists = async () => {
       setResolving(true);
       try {
-        const res = await fetch(`/api/spotify/playlists/${playlistId}/artists`, { cache: "no-store" });
+        const res = await fetch(`/api/music/playlists/${playlistId}/artists`, { cache: "no-store" });
         const data = (await res.json().catch(() => ({}))) as { artists?: MixArtist[]; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Could not load artists");
         const fromApi = data.artists?.length ? data.artists : initialArtistsRef.current;
@@ -103,9 +103,9 @@ export default function EditMixArtistsSheet({
             return;
           }
           const res = await fetch(
-            `/api/spotify/artist/related?ids=${encodeURIComponent(ids)}&exclude=${encodeURIComponent(ids)}`
+            `/api/music/artist/related?ids=${encodeURIComponent(ids)}&exclude=${encodeURIComponent(ids)}`
           );
-          const data = (await res.json().catch(() => ({}))) as { artists?: SpotifyArtist[]; error?: string };
+          const data = (await res.json().catch(() => ({}))) as { artists?: MusicArtist[]; error?: string };
           if (!res.ok) throw new Error(data.error ?? "Could not load related artists");
           setArtistResults((data.artists ?? []).filter((artist) => !selectedIds.has(artist.id)));
         } catch (e) {
@@ -123,9 +123,9 @@ export default function EditMixArtistsSheet({
     searchTimer.current = setTimeout(async () => {
       try {
         const res = await fetch(
-          `/api/spotify/search?q=${encodeURIComponent(query)}&type=artist&limit=10`
+          `/api/music/search?q=${encodeURIComponent(query)}&type=artist&limit=10`
         );
-        const data = (await res.json().catch(() => ({}))) as { artists?: SpotifyArtist[]; error?: string };
+        const data = (await res.json().catch(() => ({}))) as { artists?: MusicArtist[]; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Could not search artists");
         setArtistResults((data.artists ?? []).filter((artist) => !selectedIds.has(artist.id)));
       } catch (e) {
@@ -139,7 +139,7 @@ export default function EditMixArtistsSheet({
     return () => clearTimeout(searchTimer.current);
   }, [artistQuery, open, resolving, selectedArtists, toast]);
 
-  const addArtist = (artist: SpotifyArtist) => {
+  const addArtist = (artist: MusicArtist) => {
     setSelectedArtists((prev) => {
       if (prev.find((item) => item.id === artist.id)) return prev;
       return [...prev, { id: artist.id, name: artist.name }];
@@ -171,7 +171,7 @@ export default function EditMixArtistsSheet({
         return;
       }
 
-      const res = await fetch(`/api/spotify/playlists/${playlistId}/artists`, {
+      const res = await fetch(`/api/music/playlists/${playlistId}/artists`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

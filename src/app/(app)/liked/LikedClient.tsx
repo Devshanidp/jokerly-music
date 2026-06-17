@@ -8,9 +8,9 @@ import { signIn, useSession } from "next-auth/react";
 import { useLikesStore, LikedSong, LikedArtist } from "@/store/likes";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import ArtistSheet from "@/components/music/ArtistSheet";
-import { SpotifyArtist } from "@/types/spotify";
-import TransferResultDialog, { TransferResult } from "@/components/spotify/TransferResultDialog";
-import { SPOTIFY_SIGN_IN_OPTIONS } from "@/lib/spotify-auth-client";
+import { MusicArtist } from "@/types/music-catalog";
+import TransferResultDialog, { TransferResult } from "@/components/transfer/TransferResultDialog";
+import { MUSIC_SIGN_IN_OPTIONS, AUTH_PROVIDER_ID } from "@/lib/music-auth-client";
 
 export default function LikedClient() {
   const router = useRouter();
@@ -18,14 +18,14 @@ export default function LikedClient() {
   const { songs, artists, loaded, load, toggleSong, toggleArtist } = useLikesStore();
   const { setQueueAndPlay } = usePlayerStore();
   const [tab, setTab] = useState<"songs" | "artists">("songs");
-  const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
+  const [selectedArtist, setSelectedArtist] = useState<MusicArtist | null>(null);
   const [transferring, setTransferring] = useState(false);
   const [transferResult, setTransferResult] = useState<TransferResult | null>(null);
 
   useEffect(() => { load(); }, [load]);
 
-  const continueWithSpotify = useCallback(() => {
-    void signIn("spotify", { callbackUrl: window.location.href }, SPOTIFY_SIGN_IN_OPTIONS);
+  const continueWithMusicAuth = useCallback(() => {
+    void signIn(AUTH_PROVIDER_ID, { callbackUrl: window.location.href }, MUSIC_SIGN_IN_OPTIONS);
   }, []);
 
   const playSong = (song: LikedSong, index: number) => {
@@ -50,14 +50,14 @@ export default function LikedClient() {
       images: a.artist_image ? [{ url: a.artist_image }] : [],
       followers: { total: 0 },
       genres: [],
-      external_urls: { spotify: "" },
+      external_urls: { web: "" },
       popularity: 0,
       type: "artist",
       uri: "",
-    } as SpotifyArtist);
+    } as MusicArtist);
   };
 
-  const transferLikedToSpotify = useCallback(async () => {
+  const transferLikedToLibrary = useCallback(async () => {
     if (songs.length === 0 && artists.length === 0) {
       setTransferResult({
         type: "error",
@@ -70,7 +70,7 @@ export default function LikedClient() {
     setTransferring(true);
     try {
       const accessToken = (session as { accessToken?: string } | null)?.accessToken;
-      const res = await fetch("/api/spotify/transfer", {
+      const res = await fetch("/api/music/transfer", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -82,9 +82,9 @@ export default function LikedClient() {
       if (res.status === 401) {
         setTransferResult({
           type: "error",
-          title: "Spotify Permission Needed",
-          message: data.error || "Connect Spotify once to allow playlist, liked song, and artist transfer.",
-          details: data.error || "Spotify needs a one-time permission upgrade before transfer can continue.",
+          title: "Permission needed",
+          message: data.error || "Connect your account once to allow playlist, liked song, and artist transfer.",
+          details: data.error || "A one-time permission upgrade is needed before transfer can continue.",
           needsReauth: true,
         });
         return;
@@ -95,14 +95,15 @@ export default function LikedClient() {
       setTransferResult({
         type: warnings.length > 0 ? "error" : "success",
         title: warnings.length > 0 ? "Transfer Partially Completed" : "Transfer Successful",
-        message: `Transferred ${data.savedSongCount ?? 0} songs and ${data.followedArtistCount ?? 0} artists to Spotify.`,
+        message: `Transferred ${data.savedSongCount ?? 0} songs and ${data.followedArtistCount ?? 0} artists to your library.`,
         ...(warnings.length > 0 ? { details: warnings.join("\n") } : {}),
       });
     } catch (e) {
       const message = (e as Error).message || "Could not transfer liked items";
       const needsReauth =
-        message.toLowerCase().includes("spotify") &&
-        (message.toLowerCase().includes("permission") || message.toLowerCase().includes("token"));
+        message.toLowerCase().includes("permission") ||
+        message.toLowerCase().includes("token") ||
+        message.toLowerCase().includes("unauthorized");
       setTransferResult({
         type: "error",
         title: "Transfer Failed",
@@ -136,13 +137,13 @@ export default function LikedClient() {
         </div>
         <div className="flex-1" />
         <button
-          onClick={() => void transferLikedToSpotify()}
+          onClick={() => void transferLikedToLibrary()}
           disabled={transferring || !loaded || (songs.length === 0 && artists.length === 0)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white font-semibold text-xs transition-all active:scale-95 disabled:opacity-40"
-          style={{ background: "rgba(29,185,84,0.14)", color: "#1DB954" }}
+          style={{ background: "rgba(232,40,43,0.14)", color: "#E8282B" }}
         >
           {transferring ? <Loader2 size={14} className="animate-spin" /> : <Music size={14} />}
-          Spotify
+          Transfer
         </button>
       </div>
 
@@ -174,7 +175,7 @@ export default function LikedClient() {
         <TransferResultDialog
           result={transferResult}
           onClose={() => setTransferResult(null)}
-          onReauthorize={continueWithSpotify}
+          onReauthorize={continueWithMusicAuth}
         />
       )}
     </div>

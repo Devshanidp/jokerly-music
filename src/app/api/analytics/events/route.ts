@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ ok: false, reason: "unauthorized" }, { status: 200 });
-    if (!session.spotifyId) return NextResponse.json({ ok: false, reason: "no_user" }, { status: 200 });
+    if (!session.userId) return NextResponse.json({ ok: false, reason: "no_user" }, { status: 200 });
 
     const body = await req.json().catch(() => null);
     if (!body?.event_type) {
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
     const supabase = await createClient();
     const { error } = await supabase.from("listening_analytics").insert({
-      user_id: session.spotifyId,
+      user_id: session.userId,
       event_type: body.event_type,
       track_uri: body.track_uri ?? null,
       track_name: body.track_name ?? null,

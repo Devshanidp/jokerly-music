@@ -12,7 +12,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("liked_artists")
       .select("*")
-      .eq("user_id", session.spotifyId)
+      .eq("user_id", session.userId)
       .order("liked_at", { ascending: false });
 
     if (error) {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await supabase
       .from("liked_artists")
       .upsert({
-        user_id: session.spotifyId,
+        user_id: session.userId,
         artist_id: body.artist_id,
         artist_name: body.artist_name,
         artist_image: body.artist_image ?? null,
@@ -71,7 +71,7 @@ export async function DELETE(req: NextRequest) {
     const { error } = await supabase
       .from("liked_artists")
       .delete()
-      .eq("user_id", session.spotifyId)
+      .eq("user_id", session.userId)
       .eq("artist_id", artist_id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
