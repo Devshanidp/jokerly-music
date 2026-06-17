@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken } from "@/lib/api-auth";
 import { createClient } from "@/lib/supabase/server";
 import { getArtistTopTracks } from "@/lib/music-api";
 import { normalizeSimilarTrack } from "@/lib/similar-tracks";
@@ -7,16 +7,8 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 30;
 
 export async function GET(req: NextRequest) {
-  let session;
-  try {
-    session = await auth();
-  } catch {
-    return NextResponse.json({ tracks: [] });
-  }
-  if (!session?.accessToken) return NextResponse.json({ tracks: [] });
-  if ((session as { error?: string }).error === "RefreshAccessTokenError") {
-    return NextResponse.json({ tracks: [], error: "Token expired" }, { status: 401 });
-  }
+  const session = await getApiSessionWithToken();
+  if (!session) return NextResponse.json({ tracks: [] });
 
   const { searchParams } = new URL(req.url);
   const requestedArtistIds = (searchParams.get("artists") ?? "")
@@ -42,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   if (!seeds.length) return NextResponse.json({ tracks: [] });
 
-  const token = session.accessToken as string;
+  const token = session.accessToken;
   const seen = new Set<string>();
   const tracks: ReturnType<typeof normalizeSimilarTrack>[] = [];
 

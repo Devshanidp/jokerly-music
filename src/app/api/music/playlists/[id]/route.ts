@@ -1,10 +1,10 @@
-import { auth } from "@/lib/auth";
+import { getApiSession, unauthorized } from "@/lib/api-auth";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
   const { id } = await params;
 
   const supabase = await createClient();
@@ -23,8 +23,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
   const { id } = await params;
   const { name, description } = await req.json();
 
@@ -40,8 +40,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
   const { id } = await params;
   const { uris, trackName, trackImage, trackArtist } = await req.json();
   const uri = Array.isArray(uris) ? uris[0] : null;
@@ -83,8 +83,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 // PATCH /api/music/playlists/[id] — reorder tracks
 // Body: { order: string[] }  — array of track row IDs in the new order
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
   const { id } = await params;
   const { order } = await req.json() as { order: string[] };
   if (!Array.isArray(order)) return NextResponse.json({ error: "order must be an array" }, { status: 400 });
@@ -104,9 +104,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.userId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
 
   const { id } = await params;
 

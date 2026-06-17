@@ -1,12 +1,11 @@
-import { auth } from "@/lib/auth";
+import { getApiSession } from "@/lib/api-auth";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
+    const session = await getApiSession();
     if (!session) return NextResponse.json({ ok: false, reason: "unauthorized" }, { status: 200 });
-    if (!session.userId) return NextResponse.json({ ok: false, reason: "no_user" }, { status: 200 });
 
     const body = await req.json().catch(() => null);
     if (!body?.event_type) {

@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { searchCatalog, CatalogApiError } from "@/lib/music-api";
 import { getLanguage } from "@/lib/languages";
 import { NextRequest, NextResponse } from "next/server";
@@ -6,12 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 30;
 
 export async function GET(req: NextRequest) {
-  let session;
-  try { session = await auth(); } catch { return NextResponse.json({ error: "Auth error" }, { status: 401 }); }
-  if (!session?.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if ((session as { error?: string }).error === "RefreshAccessTokenError") {
-    return NextResponse.json({ error: "Token expired" }, { status: 401 });
-  }
+  const session = await getApiSessionWithToken();
+  if (!session) return unauthorized();
 
   const { searchParams } = new URL(req.url);
   const langs = (searchParams.get("langs") ?? "").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 4);

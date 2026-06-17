@@ -1,7 +1,8 @@
 import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
+import { getApiSessionWithToken, unauthorized } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { auth, refreshAccessToken } from "@/lib/auth";
+import { refreshAccessToken } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { catalogIdFromUri, isCatalogTrackUri } from "@/lib/track-uri";
 import { externalWebUrl } from "@/types/music-catalog";
@@ -179,9 +180,9 @@ async function createMusicPlaylist(
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.accessToken || !session.userId || session.error) {
-    return NextResponse.json({ error: "Sign-in required" }, { status: 401 });
+  const session = await getApiSessionWithToken();
+  if (!session) {
+    return unauthorized();
   }
 
   const catalogAccessToken = bearerTokenFromRequest(req) ?? session.accessToken;

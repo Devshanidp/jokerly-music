@@ -138,7 +138,9 @@ export default function HomeClient() {
   const router = useRouter();
   const { data: session } = useSession();
   const sessionError = (session as { error?: string } | null)?.error;
-  const isSessionHealthy = !!session?.accessToken && !sessionError;
+  const sessionUserId = (session as { userId?: string } | null)?.userId;
+  const isSessionHealthy =
+    !!session?.accessToken && !!sessionUserId?.trim() && !sessionError;
   // Require non-empty feedSections so a failed/empty feed load never poisons the cache
   const hasFreshCache =
     homeCache !== null &&

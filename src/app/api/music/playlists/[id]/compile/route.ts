@@ -1,12 +1,12 @@
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized } from "@/lib/api-auth";
 import { compilePlaylist, parseSelectedArtists } from "@/lib/compile-playlist";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.accessToken || !session?.userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSessionWithToken();
+  if (!session) {
+    return unauthorized();
   }
 
   const { id } = await params;

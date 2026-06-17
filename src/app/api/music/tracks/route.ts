@@ -1,11 +1,10 @@
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { getTracksByIds, CatalogApiError } from "@/lib/music-api";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  let session;
-  try { session = await auth(); } catch { return NextResponse.json({ error: "Auth error" }, { status: 401 }); }
-  if (!session?.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSessionWithToken();
+  if (!session) return unauthorized();
 
   const ids = (new URL(req.url).searchParams.get("ids") ?? "")
     .split(",").map((s) => s.trim()).filter(Boolean).slice(0, 50);

@@ -1,21 +1,12 @@
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized } from "@/lib/api-auth";
 import { searchCatalog, CatalogApiError } from "@/lib/music-api";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 30;
 
 export async function GET(req: NextRequest) {
-  let session;
-  try {
-    session = await auth();
-  } catch (e) {
-    console.error("auth() failed in search:", e);
-    return NextResponse.json({ error: "Auth error" }, { status: 401 });
-  }
-  if (!session?.accessToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if ((session as { error?: string }).error === "RefreshAccessTokenError") {
-    return NextResponse.json({ error: "Token expired, please re-login" }, { status: 401 });
-  }
+  const session = await getApiSessionWithToken();
+  if (!session) return unauthorized();
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q");
@@ -26,8 +17,7 @@ export async function GET(req: NextRequest) {
   if (!q) return NextResponse.json({ error: "Missing query" }, { status: 400 });
 
   try {
-    const token = session.accessToken as string;
-    const data = await searchCatalog(q, type, token, limit);
+    const data = await searchCatalog(q, type, session.accessToken, limit);
     return NextResponse.json({
       tracks: data.tracks?.items ?? [],
       artists: data.artists?.items ?? [],

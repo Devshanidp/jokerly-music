@@ -55,6 +55,7 @@ export async function refreshAccessToken(token: MusicToken): Promise<MusicToken>
       accessToken: data.access_token,
       accessTokenExpires: Date.now() + data.expires_in * 1000,
       refreshToken: data.refresh_token ?? token.refreshToken,
+      userId: resolveUserId(token),
     };
   } catch {
     return { ...token, error: "RefreshAccessTokenError" };
@@ -73,7 +74,18 @@ const musicProvider: NextAuthConfig["providers"][number] = {
     params: { scope: MUSIC_AUTH_SCOPES, show_dialog: "true" },
   },
   token: CATALOG_ACCOUNTS_TOKEN,
-  userinfo: `${CATALOG_API_V1}/me`,
+  userinfo: {
+    url: `${CATALOG_API_V1}/me`,
+    async request({ tokens }: { tokens: { access_token?: string } }) {
+      const res = await fetch(`${CATALOG_API_V1}/me`, {
+        headers: { Authorization: `Bearer ${tokens.access_token}` },
+      });
+      if (!res.ok) {
+        throw new Error(`Catalog profile request failed (${res.status})`);
+      }
+      return res.json();
+    },
+  },
   profile(profile) {
     const p = profile as {
       id: string;
@@ -118,8 +130,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return refreshAccessToken(withUserId);
     },
     async session({ session, token }) {
+      const musicToken = token as MusicToken;
+      const userId = resolveUserId(musicToken);
       session.accessToken = token.accessToken as string;
-      session.userId = resolveUserId(token as MusicToken) as string;
+      session.userId = userId ?? "";
       session.authScope = token.authScope as string | undefined;
       session.error = token.error as string | undefined;
       return session;

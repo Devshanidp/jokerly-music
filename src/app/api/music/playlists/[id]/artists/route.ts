@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getApiSession, unauthorized } from "@/lib/api-auth";
 import {
   compilePlaylist,
   parseSelectedArtists,
@@ -49,8 +49,8 @@ async function resolveMixArtistsServer(artists: MixArtist[], token: string): Pro
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
 
   const { id } = await params;
   const supabase = await createClient();
@@ -67,8 +67,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
   if (!session.accessToken) {
     return NextResponse.json({ error: "Session expired — please log in again" }, { status: 401 });
   }

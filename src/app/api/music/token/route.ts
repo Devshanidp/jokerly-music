@@ -1,18 +1,14 @@
-import { auth } from "@/lib/auth";
+import { getApiSessionWithToken, unauthorized } from "@/lib/api-auth";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.accessToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if ((session as { error?: string }).error === "RefreshAccessTokenError") {
-    return NextResponse.json({ error: "Token expired, please re-login" }, { status: 401 });
-  }
+  const session = await getApiSessionWithToken();
+  if (!session) return unauthorized();
+
   return NextResponse.json(
-    { accessToken: session.accessToken as string },
+    { accessToken: session.accessToken },
     { headers: { "Cache-Control": "no-store" } }
   );
 }
