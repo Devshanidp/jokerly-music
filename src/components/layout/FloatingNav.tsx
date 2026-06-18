@@ -38,8 +38,8 @@ export default function FloatingNav() {
       onClick={(e) => e.preventDefault()}
       className={`flex items-center gap-1 px-2 py-1.5 rounded-full font-medium text-[10px] sm:text-xs transition-all duration-200 ${
         pathname === target
-          ? "btn-nav-active text-white/95"
-          : "text-white/45 hover:text-white/80 hover:bg-white/[0.06]"
+          ? "btn-nav-active font-semibold"
+          : "text-white/60 hover:text-white hover:bg-white/[0.08]"
       }`}
     >
       {icon}
@@ -52,11 +52,11 @@ export default function FloatingNav() {
       className={`fixed left-1/2 -translate-x-1/2 z-[55] transition-all duration-300 pointer-events-none ${bottomClass}`}
     >
       <nav
-        className="pointer-events-auto flex items-center gap-0.5 p-0.5 rounded-full border border-purple-500/15"
+        className="pointer-events-auto flex items-center gap-0.5 p-0.5 rounded-full border border-purple-300/20"
         style={{
-          background: "linear-gradient(180deg, rgba(14, 8, 22, 0.94) 0%, rgba(8, 5, 12, 0.96) 100%)",
+          background: "linear-gradient(180deg, rgba(22, 14, 32, 0.96) 0%, rgba(12, 8, 18, 0.98) 100%)",
           backdropFilter: "blur(20px)",
-          boxShadow: "0 6px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(120, 60, 180, 0.08)",
+          boxShadow: "0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(192, 132, 252, 0.12)",
         }}
         aria-label="Main navigation"
       >
