@@ -34,7 +34,7 @@
         \"relation\": [\"delegate_permission/common.handle_all_urls\"],
         \"target\": {
             \"namespace\": \"web\",
-            \"site\": \"https://jokerly-music.vercel.app\"
+            \"site\": \"https://music.devshanidp.xyz\"
         }
     }]
     

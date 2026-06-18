@@ -14,9 +14,12 @@
     "web:build": "next build",
     "web:start": "next start",
     "web:deploy": "node scripts/deploy-prod.mjs",
-    "android:apk": "set GRADLE_OPTS=-Xmx512m && set JAVA_HOME=C:\\Users\\ShaN\\.bubblewrap\\jdk\\jdk-17.0.11+9 && set ANDROID_HOME=C:\\Users\\ShaN\\.bubblewrap\\android_sdk && cd android-twa && gradlew.bat assembleRelease --no-daemon",
-    "android:aab": "set GRADLE_OPTS=-Xmx512m && set JAVA_HOME=C:\\Users\\ShaN\\.bubblewrap\\jdk\\jdk-17.0.11+9 && set ANDROID_HOME=C:\\Users\\ShaN\\.bubblewrap\\android_sdk && cd android-twa && gradlew.bat bundleRelease --no-daemon",
-    "android:install-debug": "set GRADLE_OPTS=-Xmx512m && set JAVA_HOME=C:\\Users\\ShaN\\.bubblewrap\\jdk\\jdk-17.0.11+9 && set ANDROID_HOME=C:\\Users\\ShaN\\.bubblewrap\\android_sdk && cd android-twa && gradlew.bat installDebug --no-daemon",
+    "android:icons": "node scripts/sync-android-icons.mjs",
+    "android:signing": "node scripts/setup-android-keystore.mjs",
+    "android:prepare": "npm run android:icons && npm run android:signing",
+    "android:apk": "npm run android:prepare && set \"GRADLE_OPTS=-Xmx512m\" && set \"JAVA_HOME=C:\\Users\\ShaN\\.bubblewrap\\jdk\\jdk-17.0.11+9\" && set \"ANDROID_HOME=C:\\Users\\ShaN\\AppData\\Local\\Android\\Sdk\" && cd android-twa && gradlew.bat clean assembleRelease --no-daemon",
+    "android:aab": "set \"GRADLE_OPTS=-Xmx512m\" && set \"JAVA_HOME=C:\\Users\\ShaN\\.bubblewrap\\jdk\\jdk-17.0.11+9\" && set \"ANDROID_HOME=C:\\Users\\ShaN\\AppData\\Local\\Android\\Sdk\" && cd android-twa && gradlew.bat bundleRelease --no-daemon",
+    "android:install-debug": "set \"GRADLE_OPTS=-Xmx512m\" && set \"JAVA_HOME=C:\\Users\\ShaN\\.bubblewrap\\jdk\\jdk-17.0.11+9\" && set \"ANDROID_HOME=C:\\Users\\ShaN\\AppData\\Local\\Android\\Sdk\" && cd android-twa && gradlew.bat installDebug --no-daemon",
     "android:logcat": "adb logcat -s chromium:TWA:* AndroidRuntime:E"
   },
   "dependencies": {

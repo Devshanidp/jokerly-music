@@ -1,6 +1,6 @@
 {
   "packageId": "com.shanid.jokerly",
-  "host": "jokerly-music.vercel.app",
+  "host": "music.devshanidp.xyz",
   "name": "Jokerly",
   "launcherName": "Jokerly",
   "display": "standalone",
@@ -13,19 +13,19 @@
   "backgroundColor": "#080406",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://jokerly-music.vercel.app/icon-512.png",
-  "maskableIconUrl": "https://jokerly-music.vercel.app/icon-512.png",
-  "monochromeIconUrl": "https://jokerly-music.vercel.app/icon-96.png",
+  "iconUrl": "https://music.devshanidp.xyz/icon-512.png",
+  "maskableIconUrl": "https://music.devshanidp.xyz/icon-512.png",
+  "monochromeIconUrl": "https://music.devshanidp.xyz/icon-96.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./jokerly.keystore",
     "alias": "jokerly"
   },
-  "appVersionName": "2",
-  "appVersionCode": 2,
+  "appVersionName": "3",
+  "appVersionCode": 3,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://jokerly-music.vercel.app/manifest.json",
+  "webManifestUrl": "https://music.devshanidp.xyz/manifest.json",
   "fallbackType": "customtabs",
   "features": {},
   "alphaDependencies": {
@@ -34,7 +34,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://jokerly-music.vercel.app/",
+  "fullScopeUrl": "https://music.devshanidp.xyz/",
   "minSdkVersion": 21,
   "orientation": "portrait",
   "fingerprints": [],
@@ -44,5 +44,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "2"
+  "appVersion": "3"
 }
