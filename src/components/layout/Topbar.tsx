@@ -266,7 +266,7 @@ export default function Topbar() {
             onPointerDown={(e) => go(e, "/")}
             onClick={(e) => e.preventDefault()}
             className="flex items-center gap-2.5 shrink-0">
-            <Image src="/icon-96.png" alt={APP_NAME} width={34} height={34} className="rounded-xl" />
+            <Image src="/icon-96.png" alt={APP_NAME} width={34} height={34} className="rounded-xl" unoptimized />
             <div className="flex flex-col items-start leading-tight">
               <span className="text-[#E8282B] font-bold text-base tracking-tight">{APP_NAME}</span>
               <span className="text-[10px] text-white/40 font-medium">{APP_TAGLINE}</span>
@@ -277,13 +277,7 @@ export default function Topbar() {
           <div className="flex items-center gap-2">
             <button onClick={() => setShowSettings(true)}
               className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-white/[0.07] transition-colors">
-              {session?.user?.image ? (
-                <Image src={session.user.image} alt={session.user.name ?? ""} width={26} height={26} className="rounded-full ring-1 ring-white/20" />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-white/[0.07] flex items-center justify-center">
-                  <User size={14} className="text-white/40" />
-                </div>
-              )}
+              <Image src="/icon-96.png" alt={APP_NAME} width={26} height={26} className="rounded-full ring-1 ring-white/20" unoptimized />
               <Settings size={14} className="text-white/30" />
             </button>
           </div>

@@ -76,7 +76,7 @@ export default function InstallPrompt() {
       >
         {/* Icon */}
         <div className="relative w-12 h-12 rounded-2xl overflow-hidden shrink-0 shadow-lg">
-          <Image src="/icon-192.png" alt="Jokerly" fill sizes="48px" className="object-cover" />
+          <Image src="/icon-192.png" alt="Jokerly" fill sizes="48px" className="object-cover" unoptimized />
         </div>
 
         {/* Text */}
