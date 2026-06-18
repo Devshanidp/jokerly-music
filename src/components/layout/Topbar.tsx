@@ -3,7 +3,7 @@
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { X, User, Settings, Bell, Loader2, RefreshCw } from "lucide-react";
+import { X, Settings, Bell, Loader2, RefreshCw } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
 import { MUSIC_SIGN_IN_OPTIONS, AUTH_PROVIDER_ID } from "@/lib/music-auth-client";
@@ -129,13 +129,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         </div>
         <div className="p-5 space-y-5">
           <div className="flex items-center gap-3">
-            {session?.user?.image ? (
-              <Image src={session.user.image} alt={session.user.name ?? "User"} width={48} height={48} className="rounded-full ring-2 ring-white/10" />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-white/[0.07] flex items-center justify-center">
-                <User size={20} className="text-white/40" />
-              </div>
-            )}
+            <Image src="/icon-96.png" alt={APP_NAME} width={48} height={48} className="rounded-xl ring-2 ring-white/10" unoptimized />
             <div>
               <p className="text-white font-semibold text-sm">{session?.user?.name}</p>
               <p className="text-white/40 text-xs mt-0.5">{session?.user?.email}</p>
