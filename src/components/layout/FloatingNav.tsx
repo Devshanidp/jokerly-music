@@ -36,10 +36,10 @@ export default function FloatingNav() {
       type="button"
       onPointerDown={(e) => go(e, target)}
       onClick={(e) => e.preventDefault()}
-      className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2.5 rounded-full font-semibold text-xs sm:text-sm transition-all duration-200 ${
+      className={`flex items-center gap-1 px-2 py-1.5 rounded-full font-medium text-[10px] sm:text-xs transition-all duration-200 ${
         pathname === target
-          ? "btn-red text-white"
-          : "text-white/50 hover:text-white hover:bg-white/[0.08]"
+          ? "btn-nav-active text-white/95"
+          : "text-white/45 hover:text-white/80 hover:bg-white/[0.06]"
       }`}
     >
       {icon}
@@ -52,18 +52,18 @@ export default function FloatingNav() {
       className={`fixed left-1/2 -translate-x-1/2 z-[55] transition-all duration-300 pointer-events-none ${bottomClass}`}
     >
       <nav
-        className="pointer-events-auto flex items-center gap-0.5 sm:gap-1 p-1 sm:p-1.5 rounded-full border border-white/12"
+        className="pointer-events-auto flex items-center gap-0.5 p-0.5 rounded-full border border-purple-500/15"
         style={{
-          background: "rgba(9,3,5,0.92)",
-          backdropFilter: "blur(28px)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04)",
+          background: "linear-gradient(180deg, rgba(14, 8, 22, 0.94) 0%, rgba(8, 5, 12, 0.96) 100%)",
+          backdropFilter: "blur(20px)",
+          boxShadow: "0 6px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(120, 60, 180, 0.08)",
         }}
         aria-label="Main navigation"
       >
-        {btn("/", <Home size={17} />, "Home")}
-        {btn("/playlists", <ListMusic size={17} />, "Playlist")}
-        {btn("/downloaded", <Download size={17} />, "Downloads")}
-        {btn("/liked", <Heart size={17} />, "Liked")}
+        {btn("/", <Home size={14} />, "Home")}
+        {btn("/playlists", <ListMusic size={14} />, "Playlist")}
+        {btn("/downloaded", <Download size={14} />, "Downloads")}
+        {btn("/liked", <Heart size={14} />, "Liked")}
       </nav>
     </div>
   );
