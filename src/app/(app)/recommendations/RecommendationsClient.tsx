@@ -103,9 +103,9 @@ export default function RecommendationsClient() {
         <button
           onClick={fetchDefault}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-sm text-white transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-[10px] sm:text-xs text-white transition-colors disabled:opacity-50"
         >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
           Refresh
         </button>
       </div>
@@ -115,7 +115,7 @@ export default function RecommendationsClient() {
           <button
             key={tag}
             onClick={() => fetchByGenre(tag)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium capitalize transition-colors ${
+            className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-medium capitalize transition-colors ${
               selectedGenre === tag ? "bg-purple-500 text-white" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
             }`}
           >

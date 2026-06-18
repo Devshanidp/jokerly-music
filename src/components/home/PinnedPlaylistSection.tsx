@@ -357,7 +357,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   if (pinned.length === 0) {
     return (
       <div className="rounded-2xl p-5 text-center border" style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.06)" }}>
-        <Pin size={20} className="mx-auto mb-2 opacity-20" style={{ color: "var(--text-muted)" }} />
+        <Pin size={14} className="mx-auto mb-2 opacity-20" style={{ color: "var(--text-muted)" }} />
         <p className="text-sm" style={{ color: "var(--text-muted)" }}>No pinned playlists yet.</p>
         <p className="text-xs mt-0.5 opacity-60" style={{ color: "var(--text-muted)" }}>Pin playlists from the Playlists page.</p>
       </div>
@@ -374,9 +374,9 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <button onClick={() => { setSelectedId(null); setAddFromPlaylist(false); }}
-            className="flex items-center gap-1.5 text-sm font-medium transition-colors"
+            className="flex items-center gap-1 text-[10px] sm:text-xs font-medium transition-colors"
             style={{ color: "rgba(255,255,255,0.55)" }}>
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={14} /> Back
           </button>
           <div className="flex-1" />
           <PlaylistActionsMenu
@@ -392,7 +392,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
             title="Add tracks from another playlist"
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors"
             style={{ color: "rgba(255,255,255,0.4)" }}>
-            <FolderInput size={15} />
+            <FolderInput size={14} />
           </button>
         </div>
 
@@ -409,17 +409,17 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
         {tracks.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <button onClick={() => playAll(selectedId, 0)} disabled={!isPlayerReady}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-40"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 disabled:opacity-40"
               style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}>
-              <PlayCircle size={16} /> Play all
+              <PlayCircle size={14} /> Play all
             </button>
             <button onClick={() => shufflePlay(selectedId)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06]">
-              <Shuffle size={16} className="text-[#E8282B]" /> Shuffle
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06]">
+              <Shuffle size={14} className="text-[#E8282B]" /> Shuffle
             </button>
             <button onClick={() => downloadOffline(selectedId)} disabled={downloadingPlaylistId === selectedId}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06] disabled:opacity-40">
-              {downloadingPlaylistId === selectedId ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06] disabled:opacity-40">
+              {downloadingPlaylistId === selectedId ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
               Download offline
             </button>
           </div>
@@ -428,7 +428,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
         <div className="rounded-2xl overflow-hidden border" style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.06)" }}>
           {isLoadingTracks ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 size={20} className="animate-spin" style={{ color: "rgba(255,255,255,0.2)" }} />
+              <Loader2 size={14} className="animate-spin" style={{ color: "rgba(255,255,255,0.2)" }} />
             </div>
           ) : tracks.length === 0 ? (
             <p className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>No tracks yet.</p>

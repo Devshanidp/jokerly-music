@@ -490,7 +490,7 @@ export default function SearchClient() {
     <div className="w-full space-y-6">
       <div className="flex items-center gap-3">
         <button onClick={() => router.back()} className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
-          <ArrowLeft size={20} />
+          <ArrowLeft size={14} />
         </button>
         <div>
           <h2 className="text-3xl font-bold text-white mb-1">Search</h2>
@@ -500,7 +500,7 @@ export default function SearchClient() {
 
       {/* Search bar */}
       <div className="relative">
-        <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
+        <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10" />
         <input
           ref={inputRef}
           type="text"
@@ -518,7 +518,7 @@ export default function SearchClient() {
           title="Identify song"
           className="absolute right-24 top-1/2 -translate-y-1/2 text-zinc-200 hover:text-white disabled:opacity-40 p-2 rounded-lg hover:bg-zinc-700/60 transition-colors"
         >
-          {listening ? <ListeningWaveform /> : identifying ? <Loader2 size={15} className="animate-spin" /> : <Mic2 size={15} />}
+          {listening ? <ListeningWaveform /> : identifying ? <Loader2 size={14} className="animate-spin" /> : <Mic2 size={14} />}
         </button>
         <button
           onClick={() => handleSearch()}
@@ -533,7 +533,7 @@ export default function SearchClient() {
           <div ref={suggestBoxRef} className="absolute top-full left-0 right-0 mt-1.5 rounded-2xl shadow-2xl z-50 overflow-hidden border border-[#E8282B]/15"
             style={{ background: "var(--surface)", boxShadow: "0 12px 36px rgba(0,0,0,0.65)" }}>
             {suggestionsLoading && suggestions.length === 0 ? (
-              <div className="flex items-center justify-center py-5"><Loader2 size={16} className="animate-spin text-white/30" /></div>
+              <div className="flex items-center justify-center py-5"><Loader2 size={14} className="animate-spin text-white/30" /></div>
             ) : (
               <>
                 {suggestions.filter((s) => s.type === "track").length > 0 && (
@@ -563,13 +563,13 @@ export default function SearchClient() {
                               title={isSongLiked ? "Unlike" : "Like"}
                               className={`shrink-0 p-2 rounded-xl transition-colors ${isSongLiked ? "text-[#E8282B]" : "text-white/35 hover:text-[#E8282B] hover:bg-[#E8282B]/10"}`}
                             >
-                              <Heart size={15} fill={isSongLiked ? "currentColor" : "none"} />
+                              <Heart size={14} fill={isSongLiked ? "currentColor" : "none"} />
                             </button>
                           )}
                           {s.uri && (
                             <button onClick={() => handleSuggestionAdd(s)} disabled={isResolving} title="Add to playlist"
                               className="shrink-0 p-2 rounded-xl text-white/35 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors">
-                              {isResolving ? <Loader2 size={15} className="animate-spin" /> : <ListPlus size={15} />}
+                              {isResolving ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
                             </button>
                           )}
                         </div>
@@ -661,7 +661,7 @@ export default function SearchClient() {
       {searchError && (
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 flex flex-col gap-3">
           <div className="flex items-start gap-3">
-            <AlertCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
+            <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-red-300 text-sm font-medium">
                 {searchError.status === 401 ? "Session expired" : searchError.status === 429 ? "Too many requests — please wait" : "Search failed"}
@@ -697,7 +697,7 @@ export default function SearchClient() {
                   <button
                     key={item.value}
                     onClick={() => setMatchedArtistTab(item.value)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                    className={`px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-medium whitespace-nowrap transition-colors ${
                       matchedArtistTab === item.value ? "bg-white text-black" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                     }`}
                   >
@@ -748,7 +748,7 @@ export default function SearchClient() {
           <div className="flex gap-2">
             {TABS.map((t) => (
               <button key={t.value} onClick={() => handleTabChange(t.value)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${tab === t.value ? "bg-white text-black" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"}`}>
+                className={`px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-colors ${tab === t.value ? "bg-white text-black" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"}`}>
                 {t.label}
               </button>
             ))}

@@ -122,11 +122,11 @@ export default function LikedClient() {
       <div className="flex items-center gap-3">
         <button onClick={() => router.back()} className="p-2 rounded-xl transition-colors"
           style={{ color: "rgba(255,255,255,0.45)" }}>
-          <ArrowLeft size={18} />
+          <ArrowLeft size={14} />
         </button>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-[#E8282B]/15 flex items-center justify-center">
-            <Heart size={16} className="text-[#E8282B]" fill="currentColor" />
+            <Heart size={14} className="text-[#E8282B]" fill="currentColor" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight">Liked</h2>
@@ -151,7 +151,7 @@ export default function LikedClient() {
       <div className="flex gap-2">
         {(["songs", "artists"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors capitalize ${
+            className={`px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-colors capitalize ${
               tab === t ? "bg-[#E8282B] text-white" : "text-white/50 hover:text-white hover:bg-white/[0.07]"
             }`}
             style={tab !== t ? { background: "var(--card)" } : {}}>
@@ -205,9 +205,9 @@ function SongsTab({ songs, onPlay, onPlayAll, onUnlike }: {
   return (
     <div className="space-y-2">
       <button onClick={onPlayAll}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 shadow-lg"
+        className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 shadow-lg"
         style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}>
-        <Play size={15} fill="white" /> Play all
+        <Play size={14} fill="white" /> Play all
       </button>
       <div className="rounded-2xl overflow-hidden border" style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.06)" }}>
         {songs.map((s, i) => {
@@ -274,7 +274,7 @@ function ArtistsTab({ artists, onOpen, onUnlike }: {
             <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-white/[0.06] group-hover:ring-[#E8282B]/40 transition-all">
               {a.artist_image
                 ? <Image src={a.artist_image} alt={a.artist_name} fill unoptimized sizes="64px" className="object-cover" />
-                : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Mic2 size={20} className="text-white/20" /></div>}
+                : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Mic2 size={14} className="text-white/20" /></div>}
             </div>
             <p className="text-xs font-semibold text-white text-center truncate w-full leading-tight">{a.artist_name}</p>
           </button>

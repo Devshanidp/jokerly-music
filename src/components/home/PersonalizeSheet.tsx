@@ -105,7 +105,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
             <p className="text-white/35 text-xs mt-0.5">Choose your languages & favourite artists</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl text-white/30 hover:text-white hover:bg-white/[0.07] transition-colors">
-            <X size={18} />
+            <X size={14} />
           </button>
         </div>
 
@@ -113,7 +113,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
         <div className="flex gap-2 px-5 pb-3 shrink-0">
           {(["langs", "artists"] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              className={`flex-1 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold transition-all ${
                 activeTab === tab
                   ? "btn-red text-white"
                   : "text-white/40 hover:text-white border border-white/[0.08]"
@@ -188,7 +188,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
 
               {/* Search */}
               <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                 <input
                   type="text"
                   value={artistQuery}
@@ -224,8 +224,8 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                           )}
                         </div>
                         {already
-                          ? <Check size={15} className="text-[#E8282B] shrink-0" />
-                          : <Plus size={15} className="text-white/30 shrink-0" />}
+                          ? <Check size={14} className="text-[#E8282B] shrink-0" />
+                          : <Plus size={14} className="text-white/30 shrink-0" />}
                       </button>
                     );
                   })}
@@ -257,7 +257,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
             className="btn-red w-full py-3.5 rounded-2xl text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {saving
-              ? <><Loader2 size={16} className="animate-spin" /> Saving…</>
+              ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
               : "Save preferences"}
           </button>
         </div>

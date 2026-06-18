@@ -33,13 +33,13 @@ export default function Sidebar() {
             key={href}
             href={href}
             className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center gap-2 px-2.5 py-2 rounded-lg text-[10px] sm:text-xs font-medium transition-colors",
               pathname === href
                 ? "bg-red-500/20 text-red-400 border border-red-500/30"
                 : "text-zinc-400 hover:text-white hover:bg-zinc-900"
             )}
           >
-            <Icon size={20} className={pathname === href ? "text-red-400" : ""} />
+            <Icon size={14} className={pathname === href ? "text-red-400" : ""} />
             {label}
           </Link>
         ))}

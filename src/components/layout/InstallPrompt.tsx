@@ -108,7 +108,7 @@ export default function InstallPrompt() {
           onClick={dismiss}
           className="shrink-0 p-1.5 rounded-xl text-white/30 hover:text-white hover:bg-white/[0.08] transition-colors"
         >
-          <X size={15} />
+          <X size={14} />
         </button>
       </div>
     </div>

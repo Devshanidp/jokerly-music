@@ -583,10 +583,10 @@ export default function PlaylistsClient() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => { setSelectedId(null); setEdit(null); setAddFromPlaylist(false); }}
-            className="flex items-center gap-1.5 text-sm font-medium transition-colors"
+            className="flex items-center gap-1 text-[10px] sm:text-xs font-medium transition-colors"
             style={{ color: "rgba(255,255,255,0.55)" }}
           >
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={14} /> Back
           </button>
           <div className="flex-1" />
           <PlaylistActionsMenu
@@ -601,7 +601,7 @@ export default function PlaylistsClient() {
           <button onClick={() => setAddFromPlaylist(true)}
             title="Add tracks from another playlist"
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
-            <FolderInput size={15} />
+            <FolderInput size={14} />
           </button>
           <button
             onClick={() => setEditArtistsOpen(true)}
@@ -609,27 +609,27 @@ export default function PlaylistsClient() {
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors"
             style={{ color: isMix ? "#E8282B" : "rgba(255,255,255,0.4)", background: isMix ? "rgba(232,40,43,0.10)" : "transparent" }}
           >
-            <Users size={15} />
+            <Users size={14} />
           </button>
           <button onClick={() => handleDownloadM3U(pl, tracks)} disabled={tracks.length === 0}
             title="Download M3U for TuneMyMusic"
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors disabled:opacity-40 disabled:pointer-events-none"
             style={{ color: "rgba(255,255,255,0.4)" }}>
-            <Download size={15} />
+            <Download size={14} />
           </button>
           <button onClick={() => setEdit({ id: pl.id, name: pl.name, description: pl.description ?? "" })}
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
-            <Pencil size={15} />
+            <Pencil size={14} />
           </button>
           <button onClick={() => togglePin(pl)} disabled={pinning === pl.id}
             className="p-2 rounded-xl transition-colors"
             style={{ color: isPinned ? "#E8282B" : "rgba(255,255,255,0.4)", background: isPinned ? "rgba(232,40,43,0.10)" : "transparent" }}>
-            {pinning === pl.id ? <Loader2 size={15} className="animate-spin" /> : <Pin size={15} />}
+            {pinning === pl.id ? <Loader2 size={14} className="animate-spin" /> : <Pin size={14} />}
           </button>
           <button onClick={() => removePlaylist(pl.id)} disabled={deleting.has(pl.id)}
             className="p-2 rounded-xl hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-40"
             style={{ color: "rgba(255,255,255,0.4)" }}>
-            {deleting.has(pl.id) ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+            {deleting.has(pl.id) ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
           </button>
         </div>
 
@@ -690,26 +690,26 @@ export default function PlaylistsClient() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => playTrack(tracks, 0)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 shadow-lg"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 shadow-lg"
               style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
             >
-              <PlayCircle size={16} /> Play all
+              <PlayCircle size={14} /> Play all
             </button>
             <button
               onClick={() => shufflePlayPlaylist(tracks)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95"
             >
-              <Shuffle size={16} className="text-[#E8282B]" /> Shuffle
+              <Shuffle size={14} className="text-[#E8282B]" /> Shuffle
             </button>
             <button
               onClick={() => downloadPlaylistOfflineTracks(pl.id, tracks)}
               disabled={downloadingPlaylistId === pl.id}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95 disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95 disabled:opacity-40"
             >
               {downloadingPlaylistId === pl.id ? (
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin" />
               ) : (
-                <Download size={16} />
+                <Download size={14} />
               )}
               Download offline
             </button>
@@ -720,7 +720,7 @@ export default function PlaylistsClient() {
         <div className="rounded-2xl overflow-hidden border" style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.06)" }}>
           {isLoadingTracks ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 size={20} className="animate-spin" style={{ color: "rgba(255,255,255,0.2)" }} />
+              <Loader2 size={14} className="animate-spin" style={{ color: "rgba(255,255,255,0.2)" }} />
             </div>
           ) : tracks.length === 0 ? (
             <p className="text-center py-12 text-sm" style={{ color: "var(--text-muted)" }}>No tracks yet. Add songs from Search.</p>
@@ -791,7 +791,7 @@ export default function PlaylistsClient() {
               aria-pressed={viewMode === "grid"}
               className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-white/[0.12] text-white" : "text-white/40 hover:text-white/70"}`}
             >
-              <LayoutGrid size={16} />
+              <LayoutGrid size={14} />
             </button>
             <button
               type="button"
@@ -800,7 +800,7 @@ export default function PlaylistsClient() {
               aria-pressed={viewMode === "list"}
               className={`p-2 rounded-lg transition-colors ${viewMode === "list" ? "bg-white/[0.12] text-white" : "text-white/40 hover:text-white/70"}`}
             >
-              <List size={16} />
+              <List size={14} />
             </button>
           </div>
           <button
@@ -808,7 +808,7 @@ export default function PlaylistsClient() {
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg"
             style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
           >
-            <Plus size={15} /> New
+            <Plus size={14} /> New
           </button>
         </div>
       </div>
@@ -1016,7 +1016,7 @@ export default function PlaylistsClient() {
                       <Image src={pa.artist_image} alt={pa.artist_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Mic2 size={18} className="text-white/20" />
+                        <Mic2 size={14} className="text-white/20" />
                       </div>
                     )}
                     <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
