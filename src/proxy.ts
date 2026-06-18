@@ -9,10 +9,11 @@ const STATIC_FILE_EXT_RE = /\.(?:png|jpg|jpeg|svg|webp|ico|json|webmanifest|txt|
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Let static assets, API routes, and NextAuth routes pass through
+  // Let static assets, API routes, auth, and Digital Asset Links pass through
   if (
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
+    pathname.startsWith("/.well-known/") ||
     pathname === "/favicon.ico" ||
     pathname === "/manifest.json" ||
     pathname === "/manifest.webmanifest" ||
