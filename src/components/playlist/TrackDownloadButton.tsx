@@ -10,9 +10,16 @@ interface Props {
   size?: number;
   className?: string;
   showLabel?: boolean;
+  alwaysVisible?: boolean;
 }
 
-export default function TrackDownloadButton({ track, size = 13, className = "", showLabel = false }: Props) {
+export default function TrackDownloadButton({
+  track,
+  size = 13,
+  className = "",
+  showLabel = false,
+  alwaysVisible = false,
+}: Props) {
   const { toast } = useToastStore();
   const hydrate = useOfflineStore((s) => s.hydrate);
   const hydrated = useOfflineStore((s) => s.hydrated);
@@ -53,10 +60,14 @@ export default function TrackDownloadButton({ track, size = 13, className = "", 
       onClick={handleClick}
       disabled={isDownloading}
       title={isDownloaded ? "Remove offline download" : "Download for offline"}
-      className={`shrink-0 p-1.5 rounded-lg transition-all disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100 ${
+      className={`shrink-0 p-1.5 rounded-lg transition-all disabled:opacity-40 ${
+        alwaysVisible ? "opacity-100" : "sm:opacity-0 sm:group-hover:opacity-100"
+      } ${
         isDownloaded
           ? "text-[var(--accent)] bg-[var(--accent)]/10"
-          : "text-white/25 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"
+          : alwaysVisible
+            ? "text-white/35 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"
+            : "text-white/25 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"
       } ${className}`}
     >
       {isDownloading ? (

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PlayableTrack, usePlayerStore } from "@/store/player";
 import { ChevronDown, Music, Trash2, Play, Pause, GripVertical, Sparkles } from "lucide-react";
+import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import SimilarMusicSection from "@/components/player/SimilarMusicSection";
 import Image from "next/image";
 import {
@@ -98,6 +99,18 @@ function SortableTrack({
         </p>
         <p className="text-xs text-white/40 truncate mt-0.5">{track.artist}</p>
       </div>
+
+      <TrackDownloadButton
+        track={{
+          uri: track.uri ?? "",
+          name: track.name,
+          artist: track.artist,
+          image: track.image,
+        }}
+        size={13}
+        alwaysVisible
+        className="rounded-xl"
+      />
 
       <button
         onClick={onRemove}
