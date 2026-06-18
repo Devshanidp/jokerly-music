@@ -460,9 +460,9 @@ export default function PlaylistsClient() {
           onClick={() => setShowArtistMixSheet(true)}
           title="Mix artists into a playlist"
           aria-label="Mix artists into a playlist"
-          className={`fixed right-4 z-[70] w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg transition-all active:scale-95 pointer-events-auto ${fabBottomClass}`}
+          className={`fixed right-4 z-[70] w-14 h-14 rounded-full flex items-center justify-center bg-white shadow-[0_4px_20px_rgba(255,255,255,0.18),0_4px_14px_rgba(0,0,0,0.45)] hover:bg-white/95 transition-all active:scale-95 pointer-events-auto ${fabBottomClass}`}
         >
-          <Plus size={24} strokeWidth={2.5} />
+          <Plus size={24} strokeWidth={2.5} className="text-[#9333EA]" />
         </button>
         <CreateMultiArtistPlaylistSheet
           open={showArtistMixSheet}

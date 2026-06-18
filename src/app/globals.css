@@ -87,7 +87,25 @@ body::after {
 .eq-bar:nth-child(2) { height: 10px; animation: eq-bar 0.75s ease-in-out infinite 0.15s; }
 .eq-bar:nth-child(3) { height: 8px;  animation: eq-bar 0.75s ease-in-out infinite 0.3s; }
 
-.btn-nav-active,
+.btn-nav-active {
+  background: linear-gradient(145deg, #C084FC 0%, #9333EA 100%);
+  border: 1px solid rgba(233, 213, 255, 0.55);
+  box-shadow:
+    0 2px 14px rgba(147, 51, 234, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.btn-nav-active:hover {
+  background: linear-gradient(145deg, #D8B4FE 0%, #A855F7 100%);
+  box-shadow:
+    0 3px 16px rgba(168, 85, 247, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.btn-nav-active:active {
+  transform: scale(0.97);
+}
+
 .btn-accent,
 .btn-red {
   background: linear-gradient(145deg, rgba(90, 42, 138, 0.72) 0%, rgba(10, 6, 16, 0.94) 100%);
@@ -95,13 +113,11 @@ body::after {
   box-shadow: 0 2px 10px rgba(60, 20, 90, 0.25);
   transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
 }
-.btn-nav-active:hover,
 .btn-accent:hover,
 .btn-red:hover {
   background: linear-gradient(145deg, rgba(105, 52, 155, 0.78) 0%, rgba(14, 8, 22, 0.96) 100%);
   box-shadow: 0 3px 14px rgba(80, 30, 120, 0.32);
 }
-.btn-nav-active:active,
 .btn-accent:active,
 .btn-red:active {
   transform: scale(0.97);
