@@ -1,13 +1,14 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.shanid.jokerly",
       "sha256_cert_fingerprints": [
-        "DD:3E:B9:F6:F9:93:6C:98:E7:7F:22:78:63:43:33:3E:2A:A5:F5:91:50:53:FE:87:04:3A:01:C9:82:33:2C:E9"
+        "3D:21:82:BA:65:24:AD:1C:70:E9:65:20:99:C2:DF:F1:FE:31:6F:8F:04:55:BE:D7:0F:FD:51:3E:6E:F0:99:ED"
       ]
     }
   }
 ]
-

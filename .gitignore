@@ -36,6 +36,13 @@ yarn-error.log*
 # vercel
 .vercel
 
+# android signing (generated locally)
+android-twa/jokerly.keystore
+android-twa/keystore.properties
+android-twa/.gradle/
+android-twa/app/build/
+android-twa/build/
+
 # Claude Code worktrees (contain nested .git dirs that confuse Vercel)
 .claude/worktrees/
 
