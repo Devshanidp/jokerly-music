@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Search, Check, Loader2, Music2, Mic2, Plus } from "lucide-react";
 import { LANGUAGES } from "@/lib/languages";
-import { SpotifyArtist, artistImage } from "@/types/spotify";
+import { MusicArtist, artistImage } from "@/types/music-catalog";
 import Image from "next/image";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
 export interface FavoriteArtist {
   id: string;
@@ -20,10 +21,12 @@ interface Props {
 }
 
 export default function PersonalizeSheet({ initialLangs, initialArtists, onSave, onClose }: Props) {
+  useBackHandler(true, onClose);
+
   const [selectedLangs, setSelectedLangs] = useState<string[]>(initialLangs);
   const [selectedArtists, setSelectedArtists] = useState<FavoriteArtist[]>(initialArtists);
   const [artistQuery, setArtistQuery] = useState("");
-  const [artistResults, setArtistResults] = useState<SpotifyArtist[]>([]);
+  const [artistResults, setArtistResults] = useState<MusicArtist[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"langs" | "artists">("langs");
@@ -37,7 +40,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
     setSearching(true);
     searchTimer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(artistQuery)}&type=artist&limit=8`);
+        const res = await fetch(`/api/music/search?q=${encodeURIComponent(artistQuery)}&type=artist&limit=8`);
         const data = await res.json();
         setArtistResults(data.artists ?? []);
       } catch { setArtistResults([]); }
@@ -52,7 +55,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
     );
   };
 
-  const addArtist = (artist: SpotifyArtist) => {
+  const addArtist = (artist: MusicArtist) => {
     if (selectedArtists.find((a) => a.id === artist.id)) return;
     setSelectedArtists((prev) => [...prev, {
       id: artist.id,

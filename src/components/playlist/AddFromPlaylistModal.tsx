@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, Loader2, Music, ListMusic, ArrowLeft, Plus, Check, AlertCircle } from "lucide-react";
-import { SpotifyPlaylist } from "@/types";
+import { MusicPlaylist } from "@/types";
 import Image from "next/image";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
 interface PlaylistTrack {
   id: string;
@@ -21,10 +22,12 @@ interface Props {
   onTracksAdded?: () => void;
 }
 
-let playlistCache: SpotifyPlaylist[] | null = null;
+let playlistCache: MusicPlaylist[] | null = null;
 
 export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistName, onClose, onTracksAdded }: Props) {
-  const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>(playlistCache ?? []);
+  useBackHandler(true, onClose);
+
+  const [playlists, setPlaylists] = useState<MusicPlaylist[]>(playlistCache ?? []);
   const [loadingPlaylists, setLoadingPlaylists] = useState(true);
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [sourceTracks, setSourceTracks] = useState<PlaylistTrack[]>([]);
@@ -39,10 +42,10 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
       setPlaylists(playlistCache.filter((p) => p.id !== targetPlaylistId));
       setLoadingPlaylists(false);
     }
-    fetch("/api/spotify/playlists", { cache: "no-store" })
+    fetch("/api/music/playlists", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
-        const items: SpotifyPlaylist[] = d.items ?? [];
+        const items: MusicPlaylist[] = d.items ?? [];
         playlistCache = items;
         setPlaylists(items.filter((p) => p.id !== targetPlaylistId));
       })
@@ -56,7 +59,7 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
     setAdded(new Set());
     setError(null);
     try {
-      const res = await fetch(`/api/spotify/playlists/${encodeURIComponent(id)}?_t=${Date.now()}`);
+      const res = await fetch(`/api/music/playlists/${encodeURIComponent(id)}?_t=${Date.now()}`);
       if (!res.ok) throw new Error("Failed to load tracks");
       const data = await res.json();
       setSourceTracks(data.items ?? []);
@@ -73,7 +76,7 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
     setAdding((prev) => new Set(prev).add(track.id));
     setError(null);
     try {
-      const res = await fetch(`/api/spotify/playlists/${targetPlaylistId}`, {
+      const res = await fetch(`/api/music/playlists/${targetPlaylistId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

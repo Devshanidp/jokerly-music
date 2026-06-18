@@ -4,6 +4,7 @@ import { useEffect, useCallback, useState, useRef } from "react";
 import { usePlayerStore } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
 import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal } from "lucide-react";
+import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
@@ -131,7 +132,7 @@ export default function PlayerBar() {
         return;
       }
       const res = await fetch(
-        `/api/spotify/resolve?track=${encodeURIComponent(currentTrack.name)}&artist=${encodeURIComponent(currentTrack.artist)}`
+        `/api/music/resolve?track=${encodeURIComponent(currentTrack.name)}&artist=${encodeURIComponent(currentTrack.artist)}`
       );
       const data = await res.json();
       if (data.uri) {
@@ -149,6 +150,22 @@ export default function PlayerBar() {
     if (!session?.accessToken || sessionError) return;
     initializePlayer(session.accessToken);
   }, [session?.accessToken, sessionError, initializePlayer]);
+
+  useEffect(() => {
+    const syncOnReturn = () => {
+      if (document.visibilityState !== "visible") return;
+      void usePlayerStore.getState().maintainPlayback(usePlayerStore.getState().isPlaying);
+    };
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) syncOnReturn();
+    };
+    document.addEventListener("visibilitychange", syncOnReturn);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      document.removeEventListener("visibilitychange", syncOnReturn);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, []);
 
   const fetchAndPlay = useCallback(async (index: number, options?: { smooth?: boolean }) => {
     if (index < 0 || index >= queue.length || fetchingRef.current) return;
@@ -172,7 +189,7 @@ export default function PlayerBar() {
     setFetching(true);
     try {
       const res = await fetch(
-        `/api/spotify/resolve?track=${encodeURIComponent(track.name)}&artist=${encodeURIComponent(track.artist)}`
+        `/api/music/resolve?track=${encodeURIComponent(track.name)}&artist=${encodeURIComponent(track.artist)}`
       );
       const data = await res.json();
       resolveCache.set(cacheKey, data);
@@ -229,6 +246,8 @@ export default function PlayerBar() {
 
   useEffect(() => {
     if (!endedToken) return;
+    const { progressMs: pos, durationMs: dur } = usePlayerStore.getState();
+    if (dur > 0 && pos < dur * 0.85) return;
     const nextIndex = getNextIndex();
     if (nextIndex === null) return;
     fetchAndPlay(nextIndex);
@@ -239,7 +258,7 @@ export default function PlayerBar() {
   }, [queueIndex, currentTrack?.uri]);
 
   useEffect(() => {
-    if (!crossfadeEnabled || !isPlaying || isTransitioning || durationMs <= 0 || progressMs <= 0) return;
+    if (!crossfadeEnabled || !isPlaying || isTransitioning || durationMs <= 0 || progressMs < 8000) return;
     const nextIndex = getNextIndex();
     if (nextIndex === null || nextIndex === queueIndex) return;
 
@@ -362,12 +381,24 @@ export default function PlayerBar() {
       <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 border-t border-white/[0.07] px-4 py-3 flex items-center justify-between gap-3"
         style={{ background: "rgba(7,5,18,0.97)", backdropFilter: "blur(20px)" }}>
         <p className="text-[#E8282B] text-sm truncate">{sdkError}</p>
-        {sdkError.includes("Premium") || sdkError.includes("auth") ? null : (
+        {sdkError.includes("Premium") ||
+        sdkError.includes("auth") ||
+        sdkError.includes("session expired") ? (
           <button onClick={() => signOut({ callbackUrl: "/login" })}
             className="shrink-0 text-xs bg-[#E8282B] text-white px-3 py-1.5 rounded-xl font-medium">
             Re-login
           </button>
-        )}
+        ) : session?.accessToken ? (
+          <button
+            onClick={() => {
+              usePlayerStore.setState({ player: null, deviceId: null, isPlayerReady: false, sdkError: null });
+              initializePlayer(session.accessToken as string);
+            }}
+            className="shrink-0 text-xs bg-white/10 text-white px-3 py-1.5 rounded-xl font-medium hover:bg-white/15"
+          >
+            Retry
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -407,13 +438,21 @@ export default function PlayerBar() {
       {expanded && (
         <div className="fixed inset-0 z-50 p-4 sm:p-6 flex items-end sm:items-center justify-center"
           style={{ background: "rgba(6,4,16,0.96)", backdropFilter: "blur(28px)" }}
-          onClick={() => usePlayerStore.setState({ isPlayerExpanded: false })}>
+          onClick={() => {
+            const wasPlaying = usePlayerStore.getState().isPlaying;
+            usePlayerStore.setState({ isPlayerExpanded: false });
+            void usePlayerStore.getState().maintainPlayback(wasPlaying);
+          }}>
           <div className="w-full max-w-sm max-h-[92vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="rounded-3xl border border-white/[0.08] p-5 shadow-2xl shadow-black/80 flex flex-col min-h-0 max-h-full overflow-hidden"
               style={{ background: "var(--surface)" }}>
               <div className="mb-4 flex items-center justify-between shrink-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/30">Now Playing</p>
-                <button onClick={() => usePlayerStore.setState({ isPlayerExpanded: false })}
+                <button onClick={() => {
+                  const wasPlaying = usePlayerStore.getState().isPlaying;
+                  usePlayerStore.setState({ isPlayerExpanded: false });
+                  void usePlayerStore.getState().maintainPlayback(wasPlaying);
+                }}
                   className="rounded-xl p-2 text-white/30 hover:bg-white/[0.07] hover:text-white transition-colors">
                   <ChevronDown size={18} />
                 </button>
@@ -674,6 +713,18 @@ export default function PlayerBar() {
               className={`p-2 rounded-xl transition-colors ${isLiked ? "text-[#E8282B]" : "text-white/30 hover:text-[#E8282B]"}`}>
               <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
             </button>
+            {currentTrack.uri ? (
+              <TrackDownloadButton
+                track={{
+                  uri: currentTrack.uri,
+                  name: currentTrack.name,
+                  artist: currentTrack.artist,
+                  image: currentTrack.image,
+                }}
+                size={16}
+                className="!opacity-100 p-2 rounded-xl"
+              />
+            ) : null}
             <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
               className="p-2 rounded-xl text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors disabled:opacity-30">
               {resolvingAdd ? <Loader2 size={16} className="animate-spin" /> : <ListPlus size={16} />}

@@ -1,9 +1,9 @@
-import { SpotifyArtist } from "@/types";
+import { MusicArtist } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 
 interface Props {
-  artist: SpotifyArtist;
+  artist: MusicArtist;
 }
 
 export default function ArtistCard({ artist }: Props) {
@@ -11,7 +11,7 @@ export default function ArtistCard({ artist }: Props) {
 
   return (
     <Link
-      href={artist.external_urls.spotify}
+      href={artist.external_urls.web}
       target="_blank"
       rel="noopener noreferrer"
       className="flex flex-col items-center gap-2 p-4 rounded-xl hover:bg-zinc-800/60 transition-colors group"

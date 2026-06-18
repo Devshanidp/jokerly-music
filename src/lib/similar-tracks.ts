@@ -1,7 +1,8 @@
-import { getArtistTopTracks, searchSpotify, SpotifyError } from "@/lib/spotify";
-import { spotifyTrackIdFromUri } from "@/lib/spotify-track-id";
+import { CATALOG_API_V1, CATALOG_OPEN, CATALOG_TRACK_URI_PREFIX, CATALOG_ARTIST_URI_PREFIX } from "@/lib/catalog-endpoints";
+import { getArtistTopTracks, searchCatalog, CatalogApiError } from "@/lib/music-api";
+import { trackIdFromUri } from "@/lib/track-uri";
 
-const SPOTIFY_BASE = "https://api.spotify.com/v1";
+
 const MAX_SEARCH_CALLS_PER_REQUEST = 2;
 
 export type SimilarTrack = {
@@ -11,7 +12,7 @@ export type SimilarTrack = {
   artists: { id?: string; name: string }[];
   album?: { id?: string; name?: string; images?: { url: string }[] };
   duration_ms?: number;
-  external_urls?: { spotify: string };
+  external_urls?: { web: string };
 };
 
 export type SimilarFetchResult = {
@@ -36,13 +37,21 @@ type FetchState = {
   searchCalls: number;
 };
 
-async function spotifyGet(url: string, accessToken: string): Promise<unknown | null> {
+async function catalogGet(
+  url: string,
+  accessToken: string,
+  state?: FetchState
+): Promise<unknown | null> {
+  if (state?.rateLimited) return null;
   try {
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
       signal: AbortSignal.timeout(8_000),
     });
-    if (res.status === 429) return null;
+    if (res.status === 429) {
+      if (state) state.rateLimited = true;
+      return null;
+    }
     if (!res.ok) return null;
     return res.json();
   } catch {
@@ -67,7 +76,7 @@ export function normalizeSimilarTrack(raw: unknown): SimilarTrack | null {
   if (!id) return null;
 
   const uri =
-    (typeof item.uri === "string" ? item.uri : null) ?? `spotify:track:${id}`;
+    (typeof item.uri === "string" ? item.uri : null) ?? `${CATALOG_TRACK_URI_PREFIX}${id}`;
   const name = typeof item.name === "string" ? item.name : null;
   if (!name) return null;
 
@@ -97,7 +106,7 @@ export function normalizeSimilarTrack(raw: unknown): SimilarTrack | null {
       : undefined,
     duration_ms:
       typeof item.duration_ms === "number" ? item.duration_ms : undefined,
-    external_urls: item.external_urls as { spotify: string } | undefined,
+    external_urls: item.external_urls as { web: string } | undefined,
   };
 }
 
@@ -174,9 +183,9 @@ async function safeSearch(
   }
   state.searchCalls += 1;
   try {
-    return await searchSpotify(query, type, accessToken, limit, offset);
+    return await searchCatalog(query, type, accessToken, limit, offset);
   } catch (e) {
-    if (e instanceof SpotifyError && e.status === 429) state.rateLimited = true;
+    if (e instanceof CatalogApiError && e.status === 429) state.rateLimited = true;
     return null;
   }
 }
@@ -203,16 +212,17 @@ async function topTracksForArtist(
     const data = (await getArtistTopTracks(artistId, accessToken)) as { tracks?: unknown[] };
     return compactTracks(data?.tracks ?? []);
   } catch (e) {
-    if (e instanceof SpotifyError && e.status === 429) state.rateLimited = true;
+    if (e instanceof CatalogApiError && e.status === 429) state.rateLimited = true;
     return [];
   }
 }
 
 async function fetchTrackMeta(
   trackId: string,
-  accessToken: string
+  accessToken: string,
+  state: FetchState
 ): Promise<SimilarTrack | null> {
-  const data = await spotifyGet(`${SPOTIFY_BASE}/tracks/${trackId}`, accessToken);
+  const data = await catalogGet(`${CATALOG_API_V1}/tracks/${trackId}`, accessToken, state);
   return normalizeSimilarTrack(data);
 }
 
@@ -236,21 +246,23 @@ async function resolveArtistIdOnce(
 
 async function fetchAlbumTracks(
   albumId: string,
-  accessToken: string
+  accessToken: string,
+  state: FetchState
 ): Promise<SimilarTrack[]> {
-  const album = (await spotifyGet(`${SPOTIFY_BASE}/albums/${albumId}`, accessToken)) as {
+  const album = (await catalogGet(`${CATALOG_API_V1}/albums/${albumId}`, accessToken, state)) as {
     id?: string;
     name?: string;
     images?: { url: string }[];
     release_date?: string;
     album_type?: string;
-    external_urls?: { spotify: string };
+    external_urls?: { web: string };
   } | null;
   if (!album?.id) return [];
 
-  const tracksData = (await spotifyGet(
-    `${SPOTIFY_BASE}/albums/${albumId}/tracks?limit=50`,
-    accessToken
+  const tracksData = (await catalogGet(
+    `${CATALOG_API_V1}/albums/${albumId}/tracks?limit=50`,
+    accessToken,
+    state
   )) as { items?: unknown[] } | null;
 
   const merged: unknown[] = (tracksData?.items ?? []).map((item) => ({
@@ -319,14 +331,14 @@ export async function fetchSimilarTracks(
   const refreshSeed = Math.max(0, options.refreshSeed ?? 0);
   const excludeUri = options.trackUri ?? null;
   const excludeId =
-    options.trackId?.trim() || spotifyTrackIdFromUri(options.trackUri) || null;
+    options.trackId?.trim() || trackIdFromUri(options.trackUri) || null;
   const excludeIds = new Set(excluded);
   const state: FetchState = { rateLimited: false, searchCalls: 0 };
 
   const resolvedTrackId = excludeId;
   let meta: SimilarTrack | null = null;
   if (resolvedTrackId) {
-    meta = await fetchTrackMeta(resolvedTrackId, accessToken);
+    meta = await fetchTrackMeta(resolvedTrackId, accessToken, state);
   }
 
   const artistIdsFromMeta = (meta?.artists ?? [])
@@ -356,15 +368,15 @@ export async function fetchSimilarTracks(
   const orderedArtists = [
     ...artistQueue.slice(start),
     ...artistQueue.slice(0, start),
-  ].slice(0, refreshSeed > 0 ? 3 : 2);
+  ].slice(0, refreshSeed > 0 ? 2 : 1);
 
   for (const artistId of orderedArtists) {
     pool.push(...(await topTracksForArtist(artistId, accessToken, state)));
-    if (state.rateLimited) break;
+    if (state.rateLimited || pool.length >= limit * 2) break;
   }
 
-  if (seed.albumId && !state.rateLimited) {
-    pool.push(...(await fetchAlbumTracks(seed.albumId, accessToken)));
+  if (seed.albumId && !state.rateLimited && pool.length < limit) {
+    pool.push(...(await fetchAlbumTracks(seed.albumId, accessToken, state)));
   }
 
   let result = dedupeTracks(

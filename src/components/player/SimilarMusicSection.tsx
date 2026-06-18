@@ -5,31 +5,41 @@ import { Loader2, ListPlus, Music, Play, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { PlayableTrack, usePlayerStore } from "@/store/player";
-import { SpotifyTrack, artistNames, trackImage } from "@/types/spotify";
-import { spotifyTrackIdFromUri } from "@/lib/spotify-track-id";
+import { MusicTrack, artistNames, trackImage } from "@/types/music-catalog";
+import { trackIdFromUri, trackUriFromId } from "@/lib/track-uri";
+import { catalogOpenUrl } from "@/lib/catalog-endpoints";
 
 const INITIAL_LIMIT = 15;
 const MORE_LIMIT = 10;
 const MAX_EXCLUDE_IDS = 80;
+const CLIENT_CACHE_TTL_MS = 300_000;
+const RATE_LIMIT_COOLDOWN_MS = 45_000;
+
+type ClientCacheEntry = { tracks: MusicTrack[]; expires: number };
+const similarClientCache = new Map<string, ClientCacheEntry>();
+
+function clientCacheKey(track: PlayableTrack) {
+  return `${track.uri ?? ""}::${track.name}::${track.artist ?? ""}`;
+}
 
 interface Props {
   track: PlayableTrack;
   variant?: "sheet" | "embedded";
 }
 
-function normalizeItem(item: SpotifyTrack): SpotifyTrack | null {
-  const id = item?.id ?? spotifyTrackIdFromUri(item?.uri) ?? null;
-  const uri = item?.uri ?? (id ? `spotify:track:${id}` : null);
+function normalizeItem(item: MusicTrack): MusicTrack | null {
+  const id = item?.id ?? trackIdFromUri(item?.uri) ?? null;
+  const uri = item?.uri ?? (id ? trackUriFromId(id) : null);
   if (!id || !uri || !item?.name) return null;
   const artists =
     item.artists?.length > 0
       ? item.artists
-      : [{ id: "unknown", name: "Unknown Artist", external_urls: { spotify: "" } }];
+      : [{ id: "unknown", name: "Unknown Artist", external_urls: { web: "" } }];
   const album = item.album ?? {
     id: "unknown",
     name: "",
     images: [],
-    external_urls: { spotify: "" },
+    external_urls: { web: "" },
     release_date: "",
     album_type: "album",
   };
@@ -40,12 +50,12 @@ function normalizeItem(item: SpotifyTrack): SpotifyTrack | null {
     artists,
     album,
     duration_ms: item.duration_ms ?? 0,
-    external_urls: item.external_urls ?? { spotify: `https://open.spotify.com/track/${id}` },
+    external_urls: item.external_urls ?? { web: catalogOpenUrl(`track/${id}`) },
     preview_url: item.preview_url ?? null,
   };
 }
 
-function toPlayable(t: SpotifyTrack): PlayableTrack {
+function toPlayable(t: MusicTrack): PlayableTrack {
   return {
     name: t.name,
     artist: artistNames(t),
@@ -57,13 +67,15 @@ function toPlayable(t: SpotifyTrack): PlayableTrack {
 
 export default function SimilarMusicSection({ track, variant = "sheet" }: Props) {
   const embedded = variant === "embedded";
-  const [similarTracks, setSimilarTracks] = useState<SpotifyTrack[]>([]);
+  const [similarTracks, setSimilarTracks] = useState<MusicTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [empty, setEmpty] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
+  const [usingCachedSimilar, setUsingCachedSimilar] = useState(false);
+  const rateLimitUntilRef = useRef(0);
   const [modalTrack, setModalTrack] = useState<{
     uri: string;
     name: string;
@@ -79,10 +91,32 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
   const hasMoreRef = useRef(true);
   const { setQueueAndPlay, currentTrack, isPlaying } = usePlayerStore();
 
+  const applyClientCache = useCallback((key: string) => {
+    const cached = similarClientCache.get(key);
+    if (!cached || cached.expires < Date.now()) return false;
+    const currentUri = track.uri ?? "";
+    const currentId = trackIdFromUri(track.uri);
+    const items = cached.tracks.filter((item) => {
+      if (currentUri && item.uri === currentUri) return false;
+      if (currentId && item.id === currentId) return false;
+      return true;
+    });
+    if (items.length === 0) return false;
+    for (const item of items) shownIdsRef.current.add(item.id);
+    setSimilarTracks(items);
+    setEmpty(false);
+    setUsingCachedSimilar(true);
+    hasMoreRef.current = items.length >= 3;
+    return true;
+  }, [track.artist, track.name, track.uri]);
+
   const fetchTracks = useCallback(
     async (mode: "initial" | "more" | "refresh") => {
       const generation = ++fetchGenRef.current;
       const limit = mode === "initial" || mode === "refresh" ? INITIAL_LIMIT : MORE_LIMIT;
+      const cacheKey = clientCacheKey(track);
+
+      if (mode === "more" && Date.now() < rateLimitUntilRef.current) return;
 
       if (!track.name?.trim()) {
         setSimilarTracks([]);
@@ -98,6 +132,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         setEmpty(false);
         setSessionExpired(false);
         setRateLimited(false);
+        setUsingCachedSimilar(false);
       } else if (mode === "more") {
         if (!hasMoreRef.current || loadingMore || loading) return;
         setLoadingMore(true);
@@ -107,6 +142,11 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         setEmpty(false);
         setSessionExpired(false);
         setRateLimited(false);
+        setUsingCachedSimilar(false);
+        if (applyClientCache(cacheKey)) {
+          setLoading(false);
+          return;
+        }
       }
 
       try {
@@ -114,7 +154,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
           limit: String(limit),
           refresh: String(refreshSeedRef.current),
         });
-        const trackId = spotifyTrackIdFromUri(track.uri);
+        const trackId = trackIdFromUri(track.uri);
         if (trackId) params.set("trackId", trackId);
         if (track.uri) params.set("trackUri", track.uri);
         params.set("track", track.name);
@@ -123,29 +163,31 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         const exclude = Array.from(shownIdsRef.current).slice(-MAX_EXCLUDE_IDS);
         if (exclude.length > 0) params.set("exclude", exclude.join(","));
 
-        const res = await fetch(`/api/spotify/recommendations?${params}`, {
-          cache: "no-store",
+        const res = await fetch(`/api/music/recommendations?${params}`, {
           credentials: "same-origin",
         });
         if (generation !== fetchGenRef.current) return;
 
         const data = (await res.json().catch(() => ({}))) as {
-          tracks?: SpotifyTrack[];
+          tracks?: MusicTrack[];
           error?: string;
           rateLimited?: boolean;
         };
 
-        if (res.status === 429 || data.rateLimited) {
+        const limited = res.status === 429 || !!data.rateLimited;
+        if (limited) {
           setRateLimited(true);
+          rateLimitUntilRef.current = Date.now() + RATE_LIMIT_COOLDOWN_MS;
         }
 
-        if (!res.ok) {
+        if (!res.ok && !(limited && (data.tracks?.length ?? 0) > 0)) {
           const expired =
             res.status === 401 ||
             data.error === "Token expired, please re-login" ||
             data.error === "Unauthorized";
           if (expired) setSessionExpired(true);
           if (mode === "initial" || mode === "refresh") {
+            if (applyClientCache(cacheKey)) return;
             setSimilarTracks([]);
             setEmpty(true);
           }
@@ -154,11 +196,11 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         }
 
         const currentUri = track.uri ?? "";
-        const currentId = spotifyTrackIdFromUri(track.uri);
-        const filterItems = (raw: SpotifyTrack[]) =>
+        const currentId = trackIdFromUri(track.uri);
+        const filterItems = (raw: MusicTrack[]) =>
           raw
             .map(normalizeItem)
-            .filter((item): item is SpotifyTrack => {
+            .filter((item): item is MusicTrack => {
               if (!item) return false;
               if (currentUri && item.uri === currentUri) return false;
               if (currentId && item.id === currentId) return false;
@@ -172,13 +214,24 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
 
         if (generation !== fetchGenRef.current) return;
 
+        if (items.length === 0 && limited && (mode === "initial" || mode === "refresh")) {
+          if (applyClientCache(cacheKey)) return;
+        }
+
         if (mode === "initial" || mode === "refresh") {
           if (items.length > 0) {
             setSimilarTracks(items);
             setEmpty(false);
+            setUsingCachedSimilar(false);
+            similarClientCache.set(cacheKey, {
+              tracks: items,
+              expires: Date.now() + CLIENT_CACHE_TTL_MS,
+            });
           } else if (mode === "refresh") {
+            if (limited && applyClientCache(cacheKey)) return;
             setEmpty(similarTracks.length === 0);
           } else {
+            if (limited && applyClientCache(cacheKey)) return;
             setSimilarTracks([]);
             setEmpty(true);
           }
@@ -206,7 +259,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         setRefreshing(false);
       }
     },
-    [track.artist, track.name, track.uri, loading, loadingMore, similarTracks.length]
+    [track.artist, track.name, track.uri, loading, loadingMore, similarTracks.length, applyClientCache]
   );
 
   useEffect(() => {
@@ -224,7 +277,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
       refreshSeedRef.current = 0;
       hasMoreRef.current = true;
       void fetchTracks("initial");
-    }, 400);
+    }, 700);
     return () => window.clearTimeout(timer);
   }, [track.artist, track.name, track.uri, fetchTracks]);
 
@@ -234,7 +287,9 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) void fetchTracks("more");
+        if (entries[0]?.isIntersecting && Date.now() >= rateLimitUntilRef.current) {
+          void fetchTracks("more");
+        }
       },
       { rootMargin: "120px" }
     );
@@ -247,7 +302,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
     void fetchTracks("refresh");
   };
 
-  const handleAddToPlaylist = (item: SpotifyTrack) => {
+  const handleAddToPlaylist = (item: MusicTrack) => {
     if (!item.uri) return;
     setModalTrack({
       uri: item.uri,
@@ -257,7 +312,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
     });
   };
 
-  const playSimilar = async (picked: SpotifyTrack) => {
+  const playSimilar = async (picked: MusicTrack) => {
     if (playingRef.current) return;
     const playables = similarTracks.map(toPlayable).filter((item) => item.uri);
     if (playables.length === 0) return;
@@ -275,7 +330,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
     }
   };
 
-  const isPlayingTrack = (item: SpotifyTrack) =>
+  const isPlayingTrack = (item: MusicTrack) =>
     isPlaying &&
     currentTrack?.uri === item.uri &&
     currentTrack?.name === item.name;
@@ -411,7 +466,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
                 {sessionExpired
                   ? "Session expired. Sign in again to load similar tracks."
                   : rateLimited
-                    ? "Spotify rate limit reached. Wait a moment, then try again."
+                    ? "Rate limit reached. Wait a moment, then try again."
                     : "No similar tracks found"}
               </p>
               {sessionExpired ? (
@@ -434,6 +489,11 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
             </div>
           ) : (
             <>
+              {usingCachedSimilar && rateLimited ? (
+                <p className="text-[10px] text-center text-amber-400/80 px-2 mb-2">
+                  Showing cached similar tracks — Catalog service is busy. Try refresh in a minute.
+                </p>
+              ) : null}
               <div>{trackRows}</div>
               <div ref={loadMoreRef} className="h-6 flex items-center justify-center py-2">
                 {loadingMore && <Loader2 size={16} className="animate-spin text-white/20" />}

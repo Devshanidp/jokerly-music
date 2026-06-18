@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useBackHandler } from "@/hooks/useBackHandler";
 import { createPortal } from "react-dom";
-import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X, LayoutGrid, List, Shuffle } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -12,7 +13,7 @@ import {
   useSortable, arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SpotifyPlaylist } from "@/types";
+import { MusicPlaylist } from "@/types";
 import Image from "next/image";
 import { useToastStore } from "@/store/toast";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
@@ -21,12 +22,20 @@ import AddFromPlaylistModal from "@/components/playlist/AddFromPlaylistModal";
 import CreateMultiArtistPlaylistSheet from "@/components/playlist/CreateMultiArtistPlaylistSheet";
 import EditMixArtistsSheet from "@/components/playlist/EditMixArtistsSheet";
 import ArtistSheet from "@/components/music/ArtistSheet";
-import { SpotifyArtist } from "@/types/spotify";
+import { MusicArtist } from "@/types/music-catalog";
 import { useLikesStore } from "@/store/likes";
 import { isMixPlaylist, parseMixArtistRecords, parseMixArtists } from "@/lib/playlist-meta";
+import { shuffleArray } from "@/lib/shuffle";
+import PlaylistActionsMenu from "@/components/playlist/PlaylistActionsMenu";
+import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
+import { useOfflineStore } from "@/store/offline";
 
 interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
+type PlaylistViewMode = "grid" | "list";
+const PLAYLIST_VIEW_KEY = "jokerly-playlist-view";
+
+const playlistCardBorder = "border border-white/[0.12]";
 interface PlaylistTrack { id: string; track_uri: string; track_name: string; track_image?: string | null; track_artist?: string | null; added_at: string; position: number; }
 interface PinnedArtist { id: string; artist_id: string; artist_name: string; artist_image: string; }
 
@@ -103,6 +112,14 @@ function SortableTrackRow({
       >
         <Heart size={12} fill={isLiked ? "currentColor" : "none"} />
       </button>
+      <TrackDownloadButton
+        track={{
+          uri: track.track_uri,
+          name: track.track_name,
+          artist: track.track_artist ?? "",
+          image: track.track_image,
+        }}
+      />
       <button onClick={(e) => { e.stopPropagation(); onRemove(); }}
         disabled={removingKey === rmKey}
         className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
@@ -143,7 +160,8 @@ function CoverArt({ tracks, imageUrl, name, size = 160 }: { tracks?: PlaylistTra
 
 // ── Main component ──────────────────────────────────────────────────────────
 export default function PlaylistsClient() {
-  const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
+  const [playlists, setPlaylists] = useState<MusicPlaylist[]>([]);
+  const [viewMode, setViewMode] = useState<PlaylistViewMode>("grid");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showArtistMixSheet, setShowArtistMixSheet] = useState(false);
@@ -163,15 +181,35 @@ export default function PlaylistsClient() {
   const [editArtistsOpen, setEditArtistsOpen] = useState(false);
   const [pinnedArtists, setPinnedArtists] = useState<PinnedArtist[]>([]);
   const [removingPinnedArtist, setRemovingPinnedArtist] = useState<string | null>(null);
-  const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
+  const [selectedArtist, setSelectedArtist] = useState<MusicArtist | null>(null);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToastStore();
-  const { setQueueAndPlay, currentTrack, isPlayerExpanded } = usePlayerStore();
+  const { setQueueAndPlay, currentTrack, isPlayerExpanded, deviceId } = usePlayerStore();
+  const downloadPlaylistOffline = useOfflineStore((s) => s.downloadPlaylist);
+  const [downloadingPlaylistId, setDownloadingPlaylistId] = useState<string | null>(null);
   const hasPlayer = currentTrack !== null;
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PLAYLIST_VIEW_KEY);
+      if (saved === "grid" || saved === "list") setViewMode(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setPlaylistViewMode = (mode: PlaylistViewMode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem(PLAYLIST_VIEW_KEY, mode);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -179,6 +217,17 @@ export default function PlaylistsClient() {
   );
 
   const selectedPlaylist = playlists.find((p) => p.id === selectedId) ?? null;
+
+  useBackHandler(!!selectedId, () => {
+    setSelectedId(null);
+    setEdit(null);
+    setAddFromPlaylist(false);
+  });
+  useBackHandler(showArtistMixSheet, () => setShowArtistMixSheet(false));
+  useBackHandler(editArtistsOpen, () => setEditArtistsOpen(false));
+  useBackHandler(!!addModal, () => setAddModal(null));
+  useBackHandler(addFromPlaylist, () => setAddFromPlaylist(false));
+  useBackHandler(!!edit, () => setEdit(null));
 
   const handleDragEnd = (event: DragEndEvent, playlistId: string) => {
     const { active, over } = event;
@@ -189,7 +238,7 @@ export default function PlaylistsClient() {
     if (oldIdx === -1 || newIdx === -1) return;
     const reordered = arrayMove(tracks, oldIdx, newIdx);
     setTracksMap((prev) => ({ ...prev, [playlistId]: reordered }));
-    fetch(`/api/spotify/playlists/${playlistId}`, {
+    fetch(`/api/music/playlists/${playlistId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order: reordered.map((t) => t.id) }),
@@ -200,7 +249,7 @@ export default function PlaylistsClient() {
     setLoading(true);
     try {
       const [plRes, pinRes] = await Promise.all([
-        fetch("/api/spotify/playlists", { cache: "no-store" }),
+        fetch("/api/music/playlists", { cache: "no-store" }),
         fetch("/api/pinned", { cache: "no-store" }),
       ]);
       if (!plRes.ok) throw new Error("Failed to load playlists");
@@ -218,7 +267,7 @@ export default function PlaylistsClient() {
   const fetchTracks = useCallback(async (id: string) => {
     setLoadingTracks(id);
     try {
-      const res = await fetch(`/api/spotify/playlists/${id}?_t=${Date.now()}`);
+      const res = await fetch(`/api/music/playlists/${id}?_t=${Date.now()}`);
       const data = await res.json();
       setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
     } catch {
@@ -247,7 +296,7 @@ export default function PlaylistsClient() {
     if (playlists.length === 0) return;
     playlists.forEach((pl) => {
       if (tracksMap[pl.id]) return;
-      fetch(`/api/spotify/playlists/${pl.id}`)
+      fetch(`/api/music/playlists/${pl.id}`)
         .then((r) => r.json())
         .then((data) => setTracksMap((prev) => ({ ...prev, [pl.id]: data.items ?? [] })))
         .catch(() => {});
@@ -267,28 +316,71 @@ export default function PlaylistsClient() {
     return () => window.removeEventListener("playlist-updated", handler);
   }, [fetchTracks, selectedId]);
 
-  const openPlaylist = (pl: SpotifyPlaylist) => {
+  const openPlaylist = (pl: MusicPlaylist) => {
     setSelectedId(pl.id);
     fetchTracks(pl.id);
   };
 
-  const playTrack = (tracks: PlaylistTrack[], index: number) => {
-    const queue: PlayableTrack[] = tracks.map((t) => ({
-      name: t.track_name, artist: t.track_artist ?? "", image: t.track_image ?? undefined, uri: t.track_uri,
+  const toPlayableQueue = (tracks: PlaylistTrack[]): PlayableTrack[] =>
+    tracks.map((t) => ({
+      name: t.track_name,
+      artist: t.track_artist ?? "",
+      image: t.track_image ?? undefined,
+      uri: t.track_uri,
     }));
-    setQueueAndPlay(queue, index);
+
+  const playTrack = (tracks: PlaylistTrack[], index: number) => {
+    setQueueAndPlay(toPlayableQueue(tracks), index);
+  };
+
+  const shufflePlayPlaylist = async (tracks: PlaylistTrack[]) => {
+    if (!tracks.length) return;
+    const shuffled = shuffleArray(toPlayableQueue(tracks));
+    usePlayerStore.setState({ shuffleEnabled: true });
+    if (deviceId) {
+      await fetch("/api/music/player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "shuffle", deviceId, state: true }),
+      }).catch(() => {});
+    }
+    setQueueAndPlay(shuffled, 0);
+    toast("Shuffle play");
+  };
+
+  const downloadPlaylistOfflineTracks = async (playlistId: string, tracks: PlaylistTrack[]) => {
+    if (!tracks.length) return;
+    setDownloadingPlaylistId(playlistId);
+    try {
+      const { ok, fail } = await downloadPlaylistOffline(
+        tracks.map((t) => ({
+          uri: t.track_uri,
+          name: t.track_name,
+          artist: t.track_artist ?? "",
+          image: t.track_image,
+        }))
+      );
+      toast(
+        fail > 0
+          ? `Offline: ${ok} saved, ${fail} unavailable`
+          : `Downloaded ${ok} tracks for offline`,
+        ok > 0 ? "success" : "error"
+      );
+    } finally {
+      setDownloadingPlaylistId(null);
+    }
   };
 
   const createPlaylist = async () => {
     if (!newName.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/spotify/playlists", {
+      const res = await fetch("/api/music/playlists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim(), description: newDesc.trim() }),
       });
-      const created = (await res.json().catch(() => ({}))) as SpotifyPlaylist & { error?: string };
+      const created = (await res.json().catch(() => ({}))) as MusicPlaylist & { error?: string };
       if (!res.ok) throw new Error(created.error ?? "Failed to create playlist");
 
       setPlaylists((prev) => [created, ...prev.filter((p) => p.id !== created.id)]);
@@ -302,7 +394,7 @@ export default function PlaylistsClient() {
     }
   };
 
-  const handleArtistMixCreated = async (playlist: SpotifyPlaylist, addedCount: number) => {
+  const handleArtistMixCreated = async (playlist: MusicPlaylist, addedCount: number) => {
     setPlaylists((prev) => [playlist, ...prev.filter((p) => p.id !== playlist.id)]);
     setSelectedId(playlist.id);
     await fetchTracks(playlist.id);
@@ -385,7 +477,7 @@ export default function PlaylistsClient() {
     const key = `${playlistId}::${trackId}`;
     setRemovingTrack(key);
     try {
-      const res = await fetch(`/api/spotify/playlists/${playlistId}/tracks`, {
+      const res = await fetch(`/api/music/playlists/${playlistId}/tracks`, {
         method: "DELETE", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trackId }),
       });
@@ -405,7 +497,7 @@ export default function PlaylistsClient() {
     if (!edit) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/spotify/playlists/${edit.id}`, {
+      const res = await fetch(`/api/music/playlists/${edit.id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: edit.name, description: edit.description }),
       });
@@ -422,7 +514,7 @@ export default function PlaylistsClient() {
     }
   };
 
-  const togglePin = async (pl: SpotifyPlaylist) => {
+  const togglePin = async (pl: MusicPlaylist) => {
     setPinning(pl.id);
     try {
       if (pinned.has(pl.id)) {
@@ -445,7 +537,7 @@ export default function PlaylistsClient() {
     if (!window.confirm("Delete this playlist?")) return;
     setDeleting((prev) => new Set(prev).add(playlistId));
     try {
-      const res = await fetch(`/api/spotify/playlists/${playlistId}`, { method: "DELETE" });
+      const res = await fetch(`/api/music/playlists/${playlistId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete playlist");
       setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
       setPinned((prev) => { const s = new Set(prev); s.delete(playlistId); return s; });
@@ -457,7 +549,7 @@ export default function PlaylistsClient() {
     }
   };
 
-  const handleDownloadM3U = (playlist: SpotifyPlaylist, playlistTracks: PlaylistTrack[]) => {
+  const handleDownloadM3U = (playlist: MusicPlaylist, playlistTracks: PlaylistTrack[]) => {
     const m3uContent = [
       "#EXTM3U",
       ...playlistTracks.map((track) => `#EXTINF:-1,${track.track_artist ?? "Unknown Artist"} - ${track.track_name}`),
@@ -497,6 +589,15 @@ export default function PlaylistsClient() {
             <ArrowLeft size={16} /> Back
           </button>
           <div className="flex-1" />
+          <PlaylistActionsMenu
+            isPinned={isPinned}
+            pinning={pinning === pl.id}
+            trackCount={tracks.length}
+            downloadingPlaylist={downloadingPlaylistId === pl.id}
+            onShufflePlay={() => shufflePlayPlaylist(tracks)}
+            onTogglePin={() => togglePin(pl)}
+            onDownloadOffline={() => downloadPlaylistOfflineTracks(pl.id, tracks)}
+          />
           <button onClick={() => setAddFromPlaylist(true)}
             title="Add tracks from another playlist"
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -585,15 +686,34 @@ export default function PlaylistsClient() {
           </div>
         </div>
 
-        {/* Play all */}
         {tracks.length > 0 && (
-          <button
-            onClick={() => playTrack(tracks, 0)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 shadow-lg"
-            style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
-          >
-            <PlayCircle size={16} /> Play all
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => playTrack(tracks, 0)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 shadow-lg"
+              style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
+            >
+              <PlayCircle size={16} /> Play all
+            </button>
+            <button
+              onClick={() => shufflePlayPlaylist(tracks)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95"
+            >
+              <Shuffle size={16} className="text-[#E8282B]" /> Shuffle
+            </button>
+            <button
+              onClick={() => downloadPlaylistOfflineTracks(pl.id, tracks)}
+              disabled={downloadingPlaylistId === pl.id}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95 disabled:opacity-40"
+            >
+              {downloadingPlaylistId === pl.id ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Download size={16} />
+              )}
+              Download offline
+            </button>
+          </div>
         )}
 
         {/* Track list */}
@@ -630,18 +750,17 @@ export default function PlaylistsClient() {
             onTracksAdded={() => fetchTracks(selectedPlaylist.id)}
           />
         )}
-        {editArtistsOpen && (
-          <EditMixArtistsSheet
-            open={editArtistsOpen}
-            playlistId={pl.id}
-            playlistName={pl.name}
-            initialArtists={mixArtistRecords}
-            onClose={() => setEditArtistsOpen(false)}
-            onSaved={(artists, description, addedCount, removedCount) => {
-              void handleArtistsSaved(pl.id, artists, description, addedCount, removedCount);
-            }}
-          />
-        )}
+        <EditMixArtistsSheet
+          key={pl.id}
+          open={editArtistsOpen}
+          playlistId={pl.id}
+          playlistName={pl.name}
+          initialArtists={mixArtistRecords}
+          onClose={() => setEditArtistsOpen(false)}
+          onSaved={(artists, description, addedCount, removedCount) => {
+            void handleArtistsSaved(pl.id, artists, description, addedCount, removedCount);
+          }}
+        />
         {artistMixFab}
       </div>
     );
@@ -651,20 +770,47 @@ export default function PlaylistsClient() {
   return (
     <div className="w-full space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-xl font-bold text-white tracking-tight">Your Playlists</h2>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
             {playlists.length > 0 ? `${playlists.length} playlist${playlists.length !== 1 ? "s" : ""}` : ""}
           </p>
         </div>
-        <button
-          onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg"
-          style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
-        >
-          <Plus size={15} /> New
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <div
+            className="flex items-center rounded-xl border border-white/[0.12] p-0.5"
+            style={{ background: "var(--surface)" }}
+            role="group"
+            aria-label="Playlist layout"
+          >
+            <button
+              type="button"
+              onClick={() => setPlaylistViewMode("grid")}
+              title="Grid view"
+              aria-pressed={viewMode === "grid"}
+              className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-white/[0.12] text-white" : "text-white/40 hover:text-white/70"}`}
+            >
+              <LayoutGrid size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setPlaylistViewMode("list")}
+              title="List view"
+              aria-pressed={viewMode === "list"}
+              className={`p-2 rounded-lg transition-colors ${viewMode === "list" ? "bg-white/[0.12] text-white" : "text-white/40 hover:text-white/70"}`}
+            >
+              <List size={16} />
+            </button>
+          </div>
+          <button
+            onClick={() => setCreating(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg"
+            style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
+          >
+            <Plus size={15} /> New
+          </button>
+        </div>
       </div>
 
       {/* Create form */}
@@ -695,17 +841,31 @@ export default function PlaylistsClient() {
 
       {/* Skeleton */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="rounded-2xl overflow-hidden animate-pulse border border-white/[0.05]" style={{ background: "var(--card)" }}>
-              <div className="aspect-square" style={{ background: "var(--surface)" }} />
-              <div className="p-3 space-y-2">
-                <div className="h-3 rounded-full w-3/4" style={{ background: "rgba(255,255,255,0.07)" }} />
-                <div className="h-2.5 rounded-full w-1/2" style={{ background: "rgba(255,255,255,0.04)" }} />
+        viewMode === "grid" ? (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className={`rounded-lg overflow-hidden animate-pulse ${playlistCardBorder}`} style={{ background: "var(--card)" }}>
+                <div className="aspect-square" style={{ background: "var(--surface)" }} />
+                <div className="p-1.5 space-y-1 border-t border-white/[0.08]">
+                  <div className="h-2 rounded-full w-3/4" style={{ background: "rgba(255,255,255,0.07)" }} />
+                  <div className="h-1.5 rounded-full w-1/2" style={{ background: "rgba(255,255,255,0.04)" }} />
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className={`rounded-xl overflow-hidden divide-y divide-white/[0.08] ${playlistCardBorder}`} style={{ background: "var(--card)" }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-2.5 p-2.5 animate-pulse">
+                <div className="w-10 h-10 rounded-md shrink-0" style={{ background: "var(--surface)" }} />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 rounded-full w-2/3" style={{ background: "rgba(255,255,255,0.07)" }} />
+                  <div className="h-2.5 rounded-full w-1/3" style={{ background: "rgba(255,255,255,0.04)" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       ) : playlists.length === 0 ? (
         <div className="text-center py-24" style={{ color: "var(--text-muted)" }}>
           <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: "var(--card)" }}>
@@ -714,8 +874,8 @@ export default function PlaylistsClient() {
           <p className="text-sm font-medium">No playlists yet</p>
           <p className="text-xs mt-1 opacity-60">Tap + to mix artists, or New for an empty playlist</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 gap-2">
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
           {playlists.map((pl) => {
             const mixArtists = parseMixArtists(pl.description);
             const isPinned = pinned.has(pl.id);
@@ -726,35 +886,111 @@ export default function PlaylistsClient() {
               <div
                 key={pl.id}
                 onClick={() => !isDeleting && openPlaylist(pl)}
-                className={`rounded-lg overflow-hidden border cursor-pointer transition-all duration-200 active:scale-[0.97] ${isDeleting ? "opacity-40 pointer-events-none" : "hover:border-white/[0.12]"}`}
-                style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.07)" }}
+                className={`rounded-lg overflow-visible ${playlistCardBorder} cursor-pointer transition-all duration-200 active:scale-[0.98] ${isDeleting ? "opacity-40 pointer-events-none" : "hover:border-white/25 hover:bg-white/[0.02]"}`}
+                style={{ background: "var(--card)" }}
               >
-                {/* Cover art square */}
-                <div className="relative aspect-square w-full overflow-hidden" style={{ background: "var(--surface)" }}>
-                  <CoverArt tracks={tracks} imageUrl={pl.images?.[0]?.url} name={pl.name} size={90} />
+                <div className="relative aspect-square w-full overflow-hidden border-b border-white/[0.08] rounded-t-lg" style={{ background: "var(--surface)" }}>
+                  <CoverArt tracks={tracks} imageUrl={pl.images?.[0]?.url} name={pl.name} size={56} />
                   {isPinned && (
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                    <span className="absolute top-1 left-1 z-10 w-2 h-2 rounded-full bg-[#E8282B] border border-black/30 shadow" />
                   )}
-                  {/* Play overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity" style={{ background: "rgba(0,0,0,0.35)" }}>
-                    <div className="w-6 h-6 rounded-full bg-[#E8282B] flex items-center justify-center shadow-lg">
+                  <div
+                    className="absolute inset-0 z-[1] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity pointer-events-none"
+                    style={{ background: "rgba(0,0,0,0.35)" }}
+                  >
+                    <div className="w-6 h-6 rounded-full bg-[#E8282B] flex items-center justify-center shadow-lg pointer-events-none">
                       <Play size={10} fill="white" className="text-white ml-0.5" />
                     </div>
                   </div>
                 </div>
+                <div className="p-1.5 flex items-start gap-1 relative z-20">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-[10px] font-semibold truncate leading-tight">{pl.name}</p>
+                    {mixArtists.length > 0 && (
+                      <p className="text-[9px] mt-0.5 truncate leading-tight" style={{ color: "rgba(255,255,255,0.45)" }}>
+                        {mixArtists.join(" · ")}
+                      </p>
+                    )}
+                    <p className="text-[9px] mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>
+                      {pl.tracks?.total ?? 0} tracks
+                    </p>
+                  </div>
+                  <PlaylistActionsMenu
+                    variant="card"
+                    isPinned={isPinned}
+                    pinning={pinning === pl.id}
+                    trackCount={tracks?.length ?? pl.tracks?.total ?? 0}
+                    downloadingPlaylist={downloadingPlaylistId === pl.id}
+                    onShufflePlay={() => {
+                      const list = tracksMap[pl.id] ?? [];
+                      if (list.length) shufflePlayPlaylist(list);
+                      else toast("Open playlist to load tracks first");
+                    }}
+                    onTogglePin={() => togglePin(pl)}
+                    onDownloadOffline={() => {
+                      const list = tracksMap[pl.id] ?? [];
+                      if (list.length) downloadPlaylistOfflineTracks(pl.id, list);
+                      else toast("Open playlist to load tracks first");
+                    }}
+                    onOpen={() => openPlaylist(pl)}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div
+          className={`rounded-xl overflow-hidden divide-y divide-white/[0.10] ${playlistCardBorder}`}
+          style={{ background: "var(--card)" }}
+        >
+          {playlists.map((pl) => {
+            const mixArtists = parseMixArtists(pl.description);
+            const isPinned = pinned.has(pl.id);
+            const isDeleting = deleting.has(pl.id);
+            const tracks = tracksMap[pl.id];
 
-                {/* Info */}
-                <div className="p-1.5">
-                  <p className="text-white text-[10px] font-semibold truncate leading-tight">{pl.name}</p>
+            return (
+              <div
+                key={pl.id}
+                onClick={() => !isDeleting && openPlaylist(pl)}
+                className={`flex items-center gap-2.5 p-2.5 cursor-pointer transition-colors ${isDeleting ? "opacity-40 pointer-events-none" : "hover:bg-white/[0.04]"}`}
+              >
+                <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0 border border-white/[0.10]" style={{ background: "var(--surface)" }}>
+                  <CoverArt tracks={tracks} imageUrl={pl.images?.[0]?.url} name={pl.name} size={40} />
+                  {isPinned && (
+                    <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-xs font-semibold truncate">{pl.name}</p>
                   {mixArtists.length > 0 && (
-                    <p className="text-[9px] mt-0.5 truncate leading-tight" style={{ color: "rgba(255,255,255,0.45)" }}>
+                    <p className="text-[10px] mt-0.5 truncate" style={{ color: "rgba(255,255,255,0.45)" }}>
                       {mixArtists.join(" · ")}
                     </p>
                   )}
-                  <p className="text-[9px] mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>
+                  <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
                     {pl.tracks?.total ?? 0} tracks
                   </p>
                 </div>
+                <PlaylistActionsMenu
+                  isPinned={isPinned}
+                  pinning={pinning === pl.id}
+                  trackCount={tracks?.length ?? pl.tracks?.total ?? 0}
+                  downloadingPlaylist={downloadingPlaylistId === pl.id}
+                  onShufflePlay={() => {
+                    const list = tracksMap[pl.id] ?? [];
+                    if (list.length) shufflePlayPlaylist(list);
+                    else toast("Open playlist to load tracks first");
+                  }}
+                  onTogglePin={() => togglePin(pl)}
+                  onDownloadOffline={() => {
+                    const list = tracksMap[pl.id] ?? [];
+                    if (list.length) downloadPlaylistOfflineTracks(pl.id, list);
+                    else toast("Open playlist to load tracks first");
+                  }}
+                  onOpen={() => openPlaylist(pl)}
+                />
               </div>
             );
           })}
@@ -772,7 +1008,7 @@ export default function PlaylistsClient() {
               <div key={pa.id} className="relative shrink-0 group" style={{ width: 72 }}>
                 <button
                   type="button"
-                  onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { spotify: "" }, popularity: 0, type: "artist", uri: "" } as SpotifyArtist)}
+                  onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { web: "" }, popularity: 0, type: "artist", uri: "" } as MusicArtist)}
                   className="flex flex-col items-center gap-1.5 w-full"
                 >
                   <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/40 transition-all">

@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getApiSession, unauthorized } from "@/lib/api-auth";
 import { getWebPush, toPushPayload } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -9,14 +9,14 @@ function isPushStorageUnavailable(error: { code?: string; message?: string } | n
 }
 
 export async function POST() {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("push_subscriptions")
     .select("endpoint,p256dh,auth")
-    .eq("user_id", session.spotifyId);
+    .eq("user_id", session.userId);
 
   if (isPushStorageUnavailable(error)) return NextResponse.json({ ok: false, available: false, sent: 0 });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -29,7 +29,7 @@ export async function POST() {
     return NextResponse.json({ ok: false, available: false, sent: 0 });
   }
   const payload = toPushPayload({
-    title: "Jokerly notifications enabled",
+    title: "JKMuusic notifications enabled",
     body: "You will now get release alerts for liked artists.",
     url: "/liked",
   });
@@ -48,7 +48,7 @@ export async function POST() {
     } catch (err: any) {
       const statusCode = err?.statusCode as number | undefined;
       if (statusCode === 404 || statusCode === 410) {
-        await supabase.from("push_subscriptions").delete().eq("user_id", session.spotifyId).eq("endpoint", row.endpoint);
+        await supabase.from("push_subscriptions").delete().eq("user_id", session.userId).eq("endpoint", row.endpoint);
       }
     }
   }

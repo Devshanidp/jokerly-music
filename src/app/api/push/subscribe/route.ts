@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getApiSession, unauthorized } from "@/lib/api-auth";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -13,14 +13,14 @@ function isPushStorageUnavailable(error: { code?: string; message?: string } | n
 }
 
 export async function GET() {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("push_subscriptions")
     .select("id")
-    .eq("user_id", session.spotifyId)
+    .eq("user_id", session.userId)
     .limit(1);
 
   if (isPushStorageUnavailable(error)) {
@@ -31,8 +31,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
 
   const body = (await req.json().catch(() => null)) as PushSubscriptionPayload | null;
   if (!body?.endpoint || !body?.keys?.p256dh || !body?.keys?.auth) {
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     .from("push_subscriptions")
     .upsert(
       {
-        user_id: session.spotifyId,
+        user_id: session.userId,
         endpoint: body.endpoint,
         p256dh: body.keys.p256dh,
         auth: body.keys.auth,
@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const session = await getApiSession();
+  if (!session) return unauthorized();
 
   const body = (await req.json().catch(() => null)) as { endpoint?: string } | null;
   if (!body?.endpoint) return NextResponse.json({ error: "Missing endpoint" }, { status: 400 });
@@ -72,7 +72,7 @@ export async function DELETE(req: NextRequest) {
   const { error } = await supabase
     .from("push_subscriptions")
     .delete()
-    .eq("user_id", session.spotifyId)
+    .eq("user_id", session.userId)
     .eq("endpoint", body.endpoint);
 
   if (isPushStorageUnavailable(error)) {

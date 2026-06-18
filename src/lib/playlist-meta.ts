@@ -9,23 +9,33 @@ export function formatMixDescription(artists: MixArtist[]): string {
   return `${MIX_DESCRIPTION_PREFIX}${names}\n${MIX_META_PREFIX}${meta}`;
 }
 
+function normalizeMixArtist(artist: unknown): MixArtist | null {
+  if (typeof artist !== "object" || artist === null) return null;
+  const name = typeof (artist as MixArtist).name === "string" ? (artist as MixArtist).name.trim() : "";
+  if (!name) return null;
+  const rawId = (artist as MixArtist).id;
+  const id = typeof rawId === "string" ? rawId.trim() : "";
+  return { id, name };
+}
+
 export function parseMixArtistRecords(description?: string | null): MixArtist[] {
   if (!description) return [];
 
   const metaLine = description.split("\n").find((line) => line.startsWith(MIX_META_PREFIX));
   if (metaLine) {
-    try {
-      const parsed = JSON.parse(decodeURIComponent(metaLine.slice(MIX_META_PREFIX.length))) as unknown;
-      if (Array.isArray(parsed)) {
-        return parsed.filter(
-          (artist): artist is MixArtist =>
-            typeof artist === "object" &&
-            artist !== null &&
-            typeof (artist as MixArtist).name === "string"
-        );
+    const payload = metaLine.slice(MIX_META_PREFIX.length);
+    for (const decode of [true, false] as const) {
+      try {
+        const raw = decode ? decodeURIComponent(payload) : payload;
+        const parsed = JSON.parse(raw) as unknown;
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map(normalizeMixArtist)
+            .filter((artist): artist is MixArtist => artist !== null);
+        }
+      } catch {
+        // try next decode strategy
       }
-    } catch {
-      // fall through to name-only parsing
     }
   }
 

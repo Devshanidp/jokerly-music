@@ -1,41 +1,41 @@
-export interface SpotifyTrack {
+export interface MusicTrack {
   id: string;
   name: string;
   uri: string;
   duration_ms: number;
   preview_url: string | null;
   explicit: boolean;
-  artists: SpotifyArtist[];
-  album: SpotifyAlbum;
-  external_urls: { spotify: string };
+  artists: MusicArtist[];
+  album: MusicAlbum;
+  external_urls: { web: string };
 }
 
-export interface SpotifyArtist {
+export interface MusicArtist {
   id: string;
   name: string;
   images?: { url: string; width: number; height: number }[];
   genres?: string[];
   followers?: { total: number };
-  external_urls: { spotify: string };
+  external_urls: { web: string };
 }
 
-export interface SpotifyAlbum {
+export interface MusicAlbum {
   id: string;
   name: string;
   images: { url: string; width: number; height: number }[];
   release_date: string;
-  artists: SpotifyArtist[];
-  external_urls: { spotify: string };
+  artists: MusicArtist[];
+  external_urls: { web: string };
 }
 
-export interface SpotifyPlaylist {
+export interface MusicPlaylist {
   id: string;
   name: string;
   description: string;
   images: { url: string }[];
   tracks: { total: number };
   owner: { display_name: string };
-  external_urls: { spotify: string };
+  external_urls: { web: string };
 }
 
 export interface PinnedPlaylist {

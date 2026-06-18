@@ -5,6 +5,10 @@ import SessionWrapper from "@/components/layout/SessionWrapper";
 import ThemeProvider from "@/components/layout/ThemeProvider";
 import ServiceWorkerRegister from "@/components/layout/ServiceWorkerRegister";
 import InstallPrompt from "@/components/layout/InstallPrompt";
+import BackNavigationHandler from "@/components/layout/BackNavigationHandler";
+import OfflineBootstrap from "@/components/layout/OfflineBootstrap";
+import GlobalFloatingNav from "@/components/layout/GlobalFloatingNav";
+import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,8 +20,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Jokerly",
-  description: "Discover, search, and play your music",
+  title: APP_NAME,
+  description: APP_TAGLINE,
   icons: {
     icon: [
       { url: "/icon-96.png",  sizes: "96x96",   type: "image/png" },
@@ -34,7 +38,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Jokerly",
+    title: APP_NAME,
   },
   other: {
     "msapplication-TileImage": "/icon-144.png",
@@ -55,7 +59,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${inter.className} antialiased h-full`}>
         <ThemeProvider>
-          <SessionWrapper>{children}</SessionWrapper>
+          <SessionWrapper>
+            <BackNavigationHandler />
+            <OfflineBootstrap />
+            {children}
+            <GlobalFloatingNav />
+          </SessionWrapper>
         </ThemeProvider>
         <ServiceWorkerRegister />
         <InstallPrompt />

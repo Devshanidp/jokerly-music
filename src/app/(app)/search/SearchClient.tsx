@@ -5,13 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { Search, Loader2, Music, Mic2, Play, ListPlus, AlertCircle, RefreshCw, LogOut, ArrowLeft, Heart, X } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import SpotifyTrackCard from "@/components/music/SpotifyTrackCard";
-import SpotifyArtistCard from "@/components/music/SpotifyArtistCard";
-import SpotifyAlbumCard from "@/components/music/SpotifyAlbumCard";
+import TrackCard from "@/components/music/TrackCard";
+import CatalogArtistCard from "@/components/music/CatalogArtistCard";
+import CatalogAlbumCard from "@/components/music/CatalogAlbumCard";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import AlbumSheet from "@/components/music/AlbumSheet";
-import { SpotifyTrack, SpotifyArtist, SpotifyAlbum, trackImage, artistImage, artistNames } from "@/types/spotify";
+import { CATALOG_ALBUM_URI_PREFIX } from "@/lib/catalog-endpoints";
+import { MusicTrack, MusicArtist, MusicAlbum, trackImage, artistImage, artistNames } from "@/types/music-catalog";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
 import Image from "next/image";
@@ -21,9 +22,9 @@ type Tab = "track" | "artist" | "album";
 type ArtistResultTab = "songs" | "albums" | "profile";
 
 // Per-type cache — tracks/artists/albums stored independently
-const trackCache = new Map<string, SpotifyTrack[]>();
-const artistCache = new Map<string, SpotifyArtist[]>();
-const albumCache = new Map<string, SpotifyAlbum[]>();
+const trackCache = new Map<string, MusicTrack[]>();
+const artistCache = new Map<string, MusicArtist[]>();
+const albumCache = new Map<string, MusicAlbum[]>();
 
 interface Suggestion {
   type: "track" | "artist";
@@ -55,11 +56,11 @@ function normalizeSearchValue(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "").trim();
 }
 
-function toPlayable(t: SpotifyTrack): PlayableTrack {
+function toPlayable(t: MusicTrack): PlayableTrack {
   return { name: t.name, artist: artistNames(t), image: trackImage(t), uri: t.uri, durationMs: t.duration_ms };
 }
 
-function toAlbumFromTrack(track: SpotifyTrack): SpotifyAlbum {
+function toAlbumFromTrack(track: MusicTrack): MusicAlbum {
   return {
     id: track.album.id,
     name: track.album.name,
@@ -69,13 +70,13 @@ function toAlbumFromTrack(track: SpotifyTrack): SpotifyAlbum {
     total_tracks: 0,
     external_urls: track.album.external_urls,
     album_type: track.album.album_type,
-    uri: `spotify:album:${track.album.id}`,
+    uri: `${CATALOG_ALBUM_URI_PREFIX}${track.album.id}`,
   };
 }
 
 async function fetchType(q: string, type: "track" | "artist" | "album", _accessToken: string, limit = 20) {
   const safeLimit = Math.max(1, Math.min(Math.floor(limit), 50));
-  const res = await fetch(`/api/spotify/search?q=${encodeURIComponent(q)}&type=${type}&limit=${safeLimit}`);
+  const res = await fetch(`/api/music/search?q=${encodeURIComponent(q)}&type=${type}&limit=${safeLimit}`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw { status: res.status, message: body.error ?? `Search failed (${res.status})` };
@@ -94,12 +95,12 @@ export default function SearchClient() {
   const [query, setQuery] = useState(initialQ);
   const [tab, setTab] = useState<Tab>("track");
 
-  const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
-  const [artists, setArtists] = useState<SpotifyArtist[]>([]);
-  const [albums, setAlbums] = useState<SpotifyAlbum[]>([]);
-  const [matchedArtistAlbums, setMatchedArtistAlbums] = useState<SpotifyAlbum[]>([]);
-  const [matchedArtist, setMatchedArtist] = useState<SpotifyArtist | null>(null);
-  const [matchedArtistTracks, setMatchedArtistTracks] = useState<SpotifyTrack[]>([]);
+  const [tracks, setTracks] = useState<MusicTrack[]>([]);
+  const [artists, setArtists] = useState<MusicArtist[]>([]);
+  const [albums, setAlbums] = useState<MusicAlbum[]>([]);
+  const [matchedArtistAlbums, setMatchedArtistAlbums] = useState<MusicAlbum[]>([]);
+  const [matchedArtist, setMatchedArtist] = useState<MusicArtist | null>(null);
+  const [matchedArtistTracks, setMatchedArtistTracks] = useState<MusicTrack[]>([]);
   const [matchedArtistTab, setMatchedArtistTab] = useState<ArtistResultTab>("songs");
   const [loadingMatchedArtist, setLoadingMatchedArtist] = useState(false);
 
@@ -109,10 +110,10 @@ export default function SearchClient() {
 
   const [searched, setSearched] = useState(false);
   const [searchError, setSearchError] = useState<{ message: string; status: number } | null>(null);
-  const [selectedArtist, setSelectedArtist] = useState<SpotifyArtist | null>(null);
-  const [selectedAlbum, setSelectedAlbum] = useState<SpotifyAlbum | null>(null);
-  const [similarSeed, setSimilarSeed] = useState<SpotifyTrack | null>(null);
-  const [similarTracks, setSimilarTracks] = useState<SpotifyTrack[]>([]);
+  const [selectedArtist, setSelectedArtist] = useState<MusicArtist | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = useState<MusicAlbum | null>(null);
+  const [similarSeed, setSimilarSeed] = useState<MusicTrack | null>(null);
+  const [similarTracks, setSimilarTracks] = useState<MusicTrack[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
 
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -143,7 +144,7 @@ export default function SearchClient() {
       setLoadingTracks(true);
       try {
         const data = await fetchType(q, "track", token, 20);
-        const items: SpotifyTrack[] = data.tracks ?? [];
+        const items: MusicTrack[] = data.tracks ?? [];
         trackCache.set(key, items);
         setTracks(items);
         setSearchError(null);
@@ -156,7 +157,7 @@ export default function SearchClient() {
       setLoadingArtists(true);
       try {
         const data = await fetchType(q, "artist", token, 20);
-        const items: SpotifyArtist[] = data.artists ?? [];
+        const items: MusicArtist[] = data.artists ?? [];
         artistCache.set(key, items);
         setArtists(items);
       } catch { /* silent — tracks already shown */ } finally { setLoadingArtists(false); }
@@ -166,7 +167,7 @@ export default function SearchClient() {
       setLoadingAlbums(true);
       try {
         const data = await fetchType(q, "album", token, 20);
-        const items: SpotifyAlbum[] = data.albums ?? [];
+        const items: MusicAlbum[] = data.albums ?? [];
         albumCache.set(key, items);
         setAlbums(items);
       } catch { /* silent */ } finally { setLoadingAlbums(false); }
@@ -222,13 +223,13 @@ export default function SearchClient() {
     setMatchedArtistTab("songs");
     setLoadingMatchedArtist(true);
 
-    fetch(`/api/spotify/artist?id=${encodeURIComponent(candidate.id)}&name=${encodeURIComponent(candidate.name)}`)
+    fetch(`/api/music/artist?id=${encodeURIComponent(candidate.id)}&name=${encodeURIComponent(candidate.name)}`)
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((data) => {
         if (cancelled) return;
         setMatchedArtistAlbums(Array.isArray(data.albums) ? data.albums : []);
-        const topTracks: SpotifyTrack[] = Array.isArray(data.topTracks) ? data.topTracks : [];
-        const moreTracks: SpotifyTrack[] = Array.isArray(data.moreTracks) ? data.moreTracks : [];
+        const topTracks: MusicTrack[] = Array.isArray(data.topTracks) ? data.topTracks : [];
+        const moreTracks: MusicTrack[] = Array.isArray(data.moreTracks) ? data.moreTracks : [];
         const seen = new Set<string>();
         const mergedTracks = [...topTracks, ...moreTracks].filter((track) => {
           if (!track?.id || seen.has(track.id)) return false;
@@ -303,13 +304,13 @@ export default function SearchClient() {
           fetchType(query, "artist", token, 3),
         ]);
         const trackSugs: Suggestion[] = tracksRes.status === "fulfilled"
-          ? (tracksRes.value.tracks ?? []).slice(0, 5).map((t: SpotifyTrack) => ({
+          ? (tracksRes.value.tracks ?? []).slice(0, 5).map((t: MusicTrack) => ({
               type: "track" as const, name: t.name, sub: artistNames(t), image: trackImage(t) ?? null,
               id: t.id, uri: t.uri, durationMs: t.duration_ms,
             }))
           : [];
         const artistSugs: Suggestion[] = artistsRes.status === "fulfilled"
-          ? (artistsRes.value.artists ?? []).slice(0, 3).map((a: SpotifyArtist) => ({
+          ? (artistsRes.value.artists ?? []).slice(0, 3).map((a: MusicArtist) => ({
               type: "artist" as const, name: a.name,
               sub: a.followers?.total != null ? `${a.followers.total.toLocaleString()} followers` : "Artist",
               image: artistImage(a) ?? null, id: a.id,
@@ -386,7 +387,7 @@ export default function SearchClient() {
           const form = new FormData();
           form.append("audio", audioBlob, "clip.webm");
 
-          const res = await fetch("/api/spotify/identify", { method: "POST", body: form });
+          const res = await fetch("/api/music/identify", { method: "POST", body: form });
           const data = await res.json().catch(() => ({}));
 
           if (!res.ok) {
@@ -456,30 +457,30 @@ export default function SearchClient() {
     setPlayingKey(null);
   };
 
-  const handleGetSimilar = async (track: SpotifyTrack) => {
+  const handleGetSimilar = async (track: MusicTrack) => {
     setSimilarSeed(track);
     setLoadingSimilar(true);
     try {
-      const res = await fetch(`/api/spotify/recommendations?trackId=${encodeURIComponent(track.id)}`);
+      const res = await fetch(`/api/music/recommendations?trackId=${encodeURIComponent(track.id)}`);
       const data = await res.json();
       setSimilarTracks(data.tracks ?? []);
     } finally { setLoadingSimilar(false); }
   };
 
-  const handlePlay = (track: SpotifyTrack, trackList: SpotifyTrack[]) => {
+  const handlePlay = (track: MusicTrack, trackList: MusicTrack[]) => {
     const index = trackList.findIndex((t) => t.id === track.id);
     if (index === -1) return;
     setQueueAndPlay(trackList.map(toPlayable), index);
   };
 
-  const isTrackPlaying = (track: SpotifyTrack) =>
+  const isTrackPlaying = (track: MusicTrack) =>
     currentTrack?.name === track.name && currentTrack?.artist === artistNames(track) && isPlaying;
 
-  const handleAddToPlaylist = (track: SpotifyTrack) => {
+  const handleAddToPlaylist = (track: MusicTrack) => {
     setModalTrack({ uri: track.uri, name: track.name });
   };
 
-  const handleAlbumSelectFromTrack = (track: SpotifyTrack) => {
+  const handleAlbumSelectFromTrack = (track: MusicTrack) => {
     setSelectedAlbum(toAlbumFromTrack(track));
   };
 
@@ -713,7 +714,7 @@ export default function SearchClient() {
                 ) : (
                   <div className="space-y-1">
                     {matchedArtistTracks.slice(0, 30).map((track, i) => (
-                      <SpotifyTrackCard
+                      <TrackCard
                         key={track.id}
                         track={track}
                         rank={i + 1}
@@ -732,13 +733,13 @@ export default function SearchClient() {
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     {matchedArtistAlbums.map((album) => (
-                      <SpotifyAlbumCard key={album.id} album={album} onSelect={setSelectedAlbum} />
+                      <CatalogAlbumCard key={album.id} album={album} onSelect={setSelectedAlbum} />
                     ))}
                   </div>
                 )
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <SpotifyArtistCard artist={matchedArtist} onSelect={setSelectedArtist} />
+                  <CatalogArtistCard artist={matchedArtist} onSelect={setSelectedArtist} />
                 </div>
               )}
             </div>
@@ -768,7 +769,7 @@ export default function SearchClient() {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {artists.slice(0, 4).map((artist) => (
-                      <SpotifyArtistCard key={artist.id} artist={artist} onSelect={setSelectedArtist} compact />
+                      <CatalogArtistCard key={artist.id} artist={artist} onSelect={setSelectedArtist} compact />
                     ))}
                   </div>
                 </section>
@@ -786,7 +787,7 @@ export default function SearchClient() {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {matchedArtistAlbums.slice(0, 4).map((album) => (
-                      <SpotifyAlbumCard key={album.id} album={album} onSelect={setSelectedAlbum} />
+                      <CatalogAlbumCard key={album.id} album={album} onSelect={setSelectedAlbum} />
                     ))}
                   </div>
                 </section>
@@ -801,7 +802,7 @@ export default function SearchClient() {
                 )
               ) : (
                 tracks.map((t, i) => (
-                  <SpotifyTrackCard key={t.id} track={t} rank={i + 1} onGetSimilar={handleGetSimilar}
+                  <TrackCard key={t.id} track={t} rank={i + 1} onGetSimilar={handleGetSimilar}
                     onPlay={(track) => handlePlay(track, tracks)} onAddToPlaylist={handleAddToPlaylist}
                     onAlbumSelect={() => handleAlbumSelectFromTrack(t)}
                     isCurrentlyPlaying={isTrackPlaying(t)} />
@@ -817,7 +818,7 @@ export default function SearchClient() {
               ) : artists.length === 0 ? (
                 <p className="text-zinc-500 text-sm py-8 col-span-4 text-center">No artists found.</p>
               ) : (
-                artists.map((a) => <SpotifyArtistCard key={a.id} artist={a} onSelect={setSelectedArtist} />)
+                artists.map((a) => <CatalogArtistCard key={a.id} artist={a} onSelect={setSelectedArtist} />)
               )}
             </div>
           )}
@@ -829,7 +830,7 @@ export default function SearchClient() {
               ) : albums.length === 0 ? (
                 <p className="text-zinc-500 text-sm py-8 col-span-5 text-center">No albums found.</p>
               ) : (
-                albums.map((a) => <SpotifyAlbumCard key={a.id} album={a} onSelect={setSelectedAlbum} />)
+                albums.map((a) => <CatalogAlbumCard key={a.id} album={a} onSelect={setSelectedAlbum} />)
               )}
             </div>
           )}
@@ -845,7 +846,7 @@ export default function SearchClient() {
               ) : (
                 <div className="space-y-1">
                   {similarTracks.map((t, i) => (
-                    <SpotifyTrackCard key={t.id} track={t} rank={i + 1} onGetSimilar={handleGetSimilar}
+                    <TrackCard key={t.id} track={t} rank={i + 1} onGetSimilar={handleGetSimilar}
                       onPlay={(track) => handlePlay(track, similarTracks)} onAddToPlaylist={handleAddToPlaylist}
                       onAlbumSelect={() => handleAlbumSelectFromTrack(t)}
                       isCurrentlyPlaying={isTrackPlaying(t)} />

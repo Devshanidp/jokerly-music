@@ -1,11 +1,29 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getSession } from "next-auth/react";
+import { formatPlaybackEnvironmentError, getInsecurePlaybackMessage } from "@/lib/eme-support";
+import {
+  getOfflineDurationMs,
+  isOfflinePlaying,
+  pauseOfflinePlayback,
+  playOfflineBlob,
+  resumeOfflinePlayback,
+  seekOfflinePlayback,
+  stopOfflinePlayback,
+} from "@/lib/offline-player";
+import { fetchOfflineBlob } from "@/store/offline";
+import { useOfflineStore } from "@/store/offline";
+import {
+  CATALOG_API_V1,
+  WEB_PLAYBACK_GLOBAL,
+  WEB_PLAYBACK_SDK_READY_CB,
+  WEB_PLAYBACK_SDK_SCRIPT,
+} from "@/lib/catalog-endpoints";
 export interface PlayableTrack {
   name: string;
   artist: string;
   image?: string;
-  uri?: string | null; // undefined = not yet resolved, null = not found on Spotify
+  uri?: string | null; // undefined = not yet resolved, null = not found in catalog
   durationMs?: number;
 }
 
@@ -22,7 +40,7 @@ interface PlayerState {
   durationMs: number;
   isPlayerReady: boolean;
   sdkError: string | null;
-  player: SpotifyPlayer | null;
+  player: WebPlayer | null;
   deviceId: string | null;
   accessToken: string | null;
   repeatMode: RepeatMode;
@@ -35,6 +53,7 @@ interface PlayerState {
   isQueueOpen: boolean;
   queueSheetTab: "queue" | "similar";
   sleepTimerEndsAt: number | null;
+  isOfflinePlayback: boolean;
 
   initializePlayer: (accessToken: string) => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
@@ -47,6 +66,7 @@ interface PlayerState {
   playIndex: (index: number) => void;
   pausePlayback: () => Promise<void>;
   resumePlayback: () => Promise<void>;
+  maintainPlayback: (resumeIfWasPlaying?: boolean) => Promise<void>;
   togglePlay: () => void;
   seek: (ratio: number) => void;
   stop: () => void;
@@ -58,7 +78,7 @@ interface PlayerState {
   getPrevIndex: () => number | null;
 }
 
-interface SpotifyPlayerTrack {
+interface WebPlayerTrack {
   uri: string;
   name: string;
   duration_ms: number;
@@ -66,14 +86,14 @@ interface SpotifyPlayerTrack {
   album: { images: { url: string }[] };
 }
 
-interface SpotifyPlayerState {
+interface WebPlayerState {
   paused: boolean;
   position: number;
   duration: number;
-  track_window: { current_track: SpotifyPlayerTrack };
+  track_window: { current_track: WebPlayerTrack };
 }
 
-interface SpotifyPlayer {
+interface WebPlayer {
   addListener: (event: string, cb: (arg?: unknown) => void) => void;
   connect: () => Promise<boolean>;
   disconnect: () => void;
@@ -82,22 +102,25 @@ interface SpotifyPlayer {
   pause: () => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
   getVolume: () => Promise<number>;
+  getCurrentState: () => Promise<WebPlayerState | null>;
+  activateElement?: () => Promise<void>;
 }
 
-interface SpotifyPlayerCtor {
+interface WebPlayerCtor {
   Player: new (options: {
     name: string;
     getOAuthToken: (cb: (token: string) => void) => void;
     volume?: number;
-  }) => SpotifyPlayer;
+  }) => WebPlayer;
 }
 
-function getSpotifyCtor(): SpotifyPlayerCtor | null {
+function getWebPlaybackCtor(): WebPlayerCtor | null {
   if (typeof window === "undefined") return null;
-  return (window as typeof window & { Spotify?: SpotifyPlayerCtor }).Spotify ?? null;
+  const win = window as typeof window & Record<string, WebPlayerCtor | undefined>;
+  return win[WEB_PLAYBACK_GLOBAL] ?? null;
 }
 
-// Spotify emits short-lived paused states during track switches.
+// SDK emits short-lived paused states during track switches.
 // Keep UI stable for a brief window right after a play request.
 
 // iOS audio focus — play a 1-sample silent buffer synchronously within every
@@ -132,6 +155,8 @@ let pendingPlayOnReadyIndex: number | null = null;
 let playRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let playRetryIndex: number | null = null;
 let playRetryCount = 0;
+let playIntentIndex: number | null = null;
+let notReadyTimer: ReturnType<typeof setTimeout> | null = null;
 const MAX_PLAY_RETRIES = 4;
 
 function clearPlayRetry(resetState = true) {
@@ -145,6 +170,8 @@ function clearPlayRetry(resetState = true) {
 }
 
 function schedulePlayRetry(index: number) {
+  if (playIntentIndex !== index) return;
+
   if (playRetryIndex !== index) {
     playRetryIndex = index;
     playRetryCount = 0;
@@ -152,6 +179,7 @@ function schedulePlayRetry(index: number) {
 
   if (playRetryCount >= MAX_PLAY_RETRIES) {
     clearPlayRetry(true);
+    playIntentIndex = null;
     return;
   }
 
@@ -160,7 +188,12 @@ function schedulePlayRetry(index: number) {
   clearPlayRetry(false);
   playRetryTimer = setTimeout(() => {
     const snapshot = usePlayerStore.getState();
-    if (userPausedIntent || snapshot.isPlaying || snapshot.queueIndex !== index) {
+    if (
+      userPausedIntent ||
+      snapshot.isPlaying ||
+      snapshot.queueIndex !== index ||
+      playIntentIndex !== index
+    ) {
       clearPlayRetry(true);
       return;
     }
@@ -192,41 +225,39 @@ function isAuthError(errorText: string) {
     normalized.includes("authentication") ||
     normalized.includes("access token") ||
     normalized.includes('"status":401') ||
-    normalized.includes("spotify api 401");
+    normalized.includes("catalog api 401");
 }
 
-async function loadSpotifySdk(): Promise<SpotifyPlayerCtor | null> {
-  const existing = getSpotifyCtor();
+async function loadWebPlaybackSdk(): Promise<WebPlayerCtor | null> {
+  const existing = getWebPlaybackCtor();
   if (existing) return existing;
   if (typeof window === "undefined") return null;
 
   await new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(() => reject(new Error("Spotify SDK timeout")), 10000);
-    const win = window as typeof window & {
-      onSpotifyWebPlaybackSDKReady?: () => void;
-    };
-    win.onSpotifyWebPlaybackSDKReady = () => {
+    const timeout = window.setTimeout(() => reject(new Error("Playback SDK timeout")), 10000);
+    const win = window as typeof window & Record<string, (() => void) | undefined>;
+    win[WEB_PLAYBACK_SDK_READY_CB] = () => {
       window.clearTimeout(timeout);
       resolve();
     };
 
-    const existingScript = document.querySelector('script[src="https://sdk.scdn.co/spotify-player.js"]');
+    const existingScript = document.querySelector(`script[src="${WEB_PLAYBACK_SDK_SCRIPT}"]`);
     if (existingScript) return;
 
     const script = document.createElement("script");
-    script.src = "https://sdk.scdn.co/spotify-player.js";
+    script.src = WEB_PLAYBACK_SDK_SCRIPT;
     script.async = true;
     script.onerror = () => {
       window.clearTimeout(timeout);
-      reject(new Error("Failed to load Spotify SDK"));
+      reject(new Error("Failed to load playback SDK"));
     };
     document.body.appendChild(script);
   });
 
-  return getSpotifyCtor();
+  return getWebPlaybackCtor();
 }
 
-function hydrateFromSdkState(state: SpotifyPlayerState | null) {
+function hydrateFromSdkState(state: WebPlayerState | null) {
   if (!state) {
     // A null state fires transiently during device transfers and SDK init.
     // Do NOT reset isPlaying here — the actual stopped/paused state arrives
@@ -304,8 +335,8 @@ function hydrateFromSdkState(state: SpotifyPlayerState | null) {
   }
 }
 
-async function spotifyApi(path: string, accessToken: string, options: RequestInit = {}) {
-  const res = await fetch(`https://api.spotify.com/v1${path}`, {
+async function catalogApi(path: string, accessToken: string, options: RequestInit = {}) {
+  const res = await fetch(`${CATALOG_API_V1}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -316,12 +347,12 @@ async function spotifyApi(path: string, accessToken: string, options: RequestIni
 
   if (!res.ok) {
     const details = await res.text().catch(() => "");
-    throw new Error(`Spotify API ${res.status}: ${details}`);
+    throw new Error(`Catalog API ${res.status}: ${details}`);
   }
 }
 
 async function playerApi(action: "play" | "repeat" | "shuffle", body: Record<string, unknown>) {
-  const res = await fetch("/api/spotify/player", {
+  const res = await fetch("/api/music/player", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action, ...body }),
@@ -357,28 +388,35 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   isQueueOpen: false,
   queueSheetTab: "queue",
   sleepTimerEndsAt: null,
+  isOfflinePlayback: false,
 
   initializePlayer: async (accessToken) => {
     set({ accessToken, sdkError: null });
     if (get().player) return;
 
-    let Spotify: SpotifyPlayerCtor | null = null;
-    try {
-      Spotify = await loadSpotifySdk();
-    } catch (e) {
-      set({ sdkError: (e as Error).message ?? "Failed to load Spotify player" });
-      return;
-    }
-    if (!Spotify) {
-      set({ sdkError: "Spotify player unavailable" });
+    const insecureMessage = getInsecurePlaybackMessage();
+    if (insecureMessage) {
+      set({ isPlayerReady: false, sdkError: insecureMessage });
       return;
     }
 
-    const player = new Spotify.Player({
-      name: "Jokerly Web Player",
+    let playbackCtor: WebPlayerCtor | null = null;
+    try {
+      playbackCtor = await loadWebPlaybackSdk();
+    } catch (e) {
+      set({ sdkError: (e as Error).message ?? "Failed to load the player" });
+      return;
+    }
+    if (!playbackCtor) {
+      set({ sdkError: "Player unavailable" });
+      return;
+    }
+
+    const player = new playbackCtor.Player({
+      name: "JKMuusic Web Player",
       getOAuthToken: async (cb) => {
         try {
-          const res = await fetch("/api/spotify/token", {
+          const res = await fetch("/api/music/token", {
             credentials: "same-origin",
             cache: "no-store",
           });
@@ -397,7 +435,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
             set({
               isPlaying: false,
               isPlayerReady: false,
-              sdkError: "Spotify session expired. Sign in again to continue playback.",
+              sdkError: "Session expired. Sign in again to continue playback.",
             });
             cb("");
             return;
@@ -415,17 +453,14 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     player.addListener("ready", (payload) => {
       const ready = payload as { device_id: string };
+      if (notReadyTimer) {
+        clearTimeout(notReadyTimer);
+        notReadyTimer = null;
+      }
       clearPlayRetry(true);
-      set({ deviceId: ready.device_id, isPlayerReady: true });
-      // Do NOT call /me/player with play:false here — it pauses any currently
-      // active Spotify session on the user's account. The device_id is already
-      // embedded in every subsequent /me/player/play call, which activates this
-      // device automatically when the user first plays a track.
+      set({ deviceId: ready.device_id, isPlayerReady: true, sdkError: null });
+      void player.setVolume(get().volume).catch(() => {});
 
-      // Recover playback after route hard reloads: if app believed we were
-      // playing and we still have a valid queue item, resume it on this device.
-      const snapshot = get();
-      const idx = snapshot.queueIndex;
       if (pendingPlayOnReadyIndex !== null) {
         const queuedIndex = pendingPlayOnReadyIndex;
         pendingPlayOnReadyIndex = null;
@@ -433,16 +468,22 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         return;
       }
 
+      void get().maintainPlayback(true);
     });
 
     player.addListener("not_ready", () => {
-      clearPlayRetry(true);
-      set({ deviceId: null, isPlayerReady: false });
+      if (notReadyTimer) clearTimeout(notReadyTimer);
+      notReadyTimer = setTimeout(() => {
+        notReadyTimer = null;
+        if (!get().player) return;
+        clearPlayRetry(true);
+        set({ deviceId: null, isPlayerReady: false });
+      }, 900);
     });
 
     player.addListener("player_state_changed", (state) => {
       const previous = get();
-      const nextState = (state as SpotifyPlayerState | null) ?? null;
+      const nextState = (state as WebPlayerState | null) ?? null;
       const prevSdkPosition = lastSdkPositionMs;
       if (nextState) lastSdkPositionMs = nextState.position;
 
@@ -468,18 +509,39 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
       if (nextState && !nextState.paused) {
         clearPlayRetry();
+        playIntentIndex = null;
         userPausedIntent = false;
       }
     });
 
-    player.addListener("initialization_error", () => {
-      set({ isPlayerReady: false, sdkError: "Player failed to initialize. Reload the page." });
+    player.addListener("initialization_error", (payload) => {
+      const message =
+        typeof payload === "object" && payload !== null && "message" in payload
+          ? String((payload as { message?: string }).message ?? "")
+          : "";
+      set({
+        isPlayerReady: false,
+        sdkError: formatPlaybackEnvironmentError(message) || "Player failed to initialize. Reload the page.",
+      });
+    });
+
+    player.addListener("playback_error", (payload) => {
+      const message =
+        typeof payload === "object" && payload !== null && "message" in payload
+          ? String((payload as { message?: string }).message ?? "")
+          : "";
+      clearPlayRetry(true);
+      set({
+        isPlaying: false,
+        isTransitioning: false,
+        sdkError: formatPlaybackEnvironmentError(message) || "Playback failed. Try another browser or device.",
+      });
     });
     player.addListener("authentication_error", async () => {
       suppressAutoResumeUntil = Date.now() + 60_000;
       clearPlayRetry(true);
       try {
-        const res = await fetch("/api/spotify/token", {
+        const res = await fetch("/api/music/token", {
           credentials: "same-origin",
           cache: "no-store",
         });
@@ -502,17 +564,19 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         isPlaying: false,
         isTransitioning: false,
         isPlayerReady: false,
-        sdkError: "Spotify session expired. Sign in again to continue playback.",
+        sdkError: "Session expired. Sign in again to continue playback.",
       });
     });
     player.addListener("account_error", () => {
-      set({ isPlayerReady: false, sdkError: "Spotify Premium is required to use the player." });
+      set({ isPlayerReady: false, sdkError: "Premium subscription is required to use the player." });
     });
 
     const connected = await player.connect();
     if (connected) {
-      set({ player });
+      set({ player, sdkError: null });
       player.setVolume(get().volume).catch(() => {});
+    } else {
+      set({ sdkError: "Could not connect to the player. Tap play to try again." });
     }
   },
 
@@ -544,11 +608,45 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   playIndex: async (index) => {
-    const { queue, deviceId, currentTrack, isPlaying, isTransitioning, queueIndex } = get();
+    const { queue, deviceId, currentTrack, isPlaying, isTransitioning, queueIndex, player } = get();
     if (index < 0 || index >= queue.length) return;
     if (isTransitioning) return;
 
     const nextTrack = queue[index];
+
+    const tryOffline =
+      typeof navigator !== "undefined" &&
+      !navigator.onLine &&
+      useOfflineStore.getState().isDownloaded(nextTrack.uri ?? "", nextTrack.name, nextTrack.artist);
+    if (tryOffline) {
+      const blob = await fetchOfflineBlob(nextTrack.uri ?? "", nextTrack.name, nextTrack.artist);
+      if (blob) {
+        stopOfflinePlayback();
+        if (player) await player.pause().catch(() => {});
+        userPausedIntent = false;
+        set({
+          queueIndex: index,
+          currentTrack: nextTrack,
+          pendingIndex: null,
+          isTransitioning: false,
+          isPlaying: true,
+          isOfflinePlayback: true,
+          progressMs: 0,
+          durationMs: 30_000,
+        });
+        updateMediaSessionState(true);
+        await playOfflineBlob(
+          blob,
+          (ms) => set({ progressMs: ms, durationMs: getOfflineDurationMs() || 30_000 }),
+          () => {
+            const next = get().getNextIndex();
+            if (next !== null) get().playIndex(next);
+            else set({ isPlaying: false, isOfflinePlayback: false });
+          }
+        );
+        return;
+      }
+    }
 
     // Same track — resume without restarting from 0:00.
     if (
@@ -593,18 +691,19 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     pendingPlayOnReadyIndex = null;
     userPausedIntent = false;
+    playIntentIndex = index;
     clearPlayRetry(index !== playRetryIndex);
     ignorePausedUntil = Date.now() + 1800;
     const hasActivePlayback = !!currentTrack && isPlaying && queueIndex !== index;
     set({
       pendingIndex: index,
       isTransitioning: true,
+      queueIndex: index,
+      currentTrack: nextTrack,
       ...(hasActivePlayback
         ? {}
         : {
-            queueIndex: index,
-            currentTrack: nextTrack,
-            isPlaying: true,
+            isPlaying: false,
             progressMs: 0,
             durationMs: nextTrack.durationMs ?? 0,
           }),
@@ -644,12 +743,14 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
+    playIntentIndex = null;
     set({
       queueIndex: index,
       currentTrack: nextTrack,
       pendingIndex: null,
       isPlaying: true,
       isTransitioning: false,
+      isOfflinePlayback: false,
       progressMs: 0,
       durationMs: nextTrack.durationMs ?? 0,
     });
@@ -657,10 +758,19 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   pausePlayback: async () => {
+    if (get().isOfflinePlayback) {
+      if (!isOfflinePlaying()) return;
+      pauseOfflinePlayback();
+      set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+      updateMediaSessionState(false);
+      return;
+    }
+
     const { player, isPlaying } = get();
     if (!player || !isPlaying) return;
 
     userPausedIntent = true;
+    playIntentIndex = null;
     suppressAutoResumeUntil = Date.now() + 60_000;
     clearPlayRetry(true);
     ignorePausedUntil = 0;
@@ -675,7 +785,68 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     updateMediaSessionState(false);
   },
 
+  maintainPlayback: async (resumeIfWasPlaying = false) => {
+    if (Date.now() < suppressAutoResumeUntil) return;
+
+    const { player, volume, isOfflinePlayback, currentTrack, queueIndex, queue } = get();
+    if (isOfflinePlayback) {
+      if (resumeIfWasPlaying && !isOfflinePlaying()) {
+        resumeOfflinePlayback();
+        set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+        updateMediaSessionState(true);
+      }
+      return;
+    }
+
+    if (!player) return;
+    requestAudioFocus();
+
+    try {
+      if (player.activateElement) await player.activateElement();
+    } catch { /* ignore */ }
+
+    await player.setVolume(volume).catch(() => {});
+
+    if (_iosAudioCtx?.state === "suspended") {
+      await _iosAudioCtx.resume().catch(() => {});
+    }
+
+    const state = await player.getCurrentState().catch(() => null);
+    if (state) {
+      hydrateFromSdkState(state);
+    }
+
+    const shouldResume =
+      resumeIfWasPlaying &&
+      !userPausedIntent &&
+      !!get().currentTrack?.uri &&
+      (!state || state.paused);
+
+    if (!shouldResume) return;
+
+    const track = currentTrack ?? (queueIndex >= 0 ? queue[queueIndex] : null);
+    if (!track?.uri) return;
+
+    userPausedIntent = false;
+    suppressAutoResumeUntil = 0;
+    ignorePausedUntil = Date.now() + 1800;
+
+    try {
+      await player.togglePlay();
+      set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+      updateMediaSessionState(true);
+    } catch { /* ignore */ }
+  },
+
   resumePlayback: async () => {
+    if (get().isOfflinePlayback) {
+      if (isOfflinePlaying()) return;
+      resumeOfflinePlayback();
+      set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+      updateMediaSessionState(true);
+      return;
+    }
+
     const { player, isPlaying, currentTrack, queue, queueIndex } = get();
     if (!player || isPlaying) return;
 
@@ -704,6 +875,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   seek: async (ratio) => {
+    if (get().isOfflinePlayback) {
+      seekOfflinePlayback(ratio);
+      set({ progressMs: Math.floor((getOfflineDurationMs() || 30_000) * ratio) });
+      return;
+    }
+
     const { player, durationMs } = get();
     if (!player || !isFinite(durationMs) || durationMs <= 0) return;
     const target = Math.max(0, Math.min(durationMs, Math.floor(durationMs * ratio)));
@@ -713,9 +890,11 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   stop: async () => {
     const { player } = get();
     userPausedIntent = true;
+    playIntentIndex = null;
     suppressAutoResumeUntil = Date.now() + 60_000;
     pendingPlayOnReadyIndex = null;
     clearPlayRetry();
+    stopOfflinePlayback();
     if (player) {
       await player.pause().catch(() => {});
     }
@@ -723,6 +902,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       currentTrack: null,
       isPlaying: false,
       isTransitioning: false,
+      isOfflinePlayback: false,
       pendingIndex: null,
       queue: [],
       queueIndex: -1,
@@ -872,6 +1052,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     isQueueOpen: false,
     queueSheetTab: "queue",
     sleepTimerEndsAt: null,
+  isOfflinePlayback: false,
     endedToken: 0,
     isPlayerReady: false,
     sdkError: null,
@@ -884,6 +1065,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     playIndex: state.playIndex,
     pausePlayback: state.pausePlayback,
     resumePlayback: state.resumePlayback,
+    maintainPlayback: state.maintainPlayback,
     togglePlay: state.togglePlay,
     seek: state.seek,
     stop: state.stop,

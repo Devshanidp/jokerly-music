@@ -5,10 +5,11 @@ import { X, Loader2, ExternalLink, Music, Play, Pause, ListPlus, Heart, Pin } fr
 import Image from "next/image";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
-import { SpotifyTrack, trackImage, artistNames } from "@/types/spotify";
+import { MusicTrack, trackImage, artistNames } from "@/types/music-catalog";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
-interface SpotifyAlbum {
+interface MusicAlbum {
   id: string;
   name: string;
   artists: { id: string; name: string }[];
@@ -16,15 +17,15 @@ interface SpotifyAlbum {
   release_date: string;
   total_tracks: number;
   album_type: string;
-  external_urls: { spotify: string };
+  external_urls: { web: string };
 }
 
 interface Props {
-  album: SpotifyAlbum;
+  album: MusicAlbum;
   onClose: () => void;
 }
 
-function toPlayable(t: SpotifyTrack): PlayableTrack {
+function toPlayable(t: MusicTrack): PlayableTrack {
   return {
     name: t.name,
     artist: artistNames(t),
@@ -35,7 +36,9 @@ function toPlayable(t: SpotifyTrack): PlayableTrack {
 }
 
 export default function AlbumSheet({ album, onClose }: Props) {
-  const [tracks, setTracks] = useState<SpotifyTrack[]>([]);
+  useBackHandler(true, onClose);
+
+  const [tracks, setTracks] = useState<MusicTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [isPinned, setIsPinned] = useState(false);
@@ -47,7 +50,7 @@ export default function AlbumSheet({ album, onClose }: Props) {
   const year = album.release_date?.slice(0, 4);
 
   useEffect(() => {
-    fetch(`/api/spotify/album?id=${encodeURIComponent(album.id)}`)
+    fetch(`/api/music/album?id=${encodeURIComponent(album.id)}`)
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then((d) => setTracks(d.tracks ?? []))
       .catch(() => {})
@@ -141,9 +144,9 @@ export default function AlbumSheet({ album, onClose }: Props) {
               >
                 {pinning ? <Loader2 size={15} className="animate-spin" /> : <Pin size={15} />}
               </button>
-              {album.external_urls?.spotify && (
+              {album.external_urls?.web && (
                 <a
-                  href={album.external_urls.spotify}
+                  href={album.external_urls.web}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
@@ -208,7 +211,7 @@ export default function AlbumSheet({ album, onClose }: Props) {
 }
 
 function TrackRow({ track, rank, isCurrentlyPlaying, onPlay, onAddToPlaylist }: {
-  track: SpotifyTrack;
+  track: MusicTrack;
   rank: number;
   isCurrentlyPlaying: boolean;
   onPlay: () => void;

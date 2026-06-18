@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, Mic2, Plus, Search, Users, X } from "lucide-react";
 import Image from "next/image";
 import type { MixArtist } from "@/lib/playlist-meta";
-import { SpotifyArtist, artistImage } from "@/types/spotify";
+import { mixArtistsNeedResolve, resolveMixArtistsClient } from "@/lib/resolve-mix-artists";
+import { MusicArtist, artistImage } from "@/types/music-catalog";
 import { useToastStore } from "@/store/toast";
+import { useBackHandler } from "@/hooks/useBackHandler";
 
 interface Props {
   open: boolean;
@@ -24,21 +26,22 @@ export default function EditMixArtistsSheet({
   onClose,
   onSaved,
 }: Props) {
+  useBackHandler(open, onClose);
+
   const [artistQuery, setArtistQuery] = useState("");
-  const [artistResults, setArtistResults] = useState<SpotifyArtist[]>([]);
+  const [artistResults, setArtistResults] = useState<MusicArtist[]>([]);
   const [selectedArtists, setSelectedArtists] = useState<MixArtist[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resolving, setResolving] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const wasOpenRef = useRef(false);
-  const dirtyRef = useRef(false);
+  const loadGenRef = useRef(0);
+  const initialArtistsRef = useRef(initialArtists);
+  initialArtistsRef.current = initialArtists;
   const { toast } = useToastStore();
 
   useEffect(() => {
     if (!open) {
-      wasOpenRef.current = false;
-      dirtyRef.current = false;
       setArtistQuery("");
       setArtistResults([]);
       setSelectedArtists([]);
@@ -48,48 +51,34 @@ export default function EditMixArtistsSheet({
       return;
     }
 
-    const justOpened = !wasOpenRef.current;
-    wasOpenRef.current = true;
-    if (!justOpened) return;
-
     document.body.style.overflow = "hidden";
+    const gen = ++loadGenRef.current;
 
-    const resolveArtists = async () => {
-      const needsResolve = initialArtists.some((artist) => !artist.id);
-      if (!needsResolve) {
-        if (!dirtyRef.current) setSelectedArtists(initialArtists);
-        return;
-      }
-
+    const loadArtists = async () => {
       setResolving(true);
       try {
-        const resolved = await Promise.all(
-          initialArtists.map(async (artist) => {
-            if (artist.id) return artist;
-            const res = await fetch(
-              `/api/spotify/search?q=${encodeURIComponent(artist.name)}&type=artist&limit=5`
-            );
-            const data = (await res.json().catch(() => ({}))) as { artists?: SpotifyArtist[] };
-            const match =
-              data.artists?.find(
-                (item) => item.name.toLowerCase() === artist.name.toLowerCase()
-              ) ?? data.artists?.[0];
-            return match ? { id: match.id, name: match.name } : artist;
-          })
-        );
-        if (!dirtyRef.current) setSelectedArtists(resolved);
-      } catch {
-        if (!dirtyRef.current) setSelectedArtists(initialArtists);
+        const res = await fetch(`/api/music/playlists/${playlistId}/artists`, { cache: "no-store" });
+        const data = (await res.json().catch(() => ({}))) as { artists?: MixArtist[]; error?: string };
+        if (!res.ok) throw new Error(data.error ?? "Could not load artists");
+        const fromApi = data.artists?.length ? data.artists : initialArtistsRef.current;
+        const resolved = await resolveMixArtistsClient(fromApi);
+        if (loadGenRef.current === gen) setSelectedArtists(resolved);
+      } catch (e) {
+        if (loadGenRef.current === gen) {
+          const fallback = await resolveMixArtistsClient(initialArtistsRef.current);
+          setSelectedArtists(fallback);
+          toast((e as Error).message ?? "Could not load artists");
+        }
       } finally {
-        setResolving(false);
+        if (loadGenRef.current === gen) setResolving(false);
       }
     };
 
-    void resolveArtists();
+    void loadArtists();
     return () => {
       document.body.style.overflow = "";
     };
-  }, [open, initialArtists]);
+  }, [open, playlistId, toast]);
 
   useEffect(() => {
     if (!open || resolving) return;
@@ -114,9 +103,9 @@ export default function EditMixArtistsSheet({
             return;
           }
           const res = await fetch(
-            `/api/spotify/artist/related?ids=${encodeURIComponent(ids)}&exclude=${encodeURIComponent(ids)}`
+            `/api/music/artist/related?ids=${encodeURIComponent(ids)}&exclude=${encodeURIComponent(ids)}`
           );
-          const data = (await res.json().catch(() => ({}))) as { artists?: SpotifyArtist[]; error?: string };
+          const data = (await res.json().catch(() => ({}))) as { artists?: MusicArtist[]; error?: string };
           if (!res.ok) throw new Error(data.error ?? "Could not load related artists");
           setArtistResults((data.artists ?? []).filter((artist) => !selectedIds.has(artist.id)));
         } catch (e) {
@@ -134,9 +123,9 @@ export default function EditMixArtistsSheet({
     searchTimer.current = setTimeout(async () => {
       try {
         const res = await fetch(
-          `/api/spotify/search?q=${encodeURIComponent(query)}&type=artist&limit=10`
+          `/api/music/search?q=${encodeURIComponent(query)}&type=artist&limit=10`
         );
-        const data = (await res.json().catch(() => ({}))) as { artists?: SpotifyArtist[]; error?: string };
+        const data = (await res.json().catch(() => ({}))) as { artists?: MusicArtist[]; error?: string };
         if (!res.ok) throw new Error(data.error ?? "Could not search artists");
         setArtistResults((data.artists ?? []).filter((artist) => !selectedIds.has(artist.id)));
       } catch (e) {
@@ -150,8 +139,7 @@ export default function EditMixArtistsSheet({
     return () => clearTimeout(searchTimer.current);
   }, [artistQuery, open, resolving, selectedArtists, toast]);
 
-  const addArtist = (artist: SpotifyArtist) => {
-    dirtyRef.current = true;
+  const addArtist = (artist: MusicArtist) => {
     setSelectedArtists((prev) => {
       if (prev.find((item) => item.id === artist.id)) return prev;
       return [...prev, { id: artist.id, name: artist.name }];
@@ -161,27 +149,33 @@ export default function EditMixArtistsSheet({
   };
 
   const removeArtist = (key: string) => {
-    dirtyRef.current = true;
-    setSelectedArtists((prev) => prev.filter((artist) => (artist.id || artist.name) !== key));
+    const next = selectedArtists.filter((artist) => (artist.id || artist.name) !== key);
+    setSelectedArtists(next);
+    if (next.length === 0) {
+      void saveArtists([]);
+    }
   };
 
-  const saveArtists = async () => {
-    if (selectedArtists.length === 0) {
-      toast("Keep at least one artist");
-      return;
-    }
-    if (selectedArtists.some((artist) => !artist.id)) {
-      toast("Some artists could not be resolved — remove and re-add them");
-      return;
-    }
+  const saveArtists = async (artistsOverride?: MixArtist[]) => {
+    const toPersist = artistsOverride ?? selectedArtists;
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/spotify/playlists/${playlistId}/artists`, {
+      let toSave = toPersist;
+      if (toSave.length > 0 && mixArtistsNeedResolve(toSave)) {
+        toSave = await resolveMixArtistsClient(toSave);
+        setSelectedArtists(toSave);
+      }
+      if (toSave.some((artist) => !artist.id?.trim())) {
+        toast("Some artists could not be resolved — remove and re-add them from search");
+        return;
+      }
+
+      const res = await fetch(`/api/music/playlists/${playlistId}/artists`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          selectedArtists: selectedArtists.map((artist) => ({ id: artist.id, name: artist.name })),
+          selectedArtists: toSave.map((artist) => ({ id: artist.id, name: artist.name })),
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -194,7 +188,7 @@ export default function EditMixArtistsSheet({
       if (!res.ok) throw new Error(data.error ?? "Could not update artists");
 
       onSaved(
-        data.artists ?? selectedArtists,
+        data.artists ?? toSave,
         data.description ?? "",
         data.addedCount ?? 0,
         data.removedCount ?? 0
@@ -203,7 +197,11 @@ export default function EditMixArtistsSheet({
       const parts: string[] = [];
       if ((data.addedCount ?? 0) > 0) parts.push(`${data.addedCount} tracks added`);
       if ((data.removedCount ?? 0) > 0) parts.push(`${data.removedCount} tracks removed`);
-      toast(parts.length > 0 ? parts.join(", ") : "Artists updated");
+      if (toSave.length === 0) {
+        toast(parts.length > 0 ? parts.join(", ") : "Mix artists cleared");
+      } else {
+        toast(parts.length > 0 ? parts.join(", ") : "Artists updated");
+      }
       onClose();
     } catch (e) {
       toast((e as Error).message ?? "Could not update artists");
@@ -270,8 +268,12 @@ export default function EditMixArtistsSheet({
                         <span>{artist.name}</span>
                         <button
                           type="button"
-                          onClick={() => removeArtist(artist.id || artist.name)}
-                          className="rounded-full text-white/45 hover:text-white"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            removeArtist(artist.id || artist.name);
+                          }}
+                          className="p-0.5 rounded-full text-white/45 hover:text-white hover:bg-white/10"
                           aria-label={`Remove ${artist.name}`}
                         >
                           <X size={12} />
@@ -361,7 +363,7 @@ export default function EditMixArtistsSheet({
           <button
             type="button"
             onClick={() => void saveArtists()}
-            disabled={saving || resolving || selectedArtists.length === 0}
+            disabled={saving || resolving}
             className="w-full py-3.5 rounded-2xl bg-[#E8282B] hover:bg-[#c0201f] disabled:opacity-40 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
           >
             {saving ? (

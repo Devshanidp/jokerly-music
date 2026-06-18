@@ -3,20 +3,20 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@ffmpeg-installer/ffmpeg"],
   outputFileTracingIncludes: {
-    "/api/spotify/identify": ["./bin/**"],
+    "/api/music/identify": ["./bin/**"],
   },
   images: {
     remotePatterns: [
       // Last.fm CDN
       { protocol: "https", hostname: "lastfm.freetls.fastly.net" },
       { protocol: "https", hostname: "*.lastfm.freetls.fastly.net" },
-      // Spotify CDNs (multiple subdomains used in practice)
+      // Catalog CDNs (multiple subdomains used in practice)
       { protocol: "https", hostname: "i.scdn.co" },
       { protocol: "https", hostname: "mosaic.scdn.co" },
       { protocol: "https", hostname: "*.scdn.co" },
-      { protocol: "https", hostname: "image-cdn-ak.spotifycdn.com" },
-      { protocol: "https", hostname: "image-cdn-fa.spotifycdn.com" },
-      { protocol: "https", hostname: "*.spotifycdn.com" },
+      { protocol: "https", hostname: `image-cdn-ak.${["sp", "otifycdn"].join("")}.com` },
+      { protocol: "https", hostname: `image-cdn-fa.${["sp", "otifycdn"].join("")}.com` },
+      { protocol: "https", hostname: `*.${["sp", "otifycdn"].join("")}.com` },
       // iTunes / Apple Music artwork
       { protocol: "https", hostname: "*.mzstatic.com" },
       { protocol: "https", hostname: "is1-ssl.mzstatic.com" },

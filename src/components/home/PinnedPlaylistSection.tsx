@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useBackHandler } from "@/hooks/useBackHandler";
 import Image from "next/image";
-import { Pin, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash, ArrowLeft, ListMusic, FolderInput } from "lucide-react";
+import { Pin, Music, Play, Loader2, PlayCircle, GripVertical, ListPlus, Trash, ArrowLeft, ListMusic, FolderInput, LayoutGrid, List, Shuffle, Download } from "lucide-react";
+import PlaylistActionsMenu from "@/components/playlist/PlaylistActionsMenu";
+import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
+import { shuffleArray } from "@/lib/shuffle";
+import { useOfflineStore } from "@/store/offline";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -31,6 +36,10 @@ interface PlaylistTrack {
 interface Props {
   pinned: PinnedPlaylist[];
 }
+
+type PlaylistViewMode = "grid" | "list";
+const PLAYLIST_VIEW_KEY = "jokerly-playlist-view";
+const playlistCardBorder = "border border-white/[0.12]";
 
 // ── Cover art ──────────────────────────────────────────────────────────────
 function CoverArt({ tracks, imageUrl, name, size = 130 }: { tracks?: PlaylistTrack[]; imageUrl?: string | null; name: string; size?: number }) {
@@ -123,6 +132,14 @@ function SortableTrackRow({
         className="shrink-0 p-1.5 rounded-lg transition-all text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 sm:opacity-0 sm:group-hover:opacity-100">
         <ListPlus size={13} />
       </button>
+      <TrackDownloadButton
+        track={{
+          uri: track.track_uri,
+          name: track.track_name,
+          artist: track.track_artist ?? "",
+          image: track.track_image,
+        }}
+      />
       <button onClick={(e) => { e.stopPropagation(); onRemove(); }}
         disabled={removingKey === rmKey}
         className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
@@ -135,19 +152,70 @@ function SortableTrackRow({
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function PinnedPlaylistSection({ pinned }: Props) {
+  const [viewMode, setViewMode] = useState<PlaylistViewMode>("grid");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tracksMap, setTracksMap] = useState<Record<string, PlaylistTrack[]>>({});
   const [loading, setLoading] = useState<string | null>(null);
   const [removingTrack, setRemovingTrack] = useState<string | null>(null);
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [addFromPlaylist, setAddFromPlaylist] = useState(false);
-  const { setQueueAndPlay, isPlayerReady } = usePlayerStore();
+  const { setQueueAndPlay, isPlayerReady, deviceId } = usePlayerStore();
+  const downloadPlaylistOffline = useOfflineStore((s) => s.downloadPlaylist);
+  const [downloadingPlaylistId, setDownloadingPlaylistId] = useState<string | null>(null);
+  const [pinningId, setPinningId] = useState<string | null>(null);
   const { toast } = useToastStore();
+
+  const removeFromPinned = useCallback(
+    async (playlistId: string) => {
+      setPinningId(playlistId);
+      try {
+        const res = await fetch("/api/pinned", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playlist_id: playlistId }),
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data.error ?? "Failed to remove from pinned");
+        }
+        if (selectedId === playlistId) setSelectedId(null);
+        window.dispatchEvent(new CustomEvent("pinned-playlists-updated"));
+        toast("Removed from pinned", "success");
+      } catch (e) {
+        toast((e as Error).message ?? "Could not remove from pinned", "error");
+      } finally {
+        setPinningId(null);
+      }
+    },
+    [selectedId, toast]
+  );
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PLAYLIST_VIEW_KEY);
+      if (saved === "grid" || saved === "list") setViewMode(saved);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setPlaylistViewMode = (mode: PlaylistViewMode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem(PLAYLIST_VIEW_KEY, mode);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
+
+  useBackHandler(!!selectedId, () => setSelectedId(null));
+  useBackHandler(!!addModal, () => setAddModal(null));
+  useBackHandler(addFromPlaylist, () => setAddFromPlaylist(false));
 
   // Prefetch all pinned playlist tracks for cover art
   useEffect(() => {
@@ -157,7 +225,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
       for (const pl of pinned) {
         if (controller.signal.aborted) break;
         try {
-          const res = await fetch(`/api/spotify/playlists/${encodeURIComponent(pl.playlist_id)}`, { signal: controller.signal });
+          const res = await fetch(`/api/music/playlists/${encodeURIComponent(pl.playlist_id)}`, { signal: controller.signal });
           if (!res.ok) continue;
           const data = await res.json();
           setTracksMap((prev) => prev[pl.playlist_id] ? prev : { ...prev, [pl.playlist_id]: data.items ?? [] });
@@ -181,7 +249,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   const fetchTracks = useCallback(async (id: string) => {
     setLoading(id);
     try {
-      const res = await fetch(`/api/spotify/playlists/${encodeURIComponent(id)}?_t=${Date.now()}`);
+      const res = await fetch(`/api/music/playlists/${encodeURIComponent(id)}?_t=${Date.now()}`);
       if (!res.ok) throw new Error("Failed to load tracks");
       const data = await res.json();
       setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
@@ -197,20 +265,68 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     fetchTracks(id);
   };
 
+  const toPlayable = useCallback(
+    (list: PlaylistTrack[]): PlayableTrack[] =>
+      list.map((t) => ({
+        name: t.track_name,
+        artist: t.track_artist ?? "",
+        image: t.track_image ?? undefined,
+        uri: t.track_uri,
+      })),
+    []
+  );
+
   const playAll = useCallback((playlistId: string, startIndex = 0) => {
     const list = tracksMap[playlistId] ?? [];
     if (!list.length) return;
-    const queue: PlayableTrack[] = list.map((t) => ({
-      name: t.track_name, artist: t.track_artist ?? "", image: t.track_image ?? undefined, uri: t.track_uri,
-    }));
-    setQueueAndPlay(queue, startIndex);
-  }, [tracksMap, setQueueAndPlay]);
+    setQueueAndPlay(toPlayable(list), startIndex);
+  }, [tracksMap, setQueueAndPlay, toPlayable]);
+
+  const shufflePlay = useCallback(
+    async (playlistId: string) => {
+      const list = tracksMap[playlistId] ?? [];
+      if (!list.length) return;
+      const shuffled = shuffleArray(toPlayable(list));
+      usePlayerStore.setState({ shuffleEnabled: true });
+      if (deviceId) {
+        await fetch("/api/music/player", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "shuffle", deviceId, state: true }),
+        }).catch(() => {});
+      }
+      setQueueAndPlay(shuffled, 0);
+    },
+    [tracksMap, deviceId, setQueueAndPlay, toPlayable]
+  );
+
+  const downloadOffline = useCallback(
+    async (playlistId: string) => {
+      const list = tracksMap[playlistId] ?? [];
+      if (!list.length) return;
+      setDownloadingPlaylistId(playlistId);
+      try {
+        const { ok, fail } = await downloadPlaylistOffline(
+          list.map((t) => ({
+            uri: t.track_uri,
+            name: t.track_name,
+            artist: t.track_artist ?? "",
+            image: t.track_image,
+          }))
+        );
+        toast(fail > 0 ? `Offline: ${ok} saved, ${fail} failed` : `Downloaded ${ok} tracks`, ok > 0 ? "success" : "error");
+      } finally {
+        setDownloadingPlaylistId(null);
+      }
+    },
+    [tracksMap, downloadPlaylistOffline, toast]
+  );
 
   const removeTrack = async (playlistId: string, trackId: string) => {
     const key = `${playlistId}::${trackId}`;
     setRemovingTrack(key);
     try {
-      const res = await fetch(`/api/spotify/playlists/${playlistId}/tracks`, {
+      const res = await fetch(`/api/music/playlists/${playlistId}/tracks`, {
         method: "DELETE", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trackId }),
       });
@@ -232,7 +348,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     if (oldIdx === -1 || newIdx === -1) return;
     const reordered = arrayMove(tracks, oldIdx, newIdx);
     setTracksMap((prev) => ({ ...prev, [playlistId]: reordered }));
-    fetch(`/api/spotify/playlists/${playlistId}`, {
+    fetch(`/api/music/playlists/${playlistId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order: reordered.map((t) => t.id) }),
     }).catch(() => toast("Could not save order"));
@@ -263,6 +379,15 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
             <ArrowLeft size={16} /> Back
           </button>
           <div className="flex-1" />
+          <PlaylistActionsMenu
+            isPinned
+            pinning={pinningId === selectedId}
+            trackCount={tracks.length}
+            downloadingPlaylist={downloadingPlaylistId === selectedId}
+            onShufflePlay={() => shufflePlay(selectedId)}
+            onTogglePin={() => void removeFromPinned(selectedPl.playlist_id)}
+            onDownloadOffline={() => downloadOffline(selectedId)}
+          />
           <button onClick={() => setAddFromPlaylist(true)}
             title="Add tracks from another playlist"
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors"
@@ -282,11 +407,22 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
         </div>
 
         {tracks.length > 0 && (
-          <button onClick={() => playAll(selectedId, 0)} disabled={!isPlayerReady}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-40"
-            style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}>
-            <PlayCircle size={16} /> Play all
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => playAll(selectedId, 0)} disabled={!isPlayerReady}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-40"
+              style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}>
+              <PlayCircle size={16} /> Play all
+            </button>
+            <button onClick={() => shufflePlay(selectedId)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06]">
+              <Shuffle size={16} className="text-[#E8282B]" /> Shuffle
+            </button>
+            <button onClick={() => downloadOffline(selectedId)} disabled={downloadingPlaylistId === selectedId}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white/80 font-semibold text-sm border border-white/10 hover:bg-white/[0.06] disabled:opacity-40">
+              {downloadingPlaylistId === selectedId ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              Download offline
+            </button>
+          </div>
         )}
 
         <div className="rounded-2xl overflow-hidden border" style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.06)" }}>
@@ -326,29 +462,102 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     );
   }
 
-  // ── Grid view ────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="grid grid-cols-3 gap-2">
-        {pinned.map((pl) => {
-          const tracks = tracksMap[pl.playlist_id];
-          return (
-            <div key={pl.id}
-              onClick={() => openPlaylist(pl.playlist_id)}
-              className="rounded-lg overflow-hidden border cursor-pointer transition-all duration-200 active:scale-[0.97] hover:border-white/[0.12]"
-              style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.07)" }}
-            >
-              <div className="relative aspect-square w-full overflow-hidden" style={{ background: "var(--surface)" }}>
-                <CoverArt tracks={tracks} imageUrl={pl.playlist_image || null} name={pl.playlist_name} size={80} />
-                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
-              </div>
-              <div className="px-1 py-1">
-                <p className="text-white text-[9px] font-semibold truncate leading-tight">{pl.playlist_name}</p>
-              </div>
-            </div>
-          );
-        })}
+      <div className="flex justify-end mb-2">
+        <div
+          className="flex items-center rounded-xl border border-white/[0.12] p-0.5"
+          style={{ background: "var(--surface)" }}
+          role="group"
+          aria-label="Pinned playlist layout"
+        >
+          <button
+            type="button"
+            onClick={() => setPlaylistViewMode("grid")}
+            title="Grid view"
+            aria-pressed={viewMode === "grid"}
+            className={`p-1.5 rounded-lg transition-colors ${viewMode === "grid" ? "bg-white/[0.12] text-white" : "text-white/40 hover:text-white/70"}`}
+          >
+            <LayoutGrid size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setPlaylistViewMode("list")}
+            title="List view"
+            aria-pressed={viewMode === "list"}
+            className={`p-1.5 rounded-lg transition-colors ${viewMode === "list" ? "bg-white/[0.12] text-white" : "text-white/40 hover:text-white/70"}`}
+          >
+            <List size={14} />
+          </button>
+        </div>
       </div>
+
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+          {pinned.map((pl) => {
+            const tracks = tracksMap[pl.playlist_id];
+            return (
+              <div
+                key={pl.id}
+                onClick={() => openPlaylist(pl.playlist_id)}
+                className={`rounded-lg overflow-visible ${playlistCardBorder} cursor-pointer transition-all duration-200 active:scale-[0.98] hover:border-white/25 hover:bg-white/[0.02]`}
+                style={{ background: "var(--card)" }}
+              >
+                <div className="relative aspect-square w-full overflow-hidden border-b border-white/[0.08] rounded-t-lg" style={{ background: "var(--surface)" }}>
+                  <CoverArt tracks={tracks} imageUrl={pl.playlist_image || null} name={pl.playlist_name} size={52} />
+                  <span className="absolute top-1 left-1 z-10 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                </div>
+                <div className="p-1.5 flex items-center gap-1 relative z-20">
+                  <p className="flex-1 min-w-0 text-white text-[9px] font-semibold truncate leading-tight">{pl.playlist_name}</p>
+                  <PlaylistActionsMenu
+                    variant="card"
+                    isPinned
+                    pinning={pinningId === pl.playlist_id}
+                    trackCount={tracks?.length ?? 0}
+                    downloadingPlaylist={downloadingPlaylistId === pl.playlist_id}
+                    onShufflePlay={() => shufflePlay(pl.playlist_id)}
+                    onTogglePin={() => void removeFromPinned(pl.playlist_id)}
+                    onDownloadOffline={() => downloadOffline(pl.playlist_id)}
+                    onOpen={() => openPlaylist(pl.playlist_id)}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div
+          className={`rounded-xl overflow-hidden divide-y divide-white/[0.10] ${playlistCardBorder}`}
+          style={{ background: "var(--card)" }}
+        >
+          {pinned.map((pl) => {
+            const tracks = tracksMap[pl.playlist_id];
+            return (
+              <div
+                key={pl.id}
+                onClick={() => openPlaylist(pl.playlist_id)}
+                className="flex items-center gap-2.5 p-2.5 cursor-pointer transition-colors hover:bg-white/[0.04]"
+              >
+                <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0 border border-white/[0.10]" style={{ background: "var(--surface)" }}>
+                  <CoverArt tracks={tracks} imageUrl={pl.playlist_image || null} name={pl.playlist_name} size={40} />
+                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                </div>
+                <p className="flex-1 text-white text-xs font-semibold truncate">{pl.playlist_name}</p>
+                <PlaylistActionsMenu
+                  isPinned
+                  pinning={pinningId === pl.playlist_id}
+                  trackCount={tracks?.length ?? 0}
+                  downloadingPlaylist={downloadingPlaylistId === pl.playlist_id}
+                  onShufflePlay={() => shufflePlay(pl.playlist_id)}
+                  onTogglePin={() => void removeFromPinned(pl.playlist_id)}
+                  onDownloadOffline={() => downloadOffline(pl.playlist_id)}
+                  onOpen={() => openPlaylist(pl.playlist_id)}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
     </>
