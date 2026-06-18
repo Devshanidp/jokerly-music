@@ -136,7 +136,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div className="h-px bg-white/[0.06]" />
-          <div className="rounded-2xl border border-[#E8282B]/20 p-3" style={{ background: "rgba(232,40,43,0.06)" }}>
+          <div className="rounded-2xl border border-[var(--accent)]/20 p-3" style={{ background: "rgba(140, 80, 200,0.06)" }}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-white text-sm font-medium">Account permissions</p>
@@ -144,7 +144,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
               </div>
               <button
                 onClick={reconnectAccount}
-                className="shrink-0 flex items-center gap-1.5 rounded-xl bg-[#E8282B] px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                className="shrink-0 flex items-center gap-1.5 rounded-xl btn-accent px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
               >
                 <RefreshCw size={13} />
                 Reconnect
@@ -156,14 +156,14 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-white text-sm font-medium flex items-center gap-1.5">
-                  <Bell size={14} className="text-[#E8282B]" /> Release Alerts
+                  <Bell size={14} className="text-[var(--accent)]" /> Release Alerts
                 </p>
                 <p className="text-white/40 text-xs mt-0.5">Get notified when liked artists drop new tracks.</p>
               </div>
               <button
                 onClick={enableNotifications}
                 disabled={notifBusy || notifEnabled}
-                className="shrink-0 text-xs px-3 py-1.5 rounded-xl border border-white/[0.12] text-white/80 hover:text-white hover:border-[#E8282B]/50 transition-colors disabled:opacity-50"
+                className="shrink-0 text-xs px-3 py-1.5 rounded-xl border border-white/[0.12] text-white/80 hover:text-white hover:border-[var(--accent)]/50 transition-colors disabled:opacity-50"
               >
                 {notifBusy ? <Loader2 size={13} className="animate-spin" /> : notifEnabled ? "Enabled" : "Enable"}
               </button>
@@ -172,7 +172,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
               <button
                 onClick={sendTestNotification}
                 disabled={notifBusy}
-                className="mt-2 text-xs text-[#E8282B] hover:text-[#ff6264] transition-colors"
+                className="mt-2 text-xs text-[var(--accent)] hover:text-[#C084FC] transition-colors"
               >
                 Send test notification
               </button>
@@ -190,7 +190,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors text-sm font-medium"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors text-sm font-medium"
           >
             <X size={14} />
             Sign out
@@ -243,10 +243,10 @@ export default function Topbar() {
   return (
     <>
       {sessionError && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-[#E8282B] text-white text-sm px-4 py-2.5 flex items-center justify-between gap-3">
+        <div className="fixed top-0 left-0 right-0 z-50 btn-accent text-white text-sm px-4 py-2.5 flex items-center justify-between gap-3 border-b border-purple-500/20">
           <span>Your session expired. Please sign back in.</span>
           <button onClick={() => signOut({ callbackUrl: "/login" })}
-            className="shrink-0 bg-white text-[#E8282B] font-semibold text-xs px-3 py-1.5 rounded-lg">
+            className="shrink-0 bg-white text-[var(--accent)] font-semibold text-xs px-3 py-1.5 rounded-lg">
             Sign out
           </button>
         </div>
@@ -262,7 +262,7 @@ export default function Topbar() {
             className="flex items-center gap-2.5 shrink-0">
             <Image src="/icon-96.png" alt={APP_NAME} width={28} height={28} className="rounded-xl" unoptimized />
             <div className="flex flex-col items-start leading-tight">
-              <span className="text-[#E8282B] font-bold text-xs sm:text-sm tracking-tight">{APP_NAME}</span>
+              <span className="text-[var(--accent)] font-bold text-xs sm:text-sm tracking-tight">{APP_NAME}</span>
               <span className="text-[10px] text-white/40 font-medium">{APP_TAGLINE}</span>
             </div>
           </button>

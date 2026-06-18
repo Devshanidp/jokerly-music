@@ -22,7 +22,7 @@ export default function Sidebar() {
     <aside className="w-60 bg-black border-r border-zinc-900 flex flex-col h-full shrink-0">
       <div className="p-6 border-b border-zinc-900">
         <h1 className="text-2xl font-bold tracking-tight">
-          <span className="text-red-500">🎵</span>{" "}
+          <span className="text-[var(--accent)]">🎵</span>{" "}
           <span className="text-white">Jokerly</span>
         </h1>
       </div>
@@ -35,11 +35,11 @@ export default function Sidebar() {
             className={cn(
               "flex items-center gap-2 px-2.5 py-2 rounded-lg text-[10px] sm:text-xs font-medium transition-colors",
               pathname === href
-                ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                ? "btn-nav-active text-white/95 border border-purple-500/20"
                 : "text-zinc-400 hover:text-white hover:bg-zinc-900"
             )}
           >
-            <Icon size={14} className={pathname === href ? "text-red-400" : ""} />
+            <Icon size={14} className={pathname === href ? "text-[var(--accent)]" : ""} />
             {label}
           </Link>
         ))}

@@ -48,12 +48,12 @@ export default function TransferResultDialog({ result, onClose, onReauthorize }:
         <div className="flex items-start gap-3">
           <div
             className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
-            style={{ background: isSuccess ? "rgba(34,197,94,0.14)" : "rgba(232,40,43,0.14)" }}
+            style={{ background: isSuccess ? "rgba(34,197,94,0.14)" : "rgba(140, 80, 200,0.14)" }}
           >
             {isSuccess ? (
               <CheckCircle2 size={22} className="text-green-400" />
             ) : (
-              <AlertCircle size={22} className="text-[#E8282B]" />
+              <AlertCircle size={22} className="text-[var(--accent)]" />
             )}
           </div>
           <div className="min-w-0 flex-1">
@@ -84,7 +84,7 @@ export default function TransferResultDialog({ result, onClose, onReauthorize }:
           {result.type === "success" && result.url && (
             <button
               onClick={() => window.open(result.url || "", "_blank", "noopener,noreferrer")}
-              className="flex-1 rounded-2xl bg-[#E8282B] px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="flex-1 rounded-2xl btn-accent px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Open in app
             </button>
@@ -92,14 +92,14 @@ export default function TransferResultDialog({ result, onClose, onReauthorize }:
           {canReauthorize && (
             <button
               onClick={onReauthorize}
-              className="flex-1 rounded-2xl bg-[#E8282B] px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="flex-1 rounded-2xl btn-accent px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Continue with your account
             </button>
           )}
           <button
             onClick={onClose}
-            className={`${(result.type === "success" && result.url) || canReauthorize ? "flex-1" : "w-full"} rounded-2xl bg-[#E8282B] px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90`}
+            className={`${(result.type === "success" && result.url) || canReauthorize ? "flex-1" : "w-full"} rounded-2xl btn-accent px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90`}
           >
             Done
           </button>

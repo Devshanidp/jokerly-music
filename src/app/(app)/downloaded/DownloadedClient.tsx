@@ -88,7 +88,7 @@ export default function DownloadedClient() {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Download size={22} className="text-[#E8282B]" />
+            <Download size={22} className="text-[var(--accent)]" />
             Downloaded
           </h2>
           <p className="text-xs mt-1 flex items-center gap-1.5" style={{ color: "var(--text-muted)" }}>
@@ -103,7 +103,7 @@ export default function DownloadedClient() {
             type="button"
             onClick={() => void handleDeleteAll()}
             disabled={clearingAll}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-40 transition-colors"
+            className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border border-purple-500/30 text-[var(--accent)] hover:bg-purple-500/10 disabled:opacity-40 transition-colors btn-accent"
           >
             {clearingAll ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             Delete all
@@ -116,8 +116,7 @@ export default function DownloadedClient() {
           <button
             type="button"
             onClick={playAll}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 shadow-lg"
-            style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 shadow-lg btn-accent"
           >
             <PlayCircle size={14} /> Play all offline
           </button>
@@ -141,7 +140,7 @@ export default function DownloadedClient() {
           </p>
           <Link
             href="/playlists"
-            className="inline-block mt-4 text-sm font-semibold text-[#E8282B] hover:underline"
+            className="inline-block mt-4 text-sm font-semibold text-[var(--accent)] hover:underline"
           >
             Go to Playlists
           </Link>
@@ -174,7 +173,7 @@ export default function DownloadedClient() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium truncate ${playing ? "text-[#E8282B]" : "text-white"}`}>
+                  <p className={`text-sm font-medium truncate ${playing ? "text-[var(--accent)]" : "text-white"}`}>
                     {track.name}
                   </p>
                   <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-muted)" }}>
@@ -187,7 +186,7 @@ export default function DownloadedClient() {
                     e.stopPropagation();
                     playAt(index);
                   }}
-                  className="p-2 rounded-lg text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors"
+                  className="p-2 rounded-lg text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors"
                   title="Play"
                 >
                   <Play size={14} fill="currentColor" />
@@ -198,7 +197,7 @@ export default function DownloadedClient() {
                     e.stopPropagation();
                     void handleRemove(track.uri, track.name, track.artist);
                   }}
-                  className="p-2 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  className="p-2 rounded-lg text-white/25 hover:text-[var(--accent)] hover:bg-purple-500/10 transition-colors"
                   title="Remove download"
                 >
                   <Trash2 size={14} />

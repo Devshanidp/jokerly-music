@@ -138,8 +138,8 @@ export default function AlbumSheet({ album, onClose }: Props) {
                 title={isPinned ? "Unpin album" : "Pin album"}
                 className="p-2 rounded-xl transition-colors disabled:opacity-50"
                 style={{
-                  background: isPinned ? "rgba(232,40,43,0.18)" : "transparent",
-                  color: isPinned ? "#E8282B" : "rgba(255,255,255,0.4)",
+                  background: isPinned ? "rgba(140, 80, 200,0.18)" : "transparent",
+                  color: isPinned ? "var(--accent)" : "rgba(255,255,255,0.4)",
                 }}
               >
                 {pinning ? <Loader2 size={14} className="animate-spin" /> : <Pin size={14} />}
@@ -166,8 +166,7 @@ export default function AlbumSheet({ album, onClose }: Props) {
             <div className="px-5 pb-3 shrink-0">
               <button
                 onClick={() => handlePlay(0)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold transition-all active:scale-95"
-                style={{ background: "#E8282B" }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-bold transition-all active:scale-95 btn-accent"
               >
                 <Play size={14} fill="white" /> Play all
               </button>
@@ -178,7 +177,7 @@ export default function AlbumSheet({ album, onClose }: Props) {
           <div className="flex-1 overflow-y-auto min-h-0 px-2 py-2 space-y-0.5">
             {loading ? (
               <div className="flex items-center justify-center py-14">
-                <Loader2 size={22} className="animate-spin text-[#E8282B]/60" />
+                <Loader2 size={22} className="animate-spin text-[var(--accent)]/60" />
               </div>
             ) : tracks.length === 0 ? (
               <div className="flex items-center justify-center py-14">
@@ -235,11 +234,11 @@ function TrackRow({ track, rank, isCurrentlyPlaying, onPlay, onAddToPlaylist }: 
       onClick={onPlay}
       className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl group cursor-pointer transition-all border ${
         isCurrentlyPlaying
-          ? "bg-[#E8282B]/10 border-[#E8282B]/20"
+          ? "bg-[var(--accent)]/10 border-[var(--accent)]/20"
           : "hover:bg-white/[0.05] border-transparent hover:border-white/[0.06]"
       }`}
     >
-      <span className={`text-xs w-5 text-right shrink-0 tabular-nums font-medium ${isCurrentlyPlaying ? "text-[#E8282B]" : "text-white/25"}`}>
+      <span className={`text-xs w-5 text-right shrink-0 tabular-nums font-medium ${isCurrentlyPlaying ? "text-[var(--accent)]" : "text-white/25"}`}>
         {rank}
       </span>
 
@@ -260,18 +259,18 @@ function TrackRow({ track, rank, isCurrentlyPlaying, onPlay, onAddToPlaylist }: 
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate leading-tight ${isCurrentlyPlaying ? "text-[#E8282B]" : "text-white"}`}>{track.name}</p>
+        <p className={`text-sm font-medium truncate leading-tight ${isCurrentlyPlaying ? "text-[var(--accent)]" : "text-white"}`}>{track.name}</p>
         <p className="text-xs text-white/40 truncate mt-0.5">{artistNames(track)}</p>
       </div>
 
       <button onClick={handleLike} title={isLiked ? "Unlike" : "Like"}
-        className={`shrink-0 p-1.5 rounded-lg transition-colors ${isLiked ? "text-[#E8282B]" : "text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10"}`}>
+        className={`shrink-0 p-1.5 rounded-lg transition-colors ${isLiked ? "text-[var(--accent)]" : "text-white/30 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"}`}>
         <Heart size={13} fill={isLiked ? "currentColor" : "none"} />
       </button>
 
       <button
         onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
-        className="shrink-0 p-1.5 rounded-lg text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+        className="shrink-0 p-1.5 rounded-lg text-[var(--accent)]/50 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
       >
         <ListPlus size={14} />
       </button>

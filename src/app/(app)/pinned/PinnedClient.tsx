@@ -55,7 +55,7 @@ export default function PinnedClient() {
     <div className="w-full space-y-8">
       <div>
         <h2 className="text-3xl font-bold text-white flex items-center gap-2">
-          <Pin size={28} className="text-red-400" /> Pinned
+          <Pin size={28} className="text-[var(--accent)]" /> Pinned
         </h2>
         <p className="text-zinc-400 mt-1">Your quick-access music shortcuts</p>
       </div>
@@ -77,7 +77,7 @@ export default function PinnedClient() {
           {pinnedAlbums.length > 0 && (
             <section className="space-y-2">
               <h3 className="text-white font-semibold text-lg flex items-center gap-2">
-                <Music size={14} className="text-red-400" /> Pinned Albums
+                <Music size={14} className="text-[var(--accent)]" /> Pinned Albums
               </h3>
               <div className="space-y-2">
                 {pinnedAlbums.map((album) => (
@@ -119,7 +119,7 @@ export default function PinnedClient() {
                       <button
                         onClick={(e) => { e.stopPropagation(); unpinAlbum(album.album_id); }}
                         disabled={unpinning === album.album_id}
-                        className="p-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-700 transition-colors"
+                        className="p-2 rounded-lg text-zinc-400 hover:text-[var(--accent)] hover:bg-zinc-700 transition-colors"
                         title="Unpin"
                       >
                         {unpinning === album.album_id ? (
@@ -138,7 +138,7 @@ export default function PinnedClient() {
           {pinned.length > 0 && (
             <section className="space-y-2">
               <h3 className="text-white font-semibold text-lg flex items-center gap-2">
-                <Pin size={14} className="text-red-400" /> Pinned Playlists
+                <Pin size={14} className="text-[var(--accent)]" /> Pinned Playlists
               </h3>
               <div className="space-y-2">
           {pinned.map((pl) => (
@@ -171,7 +171,7 @@ export default function PinnedClient() {
                 <button
                   onClick={() => unpin(pl.playlist_id)}
                   disabled={unpinning === pl.playlist_id}
-                  className="p-2 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-zinc-700 transition-colors"
+                  className="p-2 rounded-lg text-zinc-400 hover:text-[var(--accent)] hover:bg-zinc-700 transition-colors"
                   title="Unpin"
                 >
                   {unpinning === pl.playlist_id ? (

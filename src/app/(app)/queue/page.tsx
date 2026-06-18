@@ -25,11 +25,11 @@ export default function QueuePage() {
               key={`${track.uri ?? track.name}-${i}`}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
                 i === queueIndex
-                  ? "bg-red-500/10 border border-red-500/20"
+                  ? "bg-purple-500/10 border border-purple-500/20"
                   : "hover:bg-zinc-800/60"
               }`}
             >
-              <span className={`text-xs w-5 text-right shrink-0 ${i === queueIndex ? "text-red-400" : "text-zinc-600"}`}>
+              <span className={`text-xs w-5 text-right shrink-0 ${i === queueIndex ? "text-[var(--accent)]" : "text-zinc-600"}`}>
                 {i + 1}
               </span>
               {track.image ? (
@@ -40,13 +40,13 @@ export default function QueuePage() {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${i === queueIndex ? "text-red-400" : "text-white"}`}>
+                <p className={`text-sm font-medium truncate ${i === queueIndex ? "text-[var(--accent)]" : "text-white"}`}>
                   {track.name}
                 </p>
                 <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
               </div>
               {i === queueIndex && (
-                <span className="text-xs text-red-400 shrink-0 font-medium">Now Playing</span>
+                <span className="text-xs text-[var(--accent)] shrink-0 font-medium">Now Playing</span>
               )}
             </div>
           ))}

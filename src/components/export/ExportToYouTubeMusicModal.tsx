@@ -179,7 +179,7 @@ export default function ExportToYouTubeMusicModal({ title, tracks, onClose }: Pr
                       onClick={() => setPrivacy(p)}
                       className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                         privacy === p
-                          ? "bg-[#E8282B] text-white"
+                          ? "btn-nav-active text-white"
                           : "bg-white/[0.05] text-white/60 hover:bg-white/[0.08]"
                       }`}
                     >
@@ -199,7 +199,7 @@ export default function ExportToYouTubeMusicModal({ title, tracks, onClose }: Pr
 
           {step === "exporting" && (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <Loader2 size={32} className="animate-spin text-[#E8282B]/60" />
+              <Loader2 size={32} className="animate-spin text-[var(--accent)]/60" />
               <div className="text-center">
                 <p className="text-sm font-medium text-white mb-1">Exporting to YouTube Music</p>
                 <p className="text-xs text-white/50">This may take a moment...</p>
@@ -210,8 +210,8 @@ export default function ExportToYouTubeMusicModal({ title, tracks, onClose }: Pr
           {step === "success" && result && (
             <>
               <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <div className="w-12 h-12 rounded-full bg-[#E8282B]/20 flex items-center justify-center">
-                  <Check size={24} className="text-[#E8282B]" />
+                <div className="w-12 h-12 rounded-full bg-[var(--accent)]/20 flex items-center justify-center">
+                  <Check size={24} className="text-[var(--accent)]" />
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-semibold text-white">Export Complete!</p>
@@ -245,14 +245,14 @@ export default function ExportToYouTubeMusicModal({ title, tracks, onClose }: Pr
           {step === "success" ? (
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl font-medium bg-[#E8282B] text-white hover:bg-[#E8282B]/90 transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-xl font-medium btn-accent text-white hover:opacity-90 transition-colors"
             >
               Done
             </button>
           ) : step === "exporting" ? (
             <button
               disabled
-              className="flex-1 px-4 py-2.5 rounded-xl font-medium bg-[#E8282B]/50 text-white/50 cursor-not-allowed"
+              className="flex-1 px-4 py-2.5 rounded-xl font-medium btn-accent/50 text-white/50 cursor-not-allowed"
             >
               Exporting...
             </button>
@@ -266,7 +266,7 @@ export default function ExportToYouTubeMusicModal({ title, tracks, onClose }: Pr
               </button>
               <button
                 onClick={handleContinue}
-                className="flex-1 px-4 py-2.5 rounded-xl font-medium bg-[#E8282B] text-white hover:bg-[#E8282B]/90 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl font-medium btn-accent text-white hover:opacity-90 transition-colors"
               >
                 Continue
               </button>
@@ -282,7 +282,7 @@ export default function ExportToYouTubeMusicModal({ title, tracks, onClose }: Pr
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                className="flex-1 px-4 py-2.5 rounded-xl font-medium bg-[#E8282B] text-white hover:bg-[#E8282B]/90 disabled:opacity-50 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl font-medium btn-accent text-white hover:opacity-90 disabled:opacity-50 transition-colors"
               >
                 {exporting ? "Exporting..." : "Export"}
               </button>

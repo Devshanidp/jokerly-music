@@ -380,12 +380,12 @@ export default function PlayerBar() {
     return (
       <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 border-t border-white/[0.07] px-4 py-3 flex items-center justify-between gap-3"
         style={{ background: "rgba(7,5,18,0.97)", backdropFilter: "blur(20px)" }}>
-        <p className="text-[#E8282B] text-sm truncate">{sdkError}</p>
+        <p className="text-[var(--accent)] text-sm truncate">{sdkError}</p>
         {sdkError.includes("Premium") ||
         sdkError.includes("auth") ||
         sdkError.includes("session expired") ? (
           <button onClick={() => signOut({ callbackUrl: "/login" })}
-            className="shrink-0 text-xs bg-[#E8282B] text-white px-3 py-1.5 rounded-xl font-medium">
+            className="shrink-0 text-xs btn-accent text-white px-3 py-1.5 rounded-xl font-medium">
             Re-login
           </button>
         ) : session?.accessToken ? (
@@ -496,7 +496,7 @@ export default function PlayerBar() {
                 {/* Progress */}
                 <div className="space-y-1.5">
                   <div className="group h-1.5 cursor-pointer rounded-full bg-white/[0.08]" onClick={handleSeek}>
-                    <div className="relative h-full rounded-full bg-[#E8282B]" style={{ width: `${progressRatio * 100}%` }}>
+                    <div className="relative h-full rounded-full btn-nav-active" style={{ width: `${progressRatio * 100}%` }}>
                       <div className="absolute right-0 top-1/2 h-3.5 w-3.5 translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 transition-opacity group-hover:opacity-100 shadow-md" />
                     </div>
                   </div>
@@ -514,8 +514,8 @@ export default function PlayerBar() {
                   <input
                     type="range" min={0} max={1} step={0.02} value={volume}
                     onChange={(e) => setVolume(parseFloat(e.target.value))}
-                    className="flex-1 h-1 rounded-full appearance-none cursor-pointer accent-[#E8282B]"
-                    style={{ background: `linear-gradient(to right, #E8282B ${volume * 100}%, rgba(255,255,255,0.12) ${volume * 100}%)` }}
+                    className="flex-1 h-1 rounded-full appearance-none cursor-pointer accent-[var(--accent)]"
+                    style={{ background: `linear-gradient(to right, var(--accent) ${volume * 100}%, rgba(255,255,255,0.12) ${volume * 100}%)` }}
                   />
                   <span className="text-xs tabular-nums text-white/25 w-7 text-right">{Math.round(volume * 100)}</span>
                 </div>
@@ -524,7 +524,7 @@ export default function PlayerBar() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-center gap-5">
                   <button onClick={toggleShuffle} title="Shuffle"
-                    className={`p-3 rounded-2xl transition-colors ${shuffleEnabled ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
+                    className={`p-3 rounded-2xl transition-colors ${shuffleEnabled ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
                     <Shuffle size={14} />
                   </button>
                   <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
@@ -532,7 +532,7 @@ export default function PlayerBar() {
                     <SkipBack size={22} fill="currentColor" />
                   </button>
                   <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning} title={isPlaying ? "Pause" : "Play"}
-                    className="btn-red p-5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="btn-accent p-5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
                     {playBusy
                       ? <Loader2 size={24} className="text-white animate-spin" />
                       : isPlaying
@@ -545,17 +545,17 @@ export default function PlayerBar() {
                     <SkipForward size={22} fill="currentColor" />
                   </button>
                   <button onClick={cycleRepeatMode} title="Repeat"
-                    className={`p-3 rounded-2xl transition-colors ${repeatMode !== "off" ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
+                    className={`p-3 rounded-2xl transition-colors ${repeatMode !== "off" ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
                     <RepeatIcon size={14} />
                   </button>
                   </div>
                   <div className="flex items-center justify-center gap-2">
                     <button onClick={handleLike} title={isLiked ? "Unlike" : "Like"}
-                      className={`shrink-0 p-2.5 rounded-2xl transition-colors ${isLiked ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10"}`}>
+                      className={`shrink-0 p-2.5 rounded-2xl transition-colors ${isLiked ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/30 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"}`}>
                       <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
                     </button>
                     <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
-                      className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors disabled:opacity-40">
+                      className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors disabled:opacity-40">
                       {resolvingAdd ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
                     </button>
                     <button onClick={() => { usePlayerStore.setState({ isQueueOpen: true, isPlayerExpanded: false }); }} title="Queue"
@@ -563,19 +563,19 @@ export default function PlayerBar() {
                       <ListOrdered size={14} />
                     </button>
                     <button onClick={() => setShowLyrics(true)} title="Lyrics"
-                      className={`shrink-0 p-2.5 rounded-2xl transition-colors ${showLyrics ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}>
+                      className={`shrink-0 p-2.5 rounded-2xl transition-colors ${showLyrics ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}>
                       <MicVocal size={14} />
                     </button>
                     <div className="relative">
                       <button
                         onClick={() => setShowTimerPicker((v) => !v)}
                         title="Sleep timer"
-                        className={`shrink-0 p-2.5 rounded-2xl transition-colors ${sleepTimerEndsAt ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}
+                        className={`shrink-0 p-2.5 rounded-2xl transition-colors ${sleepTimerEndsAt ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}
                       >
                         <Timer size={14} />
                       </button>
                       {timerRemaining && (
-                        <span className="absolute -top-1 -right-1 text-[9px] font-bold text-[#E8282B] bg-black/80 px-1 rounded-full leading-tight">
+                        <span className="absolute -top-1 -right-1 text-[9px] font-bold text-[var(--accent)] bg-black/80 px-1 rounded-full leading-tight">
                           {timerRemaining}
                         </span>
                       )}
@@ -586,7 +586,7 @@ export default function PlayerBar() {
                           <div className="grid grid-cols-4 gap-1.5">
                             {[15, 30, 45, 60].map((m) => (
                               <button key={m} onClick={() => { setSleepTimer(m); setShowTimerPicker(false); }}
-                                className={`py-2 rounded-xl text-xs font-medium transition-colors ${sleepTimerEndsAt ? "bg-[#E8282B] text-white" : "text-white/70 hover:bg-white/[0.12]"}`}
+                                className={`py-2 rounded-xl text-xs font-medium transition-colors ${sleepTimerEndsAt ? "btn-nav-active text-white" : "text-white/70 hover:bg-white/[0.12]"}`}
                                 style={!sleepTimerEndsAt ? { background: "rgba(255,255,255,0.07)" } : {}}>
                                 {m}m
                               </button>
@@ -656,8 +656,8 @@ export default function PlayerBar() {
 
         {/* Progress bar */}
         <div className="h-[3px] cursor-pointer group relative" style={{ background: "rgba(255,255,255,0.06)" }} onClick={handleSeek}>
-          <div className="h-full transition-all relative" style={{ width: `${progressRatio * 100}%`, background: "linear-gradient(90deg, #c62828, #E8282B, #ff5252)" }}>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md shadow-[#E8282B]/40" />
+          <div className="h-full transition-all relative" style={{ width: `${progressRatio * 100}%`, background: "linear-gradient(90deg, #5B21B6, var(--accent), #C084FC)" }}>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md shadow-purple-500/40" />
           </div>
         </div>
 
@@ -676,7 +676,7 @@ export default function PlayerBar() {
               }
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-white text-sm font-semibold truncate leading-snug group-hover/info:text-[#E8282B]/90 transition-colors">{currentTrack.name}</p>
+              <p className="text-white text-sm font-semibold truncate leading-snug group-hover/info:text-[var(--accent)]/90 transition-colors">{currentTrack.name}</p>
               <p className="text-white/40 text-xs truncate mt-0.5">
                 {isTransitioning && pendingTrack ? `Switching to ${pendingTrack.name}...` : currentTrack.artist}
               </p>
@@ -686,7 +686,7 @@ export default function PlayerBar() {
           {/* Playback controls */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={toggleShuffle} title="Shuffle"
-              className={`p-2 rounded-xl transition-colors ${shuffleEnabled ? "text-[#E8282B]" : "text-white/30 hover:text-white"}`}>
+              className={`p-2 rounded-xl transition-colors ${shuffleEnabled ? "text-[var(--accent)]" : "text-white/30 hover:text-white"}`}>
               <Shuffle size={14} />
             </button>
             <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
@@ -694,7 +694,7 @@ export default function PlayerBar() {
               <SkipBack size={14} fill="currentColor" />
             </button>
             <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning}
-              className="btn-red mx-1 p-3 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
+              className="btn-accent mx-1 p-3 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
               {(!currentTrack || !isPlaying) && playBusy
                 ? <Loader2 size={14} className="text-white animate-spin" />
                 : isPlaying
@@ -706,11 +706,11 @@ export default function PlayerBar() {
               <SkipForward size={14} fill="currentColor" />
             </button>
             <button onClick={cycleRepeatMode} title={repeatMode === "one" ? "Repeat one" : repeatMode === "all" ? "Repeat all" : "Repeat off"}
-              className={`p-2 rounded-xl transition-colors ${repeatMode !== "off" ? "text-[#E8282B]" : "text-white/30 hover:text-white"}`}>
+              className={`p-2 rounded-xl transition-colors ${repeatMode !== "off" ? "text-[var(--accent)]" : "text-white/30 hover:text-white"}`}>
               <RepeatIcon size={14} />
             </button>
             <button onClick={handleLike} title={isLiked ? "Unlike" : "Like"}
-              className={`p-2 rounded-xl transition-colors ${isLiked ? "text-[#E8282B]" : "text-white/30 hover:text-[#E8282B]"}`}>
+              className={`p-2 rounded-xl transition-colors ${isLiked ? "text-[var(--accent)]" : "text-white/30 hover:text-[var(--accent)]"}`}>
               <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
             </button>
             {currentTrack.uri ? (
@@ -726,7 +726,7 @@ export default function PlayerBar() {
               />
             ) : null}
             <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
-              className="p-2 rounded-xl text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors disabled:opacity-30">
+              className="p-2 rounded-xl text-[var(--accent)]/50 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors disabled:opacity-30">
               {resolvingAdd ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
             </button>
             <button onClick={() => usePlayerStore.setState({ isQueueOpen: true })} title="Queue"
@@ -740,8 +740,8 @@ export default function PlayerBar() {
               <input
                 type="range" min={0} max={1} step={0.02} value={volume}
                 onChange={(e) => setVolume(parseFloat(e.target.value))}
-                className="w-20 h-1 rounded-full appearance-none cursor-pointer accent-[#E8282B]"
-                style={{ background: `linear-gradient(to right, #E8282B ${volume * 100}%, rgba(255,255,255,0.12) ${volume * 100}%)` }}
+                className="w-20 h-1 rounded-full appearance-none cursor-pointer accent-[var(--accent)]"
+                style={{ background: `linear-gradient(to right, var(--accent) ${volume * 100}%, rgba(255,255,255,0.12) ${volume * 100}%)` }}
               />
             </div>
             <button onClick={stop} title="Close"

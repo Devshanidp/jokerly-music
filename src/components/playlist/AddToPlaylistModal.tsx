@@ -173,8 +173,8 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
 
         {/* Error banner */}
         {addError && (
-          <div className="mx-3 mt-2 rounded-xl border border-[#E8282B]/25 bg-[#E8282B]/8 px-3 py-2 flex items-center gap-2">
-            <AlertCircle size={13} className="text-[#E8282B] shrink-0" />
+          <div className="mx-3 mt-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2 flex items-center gap-2">
+            <AlertCircle size={13} className="text-[var(--accent)] shrink-0" />
             <p className="text-white/60 text-xs flex-1">{addError}</p>
             <button onClick={() => setAddError(null)} className="text-white/25 hover:text-white shrink-0"><X size={12} /></button>
           </div>
@@ -192,13 +192,13 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") createAndAdd(); if (e.key === "Escape") { setCreating(false); setNewName(""); } }}
                 placeholder="Playlist name…"
-                className="flex-1 border text-white placeholder-white/25 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
+                className="flex-1 border text-white placeholder-white/25 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--accent)]/60 transition-all"
                 style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }}
               />
               <button
                 onClick={createAndAdd}
                 disabled={savingNew || !newName.trim()}
-                className="shrink-0 w-8 h-8 rounded-xl bg-[#E8282B] flex items-center justify-center disabled:opacity-40 transition-opacity"
+                className="shrink-0 w-8 h-8 rounded-xl btn-accent flex items-center justify-center disabled:opacity-40 transition-opacity"
               >
                 {savingNew ? <Loader2 size={13} className="animate-spin text-white" /> : <Check size={13} className="text-white" />}
               </button>
@@ -225,7 +225,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
         <div className="px-2 pb-2 flex-1 overflow-y-auto min-h-0 space-y-0.5">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
-              <Loader2 size={22} className="animate-spin text-[#E8282B]/60" />
+              <Loader2 size={22} className="animate-spin text-[var(--accent)]/60" />
               <p className="text-white/25 text-xs">Loading playlists…</p>
             </div>
           ) : playlists.length === 0 ? (
@@ -245,7 +245,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
                   disabled={!!adding}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all border ${
                     canAddAgain
-                      ? "hover:bg-[#E8282B]/8 border-[#E8282B]/18"
+                      ? "hover:bg-[var(--accent)]/8 border-[var(--accent)]/18"
                       : "hover:bg-white/[0.05] border-transparent"
                   }`}
                 >
@@ -271,11 +271,11 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
                       Added
                     </span>
                   ) : canAddAgain ? (
-                    <span className="text-[10px] font-semibold text-[#E8282B] bg-[#E8282B]/10 border border-[#E8282B]/25 px-2 py-0.5 rounded-full shrink-0">
+                    <span className="text-[10px] font-semibold text-[var(--accent)] bg-[var(--accent)]/10 border border-[var(--accent)]/25 px-2 py-0.5 rounded-full shrink-0">
                       Add again
                     </span>
                   ) : isAdding ? (
-                    <Loader2 size={14} className="animate-spin text-[#E8282B]/50 shrink-0" />
+                    <Loader2 size={14} className="animate-spin text-[var(--accent)]/50 shrink-0" />
                   ) : null}
                 </button>
               );

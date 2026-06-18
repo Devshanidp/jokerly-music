@@ -58,7 +58,7 @@ function SortableTrack({
       onClick={onPlay}
       className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl cursor-pointer transition-all border group ${
         isCurrent
-          ? "bg-[#E8282B]/10 border-[#E8282B]/20"
+          ? "bg-[var(--accent)]/10 border-[var(--accent)]/20"
           : "border-transparent hover:bg-white/[0.05] hover:border-white/[0.06]"
       }`}
     >
@@ -72,7 +72,7 @@ function SortableTrack({
         <GripVertical size={14} />
       </button>
 
-      <span className={`text-xs w-5 text-right shrink-0 tabular-nums font-medium ${isCurrent ? "text-[#E8282B]" : "text-white/25"}`}>
+      <span className={`text-xs w-5 text-right shrink-0 tabular-nums font-medium ${isCurrent ? "text-[var(--accent)]" : "text-white/25"}`}>
         {index + 1}
       </span>
 
@@ -93,7 +93,7 @@ function SortableTrack({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate leading-tight ${isCurrent ? "text-[#E8282B]" : "text-white"}`}>
+        <p className={`text-sm font-medium truncate leading-tight ${isCurrent ? "text-[var(--accent)]" : "text-white"}`}>
           {track.name}
         </p>
         <p className="text-xs text-white/40 truncate mt-0.5">{track.artist}</p>
@@ -101,7 +101,7 @@ function SortableTrack({
 
       <button
         onClick={onRemove}
-        className="shrink-0 p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+        className="shrink-0 p-1.5 rounded-lg text-white/20 hover:text-[var(--accent)] hover:bg-purple-500/10 transition-colors opacity-0 group-hover:opacity-100"
       >
         <Trash2 size={13} />
       </button>
@@ -198,7 +198,7 @@ export default function QueueSheet({ onPlayIndex }: Props) {
             type="button"
             onClick={() => setTab("queue")}
             className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
-              tab === "queue" ? "bg-[#E8282B] text-white" : "text-white/45 hover:text-white"
+              tab === "queue" ? "btn-nav-active text-white" : "text-white/45 hover:text-white"
             }`}
           >
             Queue
@@ -207,7 +207,7 @@ export default function QueueSheet({ onPlayIndex }: Props) {
             type="button"
             onClick={() => setTab("similar")}
             className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${
-              tab === "similar" ? "bg-[#E8282B] text-white" : "text-white/45 hover:text-white"
+              tab === "similar" ? "btn-nav-active text-white" : "text-white/45 hover:text-white"
             }`}
           >
             <Sparkles size={12} /> Similar

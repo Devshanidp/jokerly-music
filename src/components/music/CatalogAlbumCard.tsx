@@ -26,7 +26,7 @@ export default function CatalogAlbumCard({ album, onSelect }: Props) {
         )}
       </div>
       <div>
-        <p className="text-white text-sm font-semibold truncate group-hover:text-[#E8282B] transition-colors">
+        <p className="text-white text-sm font-semibold truncate group-hover:text-[var(--accent)] transition-colors">
           {album.name}
         </p>
         <p className="text-white/40 text-xs truncate mt-0.5">{artists}</p>

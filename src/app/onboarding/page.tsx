@@ -63,8 +63,8 @@ export default function OnboardingPage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-red-500/10 mb-3">
-            <Music2 size={24} className="text-red-400" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-purple-500/10 mb-3">
+            <Music2 size={24} className="text-[var(--accent)]" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-1.5">
             {hasExisting ? "Update your language preferences" : "What languages do you vibe with?"}
@@ -82,12 +82,12 @@ export default function OnboardingPage() {
                 onClick={() => toggle(lang.id)}
                 className={`relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 transition-all duration-150 ${
                   isSelected
-                    ? "border-red-500 bg-red-500/10"
+                    ? "border-purple-500 bg-purple-500/10"
                     : "border-zinc-800 bg-zinc-900 hover:border-zinc-600 hover:bg-zinc-800"
                 }`}
               >
                 {isSelected && (
-                  <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                  <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full btn-accent flex items-center justify-center">
                     <Check size={9} className="text-white" strokeWidth={3} />
                   </span>
                 )}
@@ -105,7 +105,7 @@ export default function OnboardingPage() {
           <button
             onClick={handleContinue}
             disabled={selected.size === 0 || saving}
-            className="w-full sm:w-auto sm:min-w-[200px] bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm px-8 py-3 rounded-2xl transition-colors flex items-center justify-center gap-2"
+            className="w-full sm:w-auto sm:min-w-[200px] btn-accent hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm px-8 py-3 rounded-2xl transition-colors flex items-center justify-center gap-2"
           >
             {saving && <Loader2 size={14} className="animate-spin" />}
             {saving ? "Saving…" : `Continue with ${selected.size} language${selected.size !== 1 ? "s" : ""}`}

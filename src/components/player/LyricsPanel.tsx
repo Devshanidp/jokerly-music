@@ -163,7 +163,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen }: Props) {
             <select
               value={targetLang}
               onChange={(e) => setTargetLang(e.target.value)}
-              className="flex-1 min-w-0 text-xs rounded-lg border border-white/[0.08] bg-white/[0.06] text-white px-2 py-1.5 outline-none focus:border-[#E8282B]/40"
+              className="flex-1 min-w-0 text-xs rounded-lg border border-white/[0.08] bg-white/[0.06] text-white px-2 py-1.5 outline-none focus:border-[var(--accent)]/40"
               aria-label="Translation language"
             >
               {LYRIC_TARGET_LANGUAGES.map((lang) => (
@@ -177,7 +177,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen }: Props) {
             type="button"
             onClick={() => void handleTranslate()}
             disabled={translating}
-            className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#E8282B] text-white hover:bg-[#d42225] disabled:opacity-50 transition-colors"
+            className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 transition-colors"
           >
             {translating ? "Translating…" : "Translate"}
           </button>
@@ -194,13 +194,13 @@ export default function LyricsPanel({ track, progressMs, fullscreen }: Props) {
       )}
 
       {showingTranslation && !translateError && (
-        <p className={`text-[10px] text-[#E8282B]/80 mb-2 ${fullscreen ? "px-1" : ""}`}>
+        <p className={`text-[10px] text-[var(--accent)]/80 mb-2 ${fullscreen ? "px-1" : ""}`}>
           Translated to {langLabel}
         </p>
       )}
 
       {translateError && (
-        <p className={`text-[10px] text-red-400/90 mb-2 ${fullscreen ? "px-1" : ""}`}>
+        <p className={`text-[10px] text-[var(--accent)]/90 mb-2 ${fullscreen ? "px-1" : ""}`}>
           {translateError}
         </p>
       )}

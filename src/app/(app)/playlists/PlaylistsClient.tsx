@@ -82,7 +82,7 @@ function SortableTrackRow({
         ) : (
           <>
             <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{index + 1}</span>
-            <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#E8282B]" />
+            <Play size={12} fill="currentColor" className="hidden group-hover:block text-[var(--accent)]" />
           </>
         )}
       </div>
@@ -96,19 +96,19 @@ function SortableTrackRow({
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate leading-tight ${isCurrentlyPlaying ? "text-[#E8282B]" : "text-white"}`}>{track.track_name}</p>
+        <p className={`text-sm font-medium truncate leading-tight ${isCurrentlyPlaying ? "text-[var(--accent)]" : "text-white"}`}>{track.track_name}</p>
         {track.track_artist && (
           <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-muted)" }}>{track.track_artist}</p>
         )}
       </div>
       <button onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
-        className="shrink-0 p-1.5 rounded-lg transition-all text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 sm:opacity-0 sm:group-hover:opacity-100">
+        className="shrink-0 p-1.5 rounded-lg transition-all text-[var(--accent)]/50 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 sm:opacity-0 sm:group-hover:opacity-100">
         <ListPlus size={13} />
       </button>
       <button
         onClick={(e) => { e.stopPropagation(); toggleSong({ uri: track.track_uri, name: track.track_name, image: track.track_image ?? null, artist: track.track_artist ?? null }); }}
         title={isLiked ? "Unlike" : "Like"}
-        className={`shrink-0 p-1.5 rounded-lg transition-all ${isLiked ? "text-[#E8282B]" : "text-white/25 hover:text-[#E8282B] hover:bg-[#E8282B]/10 sm:opacity-0 sm:group-hover:opacity-100"}`}
+        className={`shrink-0 p-1.5 rounded-lg transition-all ${isLiked ? "text-[var(--accent)]" : "text-white/25 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 sm:opacity-0 sm:group-hover:opacity-100"}`}
       >
         <Heart size={12} fill={isLiked ? "currentColor" : "none"} />
       </button>
@@ -122,7 +122,7 @@ function SortableTrackRow({
       />
       <button onClick={(e) => { e.stopPropagation(); onRemove(); }}
         disabled={removingKey === rmKey}
-        className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
+        className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-purple-500/10 hover:text-[var(--accent)] disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
         style={{ color: "rgba(255,255,255,0.25)" }}>
         {removingKey === rmKey ? <Loader2 size={12} className="animate-spin" /> : <Trash size={12} />}
       </button>
@@ -461,7 +461,6 @@ export default function PlaylistsClient() {
           title="Mix artists into a playlist"
           aria-label="Mix artists into a playlist"
           className={`fixed right-4 z-[70] w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg transition-all active:scale-95 pointer-events-auto ${fabBottomClass}`}
-          style={{ background: "#E8282B", boxShadow: "0 4px 20px rgba(232,40,43,0.45)" }}
         >
           <Plus size={24} strokeWidth={2.5} />
         </button>
@@ -607,7 +606,7 @@ export default function PlaylistsClient() {
             onClick={() => setEditArtistsOpen(true)}
             title={isMix ? "Edit mix artists" : "Add artists to mix"}
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors"
-            style={{ color: isMix ? "#E8282B" : "rgba(255,255,255,0.4)", background: isMix ? "rgba(232,40,43,0.10)" : "transparent" }}
+            style={{ color: isMix ? "var(--accent)" : "rgba(255,255,255,0.4)", background: isMix ? "rgba(140, 80, 200,0.10)" : "transparent" }}
           >
             <Users size={14} />
           </button>
@@ -623,11 +622,11 @@ export default function PlaylistsClient() {
           </button>
           <button onClick={() => togglePin(pl)} disabled={pinning === pl.id}
             className="p-2 rounded-xl transition-colors"
-            style={{ color: isPinned ? "#E8282B" : "rgba(255,255,255,0.4)", background: isPinned ? "rgba(232,40,43,0.10)" : "transparent" }}>
+            style={{ color: isPinned ? "var(--accent)" : "rgba(255,255,255,0.4)", background: isPinned ? "rgba(140, 80, 200,0.10)" : "transparent" }}>
             {pinning === pl.id ? <Loader2 size={14} className="animate-spin" /> : <Pin size={14} />}
           </button>
           <button onClick={() => removePlaylist(pl.id)} disabled={deleting.has(pl.id)}
-            className="p-2 rounded-xl hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-40"
+            className="p-2 rounded-xl hover:bg-purple-500/10 hover:text-[var(--accent)] transition-colors disabled:opacity-40"
             style={{ color: "rgba(255,255,255,0.4)" }}>
             {deleting.has(pl.id) ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
           </button>
@@ -642,11 +641,11 @@ export default function PlaylistsClient() {
             {edit?.id === pl.id ? (
               <div className="space-y-2">
                 <input autoFocus value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })}
-                  className="w-full border text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[#E8282B]/60"
+                  className="w-full border text-white rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--accent)]/60"
                   style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }} />
                 <div className="flex gap-2">
                   <button onClick={saveEdit} disabled={saving}
-                    className="px-3 py-1.5 rounded-xl bg-[#E8282B] text-white text-sm font-medium">
+                    className="px-3 py-1.5 rounded-xl btn-accent text-white text-sm font-medium">
                     {saving ? <Loader2 size={12} className="animate-spin" /> : "Save"}
                   </button>
                   <button onClick={() => setEdit(null)}
@@ -690,21 +689,20 @@ export default function PlaylistsClient() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => playTrack(tracks, 0)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 shadow-lg"
-              style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 shadow-lg btn-accent"
             >
               <PlayCircle size={14} /> Play all
             </button>
             <button
               onClick={() => shufflePlayPlaylist(tracks)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95 btn-accent"
             >
-              <Shuffle size={14} className="text-[#E8282B]" /> Shuffle
+              <Shuffle size={14} className="text-[var(--accent)]" /> Shuffle
             </button>
             <button
               onClick={() => downloadPlaylistOfflineTracks(pl.id, tracks)}
               disabled={downloadingPlaylistId === pl.id}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95 disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06] transition-all active:scale-95 disabled:opacity-40 btn-accent"
             >
               {downloadingPlaylistId === pl.id ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -805,8 +803,7 @@ export default function PlaylistsClient() {
           </div>
           <button
             onClick={() => setCreating(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg"
-            style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg btn-accent"
           >
             <Plus size={14} /> New
           </button>
@@ -819,19 +816,19 @@ export default function PlaylistsClient() {
           <h3 className="text-white font-semibold text-sm">New playlist</h3>
           <input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)}
             placeholder="Playlist name"
-            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
+            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)]/60 transition-all btn-accent"
             style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }} />
           <input value={newDesc} onChange={(e) => setNewDesc(e.target.value)}
             placeholder="Description (optional)"
-            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#E8282B]/60 transition-all"
+            className="w-full border text-white placeholder-white/25 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)]/60 transition-all btn-accent"
             style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.08)" }} />
           <div className="flex gap-2">
             <button type="button" onClick={createPlaylist} disabled={saving || !newName.trim()}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#E8282B] hover:bg-[#c0201f] disabled:opacity-40 text-white font-semibold text-sm transition-colors">
+              className="flex items-center gap-2 px-4 py-2 rounded-xl btn-accent hover:opacity-90 disabled:opacity-40 text-white font-semibold text-sm transition-colors btn-accent">
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Create
             </button>
             <button onClick={() => { setCreating(false); setNewName(""); setNewDesc(""); }}
-              className="px-4 py-2 rounded-xl text-sm transition-colors"
+              className="px-4 py-2 rounded-xl text-sm transition-colors btn-accent"
               style={{ border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}>
               Cancel
             </button>
@@ -892,13 +889,13 @@ export default function PlaylistsClient() {
                 <div className="relative aspect-square w-full overflow-hidden border-b border-white/[0.08] rounded-t-lg" style={{ background: "var(--surface)" }}>
                   <CoverArt tracks={tracks} imageUrl={pl.images?.[0]?.url} name={pl.name} size={56} />
                   {isPinned && (
-                    <span className="absolute top-1 left-1 z-10 w-2 h-2 rounded-full bg-[#E8282B] border border-black/30 shadow" />
+                    <span className="absolute top-1 left-1 z-10 w-2 h-2 rounded-full bg-[var(--accent)] border border-black/30 shadow" />
                   )}
                   <div
                     className="absolute inset-0 z-[1] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity pointer-events-none"
                     style={{ background: "rgba(0,0,0,0.35)" }}
                   >
-                    <div className="w-6 h-6 rounded-full bg-[#E8282B] flex items-center justify-center shadow-lg pointer-events-none">
+                    <div className="w-6 h-6 rounded-full btn-accent border border-purple-500/20 flex items-center justify-center shadow-lg pointer-events-none">
                       <Play size={10} fill="white" className="text-white ml-0.5" />
                     </div>
                   </div>
@@ -959,7 +956,7 @@ export default function PlaylistsClient() {
                 <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0 border border-white/[0.10]" style={{ background: "var(--surface)" }}>
                   <CoverArt tracks={tracks} imageUrl={pl.images?.[0]?.url} name={pl.name} size={40} />
                   {isPinned && (
-                    <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                    <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--accent)] border border-black/20 shadow" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1001,7 +998,7 @@ export default function PlaylistsClient() {
       {pinnedArtists.length > 0 && (
         <section className="space-y-3">
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <UserCircle2 size={14} className="text-[#E8282B]" /> Pinned Artists
+            <UserCircle2 size={14} className="text-[var(--accent)]" /> Pinned Artists
           </h3>
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
             {pinnedArtists.map((pa) => (
@@ -1011,7 +1008,7 @@ export default function PlaylistsClient() {
                   onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { web: "" }, popularity: 0, type: "artist", uri: "" } as MusicArtist)}
                   className="flex flex-col items-center gap-1.5 w-full"
                 >
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/40 transition-all">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
                     {pa.artist_image ? (
                       <Image src={pa.artist_image} alt={pa.artist_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
@@ -1019,7 +1016,7 @@ export default function PlaylistsClient() {
                         <Mic2 size={14} className="text-white/20" />
                       </div>
                     )}
-                    <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                    <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--accent)] border border-black/20 shadow" />
                   </div>
                   <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{pa.artist_name}</p>
                 </button>
@@ -1031,7 +1028,7 @@ export default function PlaylistsClient() {
                     e.stopPropagation();
                     void removePinnedArtist(pa.artist_id);
                   }}
-                  className="absolute top-0 right-0 z-10 w-5 h-5 rounded-full bg-black/70 border border-white/10 text-white/70 hover:text-white hover:bg-red-500/80 flex items-center justify-center transition-colors disabled:opacity-40"
+                  className="absolute top-0 right-0 z-10 w-5 h-5 rounded-full bg-black/70 border border-white/10 text-white/70 hover:text-white hover:bg-purple-600/80 flex items-center justify-center transition-colors disabled:opacity-40"
                 >
                   {removingPinnedArtist === pa.artist_id ? (
                     <Loader2 size={10} className="animate-spin" />

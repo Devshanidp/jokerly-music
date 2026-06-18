@@ -361,8 +361,8 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         } ${
           active
             ? embedded
-              ? "text-[#E8282B]"
-              : "bg-[#E8282B]/12 border-[#E8282B]/15"
+              ? "text-[var(--accent)]"
+              : "bg-[var(--accent)]/12 border-[var(--accent)]/15"
             : embedded
               ? "hover:bg-white/[0.04] rounded-xl"
               : "border-white/[0.05] hover:bg-white/[0.04]"
@@ -370,7 +370,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
       >
         <span
           className={`text-xs w-5 text-right shrink-0 tabular-nums font-medium ${
-            active ? "text-[#E8282B]" : "text-white/25"
+            active ? "text-[var(--accent)]" : "text-white/25"
           }`}
         >
           {index + 1}
@@ -405,7 +405,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
         <div className="flex-1 min-w-0">
           <p
             className={`text-sm font-semibold truncate leading-tight ${
-              active ? "text-[#E8282B]" : "text-white"
+              active ? "text-[var(--accent)]" : "text-white"
             }`}
           >
             {item.name}
@@ -420,7 +420,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
           }}
           title="Add to playlist"
           aria-label={`Add ${item.name} to playlist`}
-          className="shrink-0 p-2 rounded-xl text-[#E8282B]/60 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors"
+          className="shrink-0 p-2 rounded-xl text-[var(--accent)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors"
         >
           <ListPlus size={embedded ? 16 : 17} />
         </button>
@@ -472,7 +472,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
               {sessionExpired ? (
                 <a
                   href="/login"
-                  className="text-xs font-semibold px-3 py-2 rounded-xl bg-[#E8282B] text-white hover:opacity-90 transition-opacity"
+                  className="text-xs font-semibold px-3 py-2 rounded-xl btn-accent text-white hover:opacity-90 transition-opacity"
                 >
                   Sign in
                 </a>

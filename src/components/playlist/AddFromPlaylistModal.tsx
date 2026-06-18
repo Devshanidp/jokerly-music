@@ -127,7 +127,7 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
             </button>
           ) : (
             <div className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center" style={{ background: "var(--card)" }}>
-              <ListMusic size={14} className="text-[#E8282B]/70" />
+              <ListMusic size={14} className="text-[var(--accent)]/70" />
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -148,8 +148,8 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
 
         {/* Error banner */}
         {error && (
-          <div className="mx-3 mt-2 rounded-xl border border-[#E8282B]/25 bg-[#E8282B]/8 px-3 py-2 flex items-center gap-2">
-            <AlertCircle size={13} className="text-[#E8282B] shrink-0" />
+          <div className="mx-3 mt-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2 flex items-center gap-2">
+            <AlertCircle size={13} className="text-[var(--accent)] shrink-0" />
             <p className="text-white/60 text-xs flex-1">{error}</p>
             <button onClick={() => setError(null)} className="text-white/25 hover:text-white shrink-0"><X size={12} /></button>
           </div>
@@ -161,7 +161,7 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
             // Playlist picker
             loadingPlaylists ? (
               <div className="flex flex-col items-center justify-center py-10 gap-3">
-                <Loader2 size={22} className="animate-spin text-[#E8282B]/60" />
+                <Loader2 size={22} className="animate-spin text-[var(--accent)]/60" />
                 <p className="text-white/25 text-xs">Loading playlists…</p>
               </div>
             ) : playlists.length === 0 ? (
@@ -197,7 +197,7 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
             // Track list from source playlist
             loadingTracks ? (
               <div className="flex flex-col items-center justify-center py-10 gap-3">
-                <Loader2 size={22} className="animate-spin text-[#E8282B]/60" />
+                <Loader2 size={22} className="animate-spin text-[var(--accent)]/60" />
                 <p className="text-white/25 text-xs">Loading tracks…</p>
               </div>
             ) : sourceTracks.length === 0 ? (
@@ -232,7 +232,7 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
                       className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
                         isAdded
                           ? "bg-white/[0.07] text-white/40"
-                          : "bg-[#E8282B]/15 text-[#E8282B] hover:bg-[#E8282B]/25"
+                          : "bg-[var(--accent)]/15 text-[var(--accent)] hover:bg-[var(--accent)]/25"
                       } disabled:cursor-default`}
                     >
                       {isAdding ? (

@@ -41,13 +41,13 @@ export default function TrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist
         onPlay ? "cursor-pointer" : ""
       } ${
         isCurrentlyPlaying
-          ? "bg-[#E8282B]/10 border border-[#E8282B]/20"
+          ? "bg-[var(--accent)]/10 border border-[var(--accent)]/20"
           : "hover:bg-white/[0.05] border border-transparent hover:border-white/[0.07]"
       }`}
       onClick={handleRowClick}
     >
       {rank !== undefined && (
-        <span className={`text-xs w-5 text-right shrink-0 tabular-nums font-medium ${isCurrentlyPlaying ? "text-[#E8282B]" : "text-white/25"}`}>
+        <span className={`text-xs w-5 text-right shrink-0 tabular-nums font-medium ${isCurrentlyPlaying ? "text-[var(--accent)]" : "text-white/25"}`}>
           {rank}
         </span>
       )}
@@ -73,7 +73,7 @@ export default function TrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate ${isCurrentlyPlaying ? "text-[#E8282B]" : "text-white"}`}>
+        <p className={`text-sm font-medium truncate ${isCurrentlyPlaying ? "text-[var(--accent)]" : "text-white"}`}>
           {track.name}
         </p>
         <p className="text-xs text-white/40 truncate">{artist}</p>
@@ -81,7 +81,7 @@ export default function TrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist
           onAlbumSelect ? (
             <button
               onClick={(e) => { e.stopPropagation(); onAlbumSelect(track.album); }}
-              className="text-[11px] text-white/30 hover:text-[#E8282B] transition-colors truncate text-left"
+              className="text-[11px] text-white/30 hover:text-[var(--accent)] transition-colors truncate text-left"
               title={`Open album: ${track.album.name}`}
             >
               {track.album.name}
@@ -98,8 +98,8 @@ export default function TrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist
           title={isLiked ? "Unlike" : "Like"}
           className={`p-1.5 rounded-lg transition-colors ${
             isLiked
-              ? "text-[#E8282B]"
-              : "text-white/25 hover:text-[#E8282B] hover:bg-[#E8282B]/10"
+              ? "text-[var(--accent)]"
+              : "text-white/25 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"
           }`}
         >
           <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
@@ -108,7 +108,7 @@ export default function TrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist
           <button
             onClick={(e) => { e.stopPropagation(); onAddToPlaylist(track); }}
             title="Add to playlist"
-            className="p-1.5 rounded-lg text-[#E8282B]/60 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors"
+            className="p-1.5 rounded-lg text-[var(--accent)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors"
           >
             <ListPlus size={14} />
           </button>

@@ -263,7 +263,7 @@ export default function EditMixArtistsSheet({
                     {selectedArtists.map((artist) => (
                       <span
                         key={artist.id || artist.name}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-[#E8282B]/25 bg-[#E8282B]/10 px-2.5 py-1 text-xs text-white"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-2.5 py-1 text-xs text-white"
                       >
                         <span>{artist.name}</span>
                         <button
@@ -291,7 +291,7 @@ export default function EditMixArtistsSheet({
                   value={artistQuery}
                   onChange={(e) => setArtistQuery(e.target.value)}
                   placeholder="Search artist to add…"
-                  className="w-full pl-9 pr-4 py-3 rounded-2xl border border-white/[0.08] text-white placeholder-white/25 text-sm focus:outline-none focus:ring-1 focus:ring-[#E8282B]/50 transition-all"
+                  className="w-full pl-9 pr-4 py-3 rounded-2xl border border-white/[0.08] text-white placeholder-white/25 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent)]//50 transition-all"
                   style={{ background: "var(--card)" }}
                   autoComplete="off"
                 />
@@ -337,7 +337,7 @@ export default function EditMixArtistsSheet({
                           )}
                         </div>
                         {already ? (
-                          <Check size={14} className="text-[#E8282B] shrink-0" />
+                          <Check size={14} className="text-[var(--accent)] shrink-0" />
                         ) : (
                           <Plus size={14} className="text-white/30 shrink-0" />
                         )}
@@ -364,7 +364,7 @@ export default function EditMixArtistsSheet({
             type="button"
             onClick={() => void saveArtists()}
             disabled={saving || resolving}
-            className="w-full py-3.5 rounded-2xl bg-[#E8282B] hover:bg-[#c0201f] disabled:opacity-40 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+            className="w-full py-3.5 rounded-2xl btn-accent hover:opacity-90 disabled:opacity-40 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
           >
             {saving ? (
               <>

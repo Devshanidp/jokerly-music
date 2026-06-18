@@ -29,7 +29,7 @@ export default function ArtistCard({ artist }: Props) {
           🎤
         </div>
       )}
-      <span className="text-white text-sm font-medium text-center truncate w-full group-hover:text-red-400 transition-colors">
+      <span className="text-white text-sm font-medium text-center truncate w-full group-hover:text-[var(--accent)] transition-colors">
         {artist.name}
       </span>
       {artist.followers && (

@@ -26,7 +26,7 @@ export default function CatalogArtistCard({ artist, onSelect, compact = false }:
     >
       <div className={`relative shrink-0 ${avatarSize}`}>
         {image ? (
-          <Image src={image} alt={artist.name} fill unoptimized className="rounded-full object-cover ring-2 ring-white/10 group-hover:ring-[#E8282B]/40 transition-all" sizes={imageSizes} />
+          <Image src={image} alt={artist.name} fill unoptimized className="rounded-full object-cover ring-2 ring-white/10 group-hover:ring-[var(--accent)]//40 transition-all" sizes={imageSizes} />
         ) : (
           <div className={`${avatarSize} rounded-full bg-white/[0.06] flex items-center justify-center ring-2 ring-white/[0.06]`}>
             <Mic2 size={iconSize} className="text-white/25" />
@@ -35,7 +35,7 @@ export default function CatalogArtistCard({ artist, onSelect, compact = false }:
       </div>
 
       <div className="text-center w-full">
-        <p className={`text-white font-semibold truncate group-hover:text-[#E8282B] transition-colors ${compact ? "text-[13px]" : "text-sm"}`}>
+        <p className={`text-white font-semibold truncate group-hover:text-[var(--accent)] transition-colors ${compact ? "text-[13px]" : "text-sm"}`}>
           {artist.name}
         </p>
         {artist.followers?.total != null && (

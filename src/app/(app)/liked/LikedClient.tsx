@@ -125,8 +125,8 @@ export default function LikedClient() {
           <ArrowLeft size={14} />
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-[#E8282B]/15 flex items-center justify-center">
-            <Heart size={14} className="text-[#E8282B]" fill="currentColor" />
+          <div className="w-8 h-8 rounded-xl btn-accent/15 flex items-center justify-center">
+            <Heart size={14} className="text-[var(--accent)]" fill="currentColor" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight">Liked</h2>
@@ -139,8 +139,8 @@ export default function LikedClient() {
         <button
           onClick={() => void transferLikedToLibrary()}
           disabled={transferring || !loaded || (songs.length === 0 && artists.length === 0)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white font-semibold text-xs transition-all active:scale-95 disabled:opacity-40"
-          style={{ background: "rgba(232,40,43,0.14)", color: "#E8282B" }}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white font-semibold text-xs transition-all active:scale-95 disabled:opacity-40 btn-accent"
+          style={{ background: "rgba(140, 80, 200,0.14)", color: "var(--accent)" }}
         >
           {transferring ? <Loader2 size={14} className="animate-spin" /> : <Music size={14} />}
           Transfer
@@ -152,7 +152,7 @@ export default function LikedClient() {
         {(["songs", "artists"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-colors capitalize ${
-              tab === t ? "bg-[#E8282B] text-white" : "text-white/50 hover:text-white hover:bg-white/[0.07]"
+              tab === t ? "btn-nav-active text-white" : "text-white/50 hover:text-white hover:bg-white/[0.07]"
             }`}
             style={tab !== t ? { background: "var(--card)" } : {}}>
             {t}
@@ -162,7 +162,7 @@ export default function LikedClient() {
 
       {!loaded ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={24} className="animate-spin text-[#E8282B]/60" />
+          <Loader2 size={24} className="animate-spin text-[var(--accent)]/60" />
         </div>
       ) : tab === "songs" ? (
         <SongsTab songs={songs} onPlay={playSong} onPlayAll={playAll} onUnlike={(s) => toggleSong({ uri: s.track_uri, name: s.track_name })} />
@@ -205,8 +205,7 @@ function SongsTab({ songs, onPlay, onPlayAll, onUnlike }: {
   return (
     <div className="space-y-2">
       <button onClick={onPlayAll}
-        className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 shadow-lg"
-        style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}>
+        className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 shadow-lg btn-accent">
         <Play size={14} fill="white" /> Play all
       </button>
       <div className="rounded-2xl overflow-hidden border" style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.06)" }}>
@@ -228,16 +227,16 @@ function SongsTab({ songs, onPlay, onPlayAll, onUnlike }: {
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate leading-tight ${active ? "text-[#E8282B]" : "text-white"}`}>{s.track_name}</p>
+                <p className={`text-sm font-medium truncate leading-tight ${active ? "text-[var(--accent)]" : "text-white"}`}>{s.track_name}</p>
                 {s.track_artist && <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-muted)" }}>{s.track_artist}</p>}
               </div>
               <button onClick={(e) => { e.stopPropagation(); onUnlike(s); }}
-                className="shrink-0 p-1.5 rounded-lg text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors sm:opacity-0 sm:group-hover:opacity-100 opacity-100">
+                className="shrink-0 p-1.5 rounded-lg text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors sm:opacity-0 sm:group-hover:opacity-100 opacity-100">
                 <Heart size={14} fill="currentColor" />
               </button>
               <button onClick={(e) => { e.stopPropagation(); onUnlike(s); }}
                 title="Remove"
-                className="shrink-0 p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors sm:opacity-0 sm:group-hover:opacity-100">
+                className="shrink-0 p-1.5 rounded-lg text-white/20 hover:text-[var(--accent)] hover:bg-purple-500/10 transition-colors sm:opacity-0 sm:group-hover:opacity-100">
                 <Trash2 size={13} />
               </button>
             </div>
@@ -271,7 +270,7 @@ function ArtistsTab({ artists, onOpen, onUnlike }: {
         <div key={a.id} className="relative group">
           <button onClick={() => onOpen(a)}
             className="w-full flex flex-col items-center gap-2 p-3 rounded-2xl transition-all hover:bg-white/[0.05] border border-transparent hover:border-white/[0.08]">
-            <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-white/[0.06] group-hover:ring-[#E8282B]/40 transition-all">
+            <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-white/[0.06] group-hover:ring-[var(--accent)]//40 transition-all">
               {a.artist_image
                 ? <Image src={a.artist_image} alt={a.artist_name} fill unoptimized sizes="64px" className="object-cover" />
                 : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Mic2 size={14} className="text-white/20" /></div>}
@@ -284,7 +283,7 @@ function ArtistsTab({ artists, onOpen, onUnlike }: {
               onUnlike(a);
             }}
             title="Remove artist"
-            className="absolute top-1 right-1 p-1.5 rounded-full bg-black/70 border border-white/10 text-white/80 hover:text-red-400 hover:bg-red-500/20 transition-colors shadow-md"
+            className="absolute top-1 right-1 p-1.5 rounded-full bg-black/70 border border-white/10 text-white/80 hover:text-[var(--accent)] hover:bg-purple-500/20 transition-colors shadow-md"
           >
             <X size={11} />
           </button>
