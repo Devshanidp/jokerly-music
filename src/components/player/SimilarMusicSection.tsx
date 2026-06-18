@@ -391,7 +391,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Music size={16} className="text-white/20" />
+              <Music size={14} className="text-white/20" />
             </div>
           )}
           <div
@@ -449,16 +449,16 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
               className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
             >
               {refreshing ? (
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin" />
               ) : (
-                <RefreshCw size={16} />
+                <RefreshCw size={14} />
               )}
             </button>
           </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 size={20} className="animate-spin text-white/25" />
+              <Loader2 size={14} className="animate-spin text-white/25" />
             </div>
           ) : empty ? (
             <div className="flex flex-col items-center justify-center py-8 gap-3 px-2">
@@ -496,7 +496,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
               ) : null}
               <div>{trackRows}</div>
               <div ref={loadMoreRef} className="h-6 flex items-center justify-center py-2">
-                {loadingMore && <Loader2 size={16} className="animate-spin text-white/20" />}
+                {loadingMore && <Loader2 size={14} className="animate-spin text-white/20" />}
               </div>
             </>
           )}
@@ -532,7 +532,7 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
             <div className="flex-1 overflow-y-auto">
               {trackRows}
               <div ref={loadMoreRef} className="h-8 flex items-center justify-center">
-                {loadingMore && <Loader2 size={16} className="animate-spin text-white/20" />}
+                {loadingMore && <Loader2 size={14} className="animate-spin text-white/20" />}
               </div>
             </div>
           )}
@@ -547,9 +547,9 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
               className="p-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] disabled:opacity-40 text-white/80 hover:text-white transition-colors"
             >
               {refreshing ? (
-                <Loader2 size={18} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin" />
               ) : (
-                <RefreshCw size={18} />
+                <RefreshCw size={14} />
               )}
             </button>
           </div>

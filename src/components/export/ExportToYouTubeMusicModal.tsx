@@ -108,7 +108,7 @@ export default function ExportToYouTubeMusicModal({ title, tracks, onClose }: Pr
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-white/[0.08] transition-colors"
           >
-            <X size={18} />
+            <X size={14} />
           </button>
         </div>
 

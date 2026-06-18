@@ -116,10 +116,10 @@ export default function DownloadedClient() {
           <button
             type="button"
             onClick={playAll}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-bold text-sm transition-all active:scale-95 shadow-lg"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 shadow-lg"
             style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}
           >
-            <PlayCircle size={16} /> Play all offline
+            <PlayCircle size={14} /> Play all offline
           </button>
         </div>
       )}

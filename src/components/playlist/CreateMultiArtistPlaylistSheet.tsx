@@ -185,7 +185,7 @@ export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreate
             onClick={onClose}
             className="p-2 rounded-xl hover:bg-white/[0.08] text-white/50 hover:text-white transition-colors"
           >
-            <X size={18} />
+            <X size={14} />
           </button>
         </div>
 
@@ -237,7 +237,7 @@ export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreate
           )}
 
           <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
             <input
               type="text"
               value={artistQuery}
@@ -305,9 +305,9 @@ export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreate
                       )}
                     </div>
                     {already ? (
-                      <Check size={15} className="text-[#E8282B] shrink-0" />
+                      <Check size={14} className="text-[#E8282B] shrink-0" />
                     ) : (
-                      <Plus size={15} className="text-white/30 shrink-0" />
+                      <Plus size={14} className="text-white/30 shrink-0" />
                     )}
                   </button>
                 );
@@ -340,11 +340,11 @@ export default function CreateMultiArtistPlaylistSheet({ open, onClose, onCreate
           >
             {saving ? (
               <>
-                <Loader2 size={16} className="animate-spin" /> Creating…
+                <Loader2 size={14} className="animate-spin" /> Creating…
               </>
             ) : (
               <>
-                <Check size={16} /> Create mix
+                <Check size={14} /> Create mix
               </>
             )}
           </button>

@@ -214,7 +214,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen }: Props) {
       >
         {loading && (
           <div className="flex flex-col items-center justify-center py-8 gap-2">
-            <Loader2 size={18} className="animate-spin text-white/30" />
+            <Loader2 size={14} className="animate-spin text-white/30" />
             <p className="text-[11px] text-white/25">Loading lyrics…</p>
           </div>
         )}

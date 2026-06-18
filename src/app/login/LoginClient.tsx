@@ -87,9 +87,9 @@ export default function LoginClient() {
           onMouseLeave={e => (e.currentTarget.style.background = "#E8282B")}
         >
           {loading ? (
-            <Loader2 size={20} className="animate-spin" />
+            <Loader2 size={14} className="animate-spin" />
           ) : (
-            <LogIn size={20} />
+            <LogIn size={14} />
           )}
           {loading ? "Connecting..." : "Continue with your account"}
         </button>

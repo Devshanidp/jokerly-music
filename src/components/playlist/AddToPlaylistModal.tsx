@@ -152,7 +152,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
               <Image src={track.image} alt={track.name} fill unoptimized sizes="48px" className="object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <Music size={18} className="text-white/20" />
+                <Music size={14} className="text-white/20" />
               </div>
             )}
           </div>
@@ -167,7 +167,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
             onClick={onClose}
             className="shrink-0 p-2 rounded-xl text-white/30 hover:text-white hover:bg-white/[0.08] transition-colors"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
 
@@ -257,7 +257,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
                         <Image src={pl.images[0].url} alt={pl.name} fill unoptimized sizes="36px" className="object-cover" />
                       </div>
                     ) : (
-                      <ListMusic size={15} className="text-white/25" />
+                      <ListMusic size={14} className="text-white/25" />
                     )}
                   </div>
 
@@ -275,7 +275,7 @@ export default function AddToPlaylistModal({ track, onClose }: Props) {
                       Add again
                     </span>
                   ) : isAdding ? (
-                    <Loader2 size={16} className="animate-spin text-[#E8282B]/50 shrink-0" />
+                    <Loader2 size={14} className="animate-spin text-[#E8282B]/50 shrink-0" />
                   ) : null}
                 </button>
               );

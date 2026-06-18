@@ -56,7 +56,7 @@ export default function OnboardingPage() {
             onClick={() => router.back()}
             className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors text-sm mb-6"
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={14} />
             Back
           </button>
         )}
@@ -107,7 +107,7 @@ export default function OnboardingPage() {
             disabled={selected.size === 0 || saving}
             className="w-full sm:w-auto sm:min-w-[200px] bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm px-8 py-3 rounded-2xl transition-colors flex items-center justify-center gap-2"
           >
-            {saving && <Loader2 size={15} className="animate-spin" />}
+            {saving && <Loader2 size={14} className="animate-spin" />}
             {saving ? "Saving…" : `Continue with ${selected.size} language${selected.size !== 1 ? "s" : ""}`}
           </button>
           <p className="text-zinc-600 text-xs">You can change this anytime from the home page.</p>

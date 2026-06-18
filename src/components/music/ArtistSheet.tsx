@@ -150,7 +150,7 @@ export default function ArtistSheet({ artist, onClose }: Props) {
                 className="p-2 rounded-xl text-white/60 hover:text-white transition-colors"
                 style={{ background: "rgba(0,0,0,0.45)" }}
               >
-                <ExternalLink size={15} />
+                <ExternalLink size={14} />
               </a>
               <button
                 onClick={() => setExportModal(true)}
@@ -158,7 +158,7 @@ export default function ArtistSheet({ artist, onClose }: Props) {
                 className="p-2 rounded-xl text-white/60 hover:text-white transition-colors"
                 style={{ background: "rgba(0,0,0,0.45)" }}
               >
-                <Share2 size={15} />
+                <Share2 size={14} />
               </button>
               <button
                 onClick={handleLikeArtist}
@@ -169,7 +169,7 @@ export default function ArtistSheet({ artist, onClose }: Props) {
                   color: isLiked ? "#fff" : "rgba(255,255,255,0.6)",
                 }}
               >
-                <Heart size={15} fill={isLiked ? "white" : "none"} />
+                <Heart size={14} fill={isLiked ? "white" : "none"} />
               </button>
               <button
                 onClick={togglePin}
@@ -181,14 +181,14 @@ export default function ArtistSheet({ artist, onClose }: Props) {
                   color: isPinned ? "#fff" : "rgba(255,255,255,0.6)",
                 }}
               >
-                {pinning ? <Loader2 size={15} className="animate-spin" /> : <Pin size={15} />}
+                {pinning ? <Loader2 size={14} className="animate-spin" /> : <Pin size={14} />}
               </button>
               <button
                 onClick={onClose}
                 className="p-2 rounded-xl text-white/60 hover:text-white transition-colors"
                 style={{ background: "rgba(0,0,0,0.45)" }}
               >
-                <X size={16} />
+                <X size={14} />
               </button>
             </div>
 

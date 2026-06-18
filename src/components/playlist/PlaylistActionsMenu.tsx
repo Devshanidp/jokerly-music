@@ -97,18 +97,18 @@ export default function PlaylistActionsMenu({
           style={{ background: "rgba(12,4,6,0.98)", backdropFilter: "blur(16px)" }}
         >
           {onOpen &&
-            item(<ListMusic size={15} className="text-white/50" />, "Open playlist", onOpen)}
+            item(<ListMusic size={14} className="text-white/50" />, "Open playlist", onOpen)}
           {item(
-            <Shuffle size={15} className="text-[#E8282B]" />,
+            <Shuffle size={14} className="text-[#E8282B]" />,
             "Shuffle play",
             onShufflePlay,
             trackCount === 0
           )}
           {item(
             pinning ? (
-              <Loader2 size={15} className="animate-spin text-[#E8282B]" />
+              <Loader2 size={14} className="animate-spin text-[#E8282B]" />
             ) : (
-              <Pin size={15} className={isPinned ? "text-[#E8282B]" : "text-white/50"} />
+              <Pin size={14} className={isPinned ? "text-[#E8282B]" : "text-white/50"} />
             ),
             isPinned ? "Remove from pinned" : "Pin to pinned",
             onTogglePin,
@@ -116,9 +116,9 @@ export default function PlaylistActionsMenu({
           )}
           {item(
             downloadingPlaylist ? (
-              <Loader2 size={15} className="animate-spin text-[#E8282B]" />
+              <Loader2 size={14} className="animate-spin text-[#E8282B]" />
             ) : (
-              <Download size={15} className="text-white/50" />
+              <Download size={14} className="text-white/50" />
             ),
             "Download for offline",
             onDownloadOffline,

@@ -454,7 +454,7 @@ export default function PlayerBar() {
                   void usePlayerStore.getState().maintainPlayback(wasPlaying);
                 }}
                   className="rounded-xl p-2 text-white/30 hover:bg-white/[0.07] hover:text-white transition-colors">
-                  <ChevronDown size={18} />
+                  <ChevronDown size={14} />
                 </button>
               </div>
 
@@ -509,7 +509,7 @@ export default function PlayerBar() {
                 {/* Volume */}
                 <div className="flex items-center gap-3">
                   <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="shrink-0 text-white/30 hover:text-white transition-colors">
-                    <VolumeIcon size={16} />
+                    <VolumeIcon size={14} />
                   </button>
                   <input
                     type="range" min={0} max={1} step={0.02} value={volume}
@@ -525,7 +525,7 @@ export default function PlayerBar() {
                   <div className="flex items-center justify-center gap-5">
                   <button onClick={toggleShuffle} title="Shuffle"
                     className={`p-3 rounded-2xl transition-colors ${shuffleEnabled ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
-                    <Shuffle size={18} />
+                    <Shuffle size={14} />
                   </button>
                   <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
                     className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
@@ -546,25 +546,25 @@ export default function PlayerBar() {
                   </button>
                   <button onClick={cycleRepeatMode} title="Repeat"
                     className={`p-3 rounded-2xl transition-colors ${repeatMode !== "off" ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
-                    <RepeatIcon size={18} />
+                    <RepeatIcon size={14} />
                   </button>
                   </div>
                   <div className="flex items-center justify-center gap-2">
                     <button onClick={handleLike} title={isLiked ? "Unlike" : "Like"}
                       className={`shrink-0 p-2.5 rounded-2xl transition-colors ${isLiked ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10"}`}>
-                      <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+                      <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
                     </button>
                     <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
                       className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors disabled:opacity-40">
-                      {resolvingAdd ? <Loader2 size={18} className="animate-spin" /> : <ListPlus size={18} />}
+                      {resolvingAdd ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
                     </button>
                     <button onClick={() => { usePlayerStore.setState({ isQueueOpen: true, isPlayerExpanded: false }); }} title="Queue"
                       className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-white hover:bg-white/[0.07] transition-colors">
-                      <ListOrdered size={18} />
+                      <ListOrdered size={14} />
                     </button>
                     <button onClick={() => setShowLyrics(true)} title="Lyrics"
                       className={`shrink-0 p-2.5 rounded-2xl transition-colors ${showLyrics ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}>
-                      <MicVocal size={18} />
+                      <MicVocal size={14} />
                     </button>
                     <div className="relative">
                       <button
@@ -572,7 +572,7 @@ export default function PlayerBar() {
                         title="Sleep timer"
                         className={`shrink-0 p-2.5 rounded-2xl transition-colors ${sleepTimerEndsAt ? "text-[#E8282B] bg-[#E8282B]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}
                       >
-                        <Timer size={18} />
+                        <Timer size={14} />
                       </button>
                       {timerRemaining && (
                         <span className="absolute -top-1 -right-1 text-[9px] font-bold text-[#E8282B] bg-black/80 px-1 rounded-full leading-tight">
@@ -625,7 +625,7 @@ export default function PlayerBar() {
                             className="shrink-0 p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/[0.07] transition-colors"
                             aria-label="Close lyrics"
                           >
-                            <X size={18} />
+                            <X size={14} />
                           </button>
                         </div>
                         {/* Lyrics */}
@@ -672,7 +672,7 @@ export default function PlayerBar() {
             <div className="relative w-11 h-11 shrink-0 rounded-2xl overflow-hidden shadow-lg shadow-black/40">
               {currentTrack.image
                 ? <Image src={currentTrack.image} alt={currentTrack.name} fill unoptimized className="object-cover" sizes="44px" />
-                : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={16} className="text-white/25" /></div>
+                : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={14} className="text-white/25" /></div>
               }
             </div>
             <div className="min-w-0 flex-1">
@@ -687,31 +687,31 @@ export default function PlayerBar() {
           <div className="flex items-center gap-1.5 shrink-0">
             <button onClick={toggleShuffle} title="Shuffle"
               className={`p-2 rounded-xl transition-colors ${shuffleEnabled ? "text-[#E8282B]" : "text-white/30 hover:text-white"}`}>
-              <Shuffle size={16} />
+              <Shuffle size={14} />
             </button>
             <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
               className="p-2 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
-              <SkipBack size={18} fill="currentColor" />
+              <SkipBack size={14} fill="currentColor" />
             </button>
             <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning}
               className="btn-red mx-1 p-3 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
               {(!currentTrack || !isPlaying) && playBusy
-                ? <Loader2 size={18} className="text-white animate-spin" />
+                ? <Loader2 size={14} className="text-white animate-spin" />
                 : isPlaying
-                  ? <Pause size={18} fill="white" className="text-white" />
-                  : <Play size={18} fill="white" className="text-white ml-0.5" />}
+                  ? <Pause size={14} fill="white" className="text-white" />
+                  : <Play size={14} fill="white" className="text-white ml-0.5" />}
             </button>
             <button onClick={handleNextTrack} title="Next" disabled={isTransitioning}
               className="p-2 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
-              <SkipForward size={18} fill="currentColor" />
+              <SkipForward size={14} fill="currentColor" />
             </button>
             <button onClick={cycleRepeatMode} title={repeatMode === "one" ? "Repeat one" : repeatMode === "all" ? "Repeat all" : "Repeat off"}
               className={`p-2 rounded-xl transition-colors ${repeatMode !== "off" ? "text-[#E8282B]" : "text-white/30 hover:text-white"}`}>
-              <RepeatIcon size={16} />
+              <RepeatIcon size={14} />
             </button>
             <button onClick={handleLike} title={isLiked ? "Unlike" : "Like"}
               className={`p-2 rounded-xl transition-colors ${isLiked ? "text-[#E8282B]" : "text-white/30 hover:text-[#E8282B]"}`}>
-              <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
+              <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
             </button>
             {currentTrack.uri ? (
               <TrackDownloadButton
@@ -721,21 +721,21 @@ export default function PlayerBar() {
                   artist: currentTrack.artist,
                   image: currentTrack.image,
                 }}
-                size={16}
+                size={14}
                 className="!opacity-100 p-2 rounded-xl"
               />
             ) : null}
             <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
               className="p-2 rounded-xl text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors disabled:opacity-30">
-              {resolvingAdd ? <Loader2 size={16} className="animate-spin" /> : <ListPlus size={16} />}
+              {resolvingAdd ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
             </button>
             <button onClick={() => usePlayerStore.setState({ isQueueOpen: true })} title="Queue"
               className="p-2 rounded-xl text-white/25 hover:text-white hover:bg-white/[0.06] transition-colors">
-              <ListOrdered size={16} />
+              <ListOrdered size={14} />
             </button>
             <div className="hidden sm:flex items-center gap-1.5 shrink-0">
               <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="p-2 rounded-xl text-white/30 hover:text-white transition-colors">
-                <VolumeIcon size={16} />
+                <VolumeIcon size={14} />
               </button>
               <input
                 type="range" min={0} max={1} step={0.02} value={volume}
@@ -746,7 +746,7 @@ export default function PlayerBar() {
             </div>
             <button onClick={stop} title="Close"
               className="p-2 rounded-xl text-white/25 hover:text-white/70 hover:bg-white/[0.06] transition-colors">
-              <X size={16} />
+              <X size={14} />
             </button>
           </div>
 

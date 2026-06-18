@@ -142,7 +142,7 @@ export default function AlbumSheet({ album, onClose }: Props) {
                   color: isPinned ? "#E8282B" : "rgba(255,255,255,0.4)",
                 }}
               >
-                {pinning ? <Loader2 size={15} className="animate-spin" /> : <Pin size={15} />}
+                {pinning ? <Loader2 size={14} className="animate-spin" /> : <Pin size={14} />}
               </button>
               {album.external_urls?.web && (
                 <a
@@ -152,11 +152,11 @@ export default function AlbumSheet({ album, onClose }: Props) {
                   onClick={(e) => e.stopPropagation()}
                   className="p-2 rounded-xl text-white/40 hover:text-white transition-colors"
                 >
-                  <ExternalLink size={15} />
+                  <ExternalLink size={14} />
                 </a>
               )}
               <button onClick={onClose} className="p-2 rounded-xl text-white/40 hover:text-white transition-colors">
-                <X size={16} />
+                <X size={14} />
               </button>
             </div>
           </div>

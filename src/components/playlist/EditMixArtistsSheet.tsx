@@ -241,14 +241,14 @@ export default function EditMixArtistsSheet({
             onClick={onClose}
             className="p-2 rounded-xl hover:bg-white/[0.08] text-white/50 hover:text-white transition-colors"
           >
-            <X size={18} />
+            <X size={14} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-4 space-y-4">
           {resolving ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 size={20} className="animate-spin text-white/30" />
+              <Loader2 size={14} className="animate-spin text-white/30" />
             </div>
           ) : (
             <>
@@ -285,7 +285,7 @@ export default function EditMixArtistsSheet({
               </div>
 
               <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                 <input
                   type="text"
                   value={artistQuery}
@@ -337,9 +337,9 @@ export default function EditMixArtistsSheet({
                           )}
                         </div>
                         {already ? (
-                          <Check size={15} className="text-[#E8282B] shrink-0" />
+                          <Check size={14} className="text-[#E8282B] shrink-0" />
                         ) : (
-                          <Plus size={15} className="text-white/30 shrink-0" />
+                          <Plus size={14} className="text-white/30 shrink-0" />
                         )}
                       </button>
                     );
@@ -368,11 +368,11 @@ export default function EditMixArtistsSheet({
           >
             {saving ? (
               <>
-                <Loader2 size={16} className="animate-spin" /> Saving…
+                <Loader2 size={14} className="animate-spin" /> Saving…
               </>
             ) : (
               <>
-                <Check size={16} /> Save artists
+                <Check size={14} /> Save artists
               </>
             )}
           </button>

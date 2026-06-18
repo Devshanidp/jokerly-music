@@ -124,7 +124,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
           <h2 className="text-white font-semibold">Account</h2>
           <button onClick={onClose} className="p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.07] transition-colors">
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
         <div className="p-5 space-y-5">
@@ -185,14 +185,14 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             onClick={() => void switchAccount()}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-white/80 hover:bg-white/[0.06] transition-colors text-sm font-medium"
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={14} />
             Switch account
           </button>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors text-sm font-medium"
           >
-            <X size={15} />
+            <X size={14} />
             Sign out
           </button>
         </div>
@@ -260,9 +260,9 @@ export default function Topbar() {
             onPointerDown={(e) => go(e, "/")}
             onClick={(e) => e.preventDefault()}
             className="flex items-center gap-2.5 shrink-0">
-            <Image src="/icon-96.png" alt={APP_NAME} width={34} height={34} className="rounded-xl" unoptimized />
+            <Image src="/icon-96.png" alt={APP_NAME} width={28} height={28} className="rounded-xl" unoptimized />
             <div className="flex flex-col items-start leading-tight">
-              <span className="text-[#E8282B] font-bold text-base tracking-tight">{APP_NAME}</span>
+              <span className="text-[#E8282B] font-bold text-xs sm:text-sm tracking-tight">{APP_NAME}</span>
               <span className="text-[10px] text-white/40 font-medium">{APP_TAGLINE}</span>
             </div>
           </button>

@@ -189,7 +189,7 @@ export default function QueueSheet({ onPlayIndex }: Props) {
             onClick={() => usePlayerStore.setState({ isQueueOpen: false })}
             className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
           >
-            <ChevronDown size={20} />
+            <ChevronDown size={14} />
           </button>
         </div>
 

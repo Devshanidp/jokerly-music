@@ -4,9 +4,9 @@ import { useToastStore } from "@/store/toast";
 import { X, AlertCircle, CheckCircle2, Info } from "lucide-react";
 
 const icons = {
-  error: <AlertCircle size={15} className="text-red-400 shrink-0" />,
-  success: <CheckCircle2 size={15} className="text-green-400 shrink-0" />,
-  info: <Info size={15} className="text-blue-400 shrink-0" />,
+  error: <AlertCircle size={14} className="text-red-400 shrink-0" />,
+  success: <CheckCircle2 size={14} className="text-green-400 shrink-0" />,
+  info: <Info size={14} className="text-blue-400 shrink-0" />,
 };
 
 const borders = {

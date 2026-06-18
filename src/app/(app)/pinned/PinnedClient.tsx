@@ -77,7 +77,7 @@ export default function PinnedClient() {
           {pinnedAlbums.length > 0 && (
             <section className="space-y-2">
               <h3 className="text-white font-semibold text-lg flex items-center gap-2">
-                <Music size={18} className="text-red-400" /> Pinned Albums
+                <Music size={14} className="text-red-400" /> Pinned Albums
               </h3>
               <div className="space-y-2">
                 {pinnedAlbums.map((album) => (
@@ -106,7 +106,7 @@ export default function PinnedClient() {
                       />
                     ) : (
                       <div className="w-[52px] h-[52px] rounded-lg bg-zinc-700 flex items-center justify-center shrink-0">
-                        <Music size={20} className="text-zinc-500" />
+                        <Music size={14} className="text-zinc-500" />
                       </div>
                     )}
 
@@ -123,9 +123,9 @@ export default function PinnedClient() {
                         title="Unpin"
                       >
                         {unpinning === album.album_id ? (
-                          <Loader2 size={15} className="animate-spin" />
+                          <Loader2 size={14} className="animate-spin" />
                         ) : (
-                          <Pin size={15} />
+                          <Pin size={14} />
                         )}
                       </button>
                     </div>
@@ -138,7 +138,7 @@ export default function PinnedClient() {
           {pinned.length > 0 && (
             <section className="space-y-2">
               <h3 className="text-white font-semibold text-lg flex items-center gap-2">
-                <Pin size={18} className="text-red-400" /> Pinned Playlists
+                <Pin size={14} className="text-red-400" /> Pinned Playlists
               </h3>
               <div className="space-y-2">
           {pinned.map((pl) => (
@@ -156,7 +156,7 @@ export default function PinnedClient() {
                 />
               ) : (
                 <div className="w-[52px] h-[52px] rounded-lg bg-zinc-700 flex items-center justify-center shrink-0">
-                  <Pin size={20} className="text-zinc-500" />
+                  <Pin size={14} className="text-zinc-500" />
                 </div>
               )}
 
@@ -175,9 +175,9 @@ export default function PinnedClient() {
                   title="Unpin"
                 >
                   {unpinning === pl.playlist_id ? (
-                    <Loader2 size={15} className="animate-spin" />
+                    <Loader2 size={14} className="animate-spin" />
                   ) : (
-                    <Pin size={15} />
+                    <Pin size={14} />
                   )}
                 </button>
               </div>

@@ -57,7 +57,7 @@ export default function TrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist
           <Image src={image} alt={track.name} fill unoptimized className="rounded-xl object-cover" sizes="40px" />
         ) : (
           <div className="w-10 h-10 rounded-xl bg-white/[0.06] flex items-center justify-center">
-            <Music size={15} className="text-white/30" />
+            <Music size={14} className="text-white/30" />
           </div>
         )}
         {onPlay && (
@@ -110,7 +110,7 @@ export default function TrackCard({ track, onGetSimilar, onPlay, onAddToPlaylist
             title="Add to playlist"
             className="p-1.5 rounded-lg text-[#E8282B]/60 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors"
           >
-            <ListPlus size={15} />
+            <ListPlus size={14} />
           </button>
         )}
         {onGetSimilar && (

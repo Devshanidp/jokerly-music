@@ -61,7 +61,7 @@ export default function TransferResultDialog({ result, onClose, onReauthorize }:
             <p className="mt-1 text-sm leading-relaxed text-white/55">{result.message}</p>
           </div>
           <button onClick={onClose} className="rounded-xl p-1.5 text-white/30 transition-colors hover:bg-white/[0.07] hover:text-white">
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
 

@@ -598,7 +598,7 @@ export default function HomeClient() {
           title="Identify song"
           className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-lg flex items-center justify-center text-white/45 hover:text-white hover:bg-white/[0.06] transition-colors disabled:opacity-50"
         >
-          {listening ? <ListeningWaveform /> : identifying ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+          {listening ? <ListeningWaveform /> : identifying ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
         </button>
         <input
           ref={inputRef} type="text" value={query}
@@ -618,7 +618,7 @@ export default function HomeClient() {
           <div ref={suggestBoxRef} className="absolute top-full left-0 right-0 mt-2 rounded-2xl border border-white/[0.08] shadow-2xl shadow-black/60 z-50 overflow-hidden"
             style={{ background: "var(--surface)" }}>
             {suggestionsLoading && suggestions.length === 0 ? (
-              <div className="flex items-center justify-center py-6"><Loader2 size={16} className="animate-spin text-white/30" /></div>
+              <div className="flex items-center justify-center py-6"><Loader2 size={14} className="animate-spin text-white/30" /></div>
             ) : (
               <>
                 <div className="px-3 pt-3 pb-2 border-b border-white/[0.06]">
@@ -747,7 +747,7 @@ export default function HomeClient() {
                 <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/40 transition-all">
                   {t.track_image
                     ? <Image src={t.track_image} alt={t.track_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                    : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={18} className="text-white/20" /></div>
+                    : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={14} className="text-white/20" /></div>
                   }
                 </div>
                 <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{t.track_name}</p>
@@ -787,7 +787,7 @@ export default function HomeClient() {
                       <Image src={pa.artist_image} alt={pa.artist_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Mic2 size={18} className="text-white/20" />
+                        <Mic2 size={14} className="text-white/20" />
                       </div>
                     )}
                     <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
@@ -844,7 +844,7 @@ export default function HomeClient() {
                     <Image src={album.album_image} alt={album.album_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Music size={18} className="text-white/20" />
+                      <Music size={14} className="text-white/20" />
                     </div>
                   )}
                   <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
@@ -882,7 +882,7 @@ export default function HomeClient() {
       {(forYouTracks.length > 0 || forYouLoading) && (
         <section className="space-y-3">
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <Sparkles size={15} className="text-[#E8282B]" /> For You
+            <Sparkles size={14} className="text-[#E8282B]" /> For You
           </h3>
           {forYouLoading ? (
             <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>

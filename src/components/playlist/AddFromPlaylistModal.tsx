@@ -123,11 +123,11 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
               onClick={() => { setSourceId(null); setSourceTracks([]); setAdded(new Set()); }}
               className="shrink-0 p-2 rounded-xl text-white/30 hover:text-white hover:bg-white/[0.08] transition-colors"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={14} />
             </button>
           ) : (
             <div className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center" style={{ background: "var(--card)" }}>
-              <ListMusic size={18} className="text-[#E8282B]/70" />
+              <ListMusic size={14} className="text-[#E8282B]/70" />
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -142,7 +142,7 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
             onClick={onClose}
             className="shrink-0 p-2 rounded-xl text-white/30 hover:text-white hover:bg-white/[0.08] transition-colors"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
 
@@ -183,7 +183,7 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
                         <Image src={pl.images[0].url} alt={pl.name} fill unoptimized sizes="36px" className="object-cover" />
                       </div>
                     ) : (
-                      <ListMusic size={15} className="text-white/25" />
+                      <ListMusic size={14} className="text-white/25" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
