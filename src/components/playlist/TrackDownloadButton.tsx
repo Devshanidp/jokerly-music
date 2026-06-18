@@ -55,8 +55,8 @@ export default function TrackDownloadButton({ track, size = 13, className = "", 
       title={isDownloaded ? "Remove offline download" : "Download for offline"}
       className={`shrink-0 p-1.5 rounded-lg transition-all disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100 ${
         isDownloaded
-          ? "text-[#E8282B] bg-[#E8282B]/10"
-          : "text-white/25 hover:text-[#E8282B] hover:bg-[#E8282B]/10"
+          ? "text-[var(--accent)] bg-[var(--accent)]/10"
+          : "text-white/25 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"
       } ${className}`}
     >
       {isDownloading ? (

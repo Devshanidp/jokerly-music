@@ -97,8 +97,7 @@ export default function InstallPrompt() {
           <button
             onClick={install}
             disabled={installing}
-            className="shrink-0 px-3.5 py-2 rounded-xl text-white text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
-            style={{ background: "#E8282B", boxShadow: "0 2px 12px rgba(232,40,43,0.40)" }}
+            className="shrink-0 px-3.5 py-2 rounded-xl text-white text-xs font-bold transition-all active:scale-95 disabled:opacity-50 btn-accent"
           >
             {installing ? "…" : "Install"}
           </button>

@@ -115,7 +115,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`flex-1 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold transition-all ${
                 activeTab === tab
-                  ? "btn-red text-white"
+                  ? "btn-nav-active text-white"
                   : "text-white/40 hover:text-white border border-white/[0.08]"
               }`}
               style={activeTab !== tab ? { background: "var(--card)" } : {}}>
@@ -138,16 +138,16 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                     <button key={lang.id} onClick={() => toggleLang(lang.id)}
                       className={`flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-left border transition-all ${
                         selected
-                          ? "border-[#E8282B]/40 bg-[#E8282B]/10"
+                          ? "border-[var(--accent)]/40 bg-[var(--accent)]/10"
                           : "border-white/[0.07] hover:border-white/[0.15]"
                       }`}
                       style={!selected ? { background: "var(--card)" } : {}}>
                       <span className="text-lg leading-none">{lang.emoji}</span>
-                      <span className={`text-sm font-medium flex-1 ${selected ? "text-[#E8282B]" : "text-white/70"}`}>
+                      <span className={`text-sm font-medium flex-1 ${selected ? "text-[var(--accent)]" : "text-white/70"}`}>
                         {lang.label}
                       </span>
                       {selected && (
-                        <div className="w-5 h-5 rounded-full bg-[#E8282B] flex items-center justify-center shrink-0">
+                        <div className="w-5 h-5 rounded-full btn-nav-active flex items-center justify-center shrink-0">
                           <Check size={11} className="text-white" strokeWidth={2.5} />
                         </div>
                       )}
@@ -156,7 +156,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                 })}
               </div>
               {selectedLangs.length === 0 && (
-                <p className="text-center text-[#E8282B]/70 text-xs py-2">Select at least one language</p>
+                <p className="text-center text-[var(--accent)]/70 text-xs py-2">Select at least one language</p>
               )}
             </div>
           )}
@@ -170,14 +170,14 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                   <p className="text-white/30 text-xs px-1">Your favourite artists ({selectedArtists.length})</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedArtists.map((a) => (
-                      <div key={a.id} className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-full border border-[#E8282B]/30 bg-[#E8282B]/10">
+                      <div key={a.id} className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10">
                         <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 bg-white/[0.08]">
                           {a.image
                             ? <Image src={a.image} alt={a.name} width={24} height={24} unoptimized className="object-cover w-full h-full" />
                             : <div className="w-full h-full flex items-center justify-center"><Mic2 size={10} className="text-white/30" /></div>}
                         </div>
-                        <span className="text-[#E8282B] text-xs font-medium">{a.name}</span>
-                        <button onClick={() => removeArtist(a.id)} className="text-[#E8282B]/50 hover:text-[#E8282B] transition-colors ml-0.5">
+                        <span className="text-[var(--accent)] text-xs font-medium">{a.name}</span>
+                        <button onClick={() => removeArtist(a.id)} className="text-[var(--accent)]/50 hover:text-[var(--accent)] transition-colors ml-0.5">
                           <X size={12} />
                         </button>
                       </div>
@@ -194,7 +194,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                   value={artistQuery}
                   onChange={(e) => setArtistQuery(e.target.value)}
                   placeholder="Search artists…"
-                  className="w-full pl-9 pr-4 py-3 rounded-2xl border border-white/[0.08] text-white placeholder-white/25 text-sm focus:outline-none focus:ring-1 focus:ring-[#E8282B]/50 transition-all"
+                  className="w-full pl-9 pr-4 py-3 rounded-2xl border border-white/[0.08] text-white placeholder-white/25 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent)]//50 transition-all"
                   style={{ background: "var(--card)" }}
                   autoComplete="off"
                 />
@@ -224,7 +224,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
                           )}
                         </div>
                         {already
-                          ? <Check size={14} className="text-[#E8282B] shrink-0" />
+                          ? <Check size={14} className="text-[var(--accent)] shrink-0" />
                           : <Plus size={14} className="text-white/30 shrink-0" />}
                       </button>
                     );
@@ -254,7 +254,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
           <button
             onClick={handleSave}
             disabled={saving || selectedLangs.length === 0}
-            className="btn-red w-full py-3.5 rounded-2xl text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+            className="btn-nav-active w-full py-3.5 rounded-2xl text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {saving
               ? <><Loader2 size={14} className="animate-spin" /> Saving…</>

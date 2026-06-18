@@ -28,15 +28,14 @@ export default function ExitAppDialog({ open, onCancel, onExit }: Props) {
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white/80 bg-white/10 hover:bg-white/15 transition-colors"
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white/80 bg-white/10 hover:bg-white/15 transition-colors btn-accent"
           >
             Stay
           </button>
           <button
             type="button"
             onClick={onExit}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
-            style={{ background: "#E8282B" }}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors btn-accent"
           >
             Exit
           </button>

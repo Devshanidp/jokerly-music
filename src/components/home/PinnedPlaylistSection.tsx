@@ -109,7 +109,7 @@ function SortableTrackRow({
         ) : (
           <>
             <span className="text-xs tabular-nums group-hover:hidden" style={{ color: "var(--text-muted)" }}>{index + 1}</span>
-            <Play size={12} fill="currentColor" className="hidden group-hover:block text-[#E8282B]" />
+            <Play size={12} fill="currentColor" className="hidden group-hover:block text-[var(--accent)]" />
           </>
         )}
       </div>
@@ -123,13 +123,13 @@ function SortableTrackRow({
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate leading-tight ${isCurrentlyPlaying ? "text-[#E8282B]" : "text-white"}`}>{track.track_name}</p>
+        <p className={`text-sm font-medium truncate leading-tight ${isCurrentlyPlaying ? "text-[var(--accent)]" : "text-white"}`}>{track.track_name}</p>
         {track.track_artist && (
           <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-muted)" }}>{track.track_artist}</p>
         )}
       </div>
       <button onClick={(e) => { e.stopPropagation(); onAddToPlaylist(); }}
-        className="shrink-0 p-1.5 rounded-lg transition-all text-[#E8282B]/50 hover:text-[#E8282B] hover:bg-[#E8282B]/10 sm:opacity-0 sm:group-hover:opacity-100">
+        className="shrink-0 p-1.5 rounded-lg transition-all text-[var(--accent)]/50 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 sm:opacity-0 sm:group-hover:opacity-100">
         <ListPlus size={13} />
       </button>
       <TrackDownloadButton
@@ -142,7 +142,7 @@ function SortableTrackRow({
       />
       <button onClick={(e) => { e.stopPropagation(); onRemove(); }}
         disabled={removingKey === rmKey}
-        className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
+        className="shrink-0 p-1.5 rounded-lg transition-all hover:bg-purple-500/10 hover:text-[var(--accent)] disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"
         style={{ color: "rgba(255,255,255,0.25)" }}>
         {removingKey === rmKey ? <Loader2 size={12} className="animate-spin" /> : <Trash size={12} />}
       </button>
@@ -409,16 +409,15 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
         {tracks.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <button onClick={() => playAll(selectedId, 0)} disabled={!isPlayerReady}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 disabled:opacity-40"
-              style={{ background: "#E8282B", boxShadow: "0 4px 16px rgba(232,40,43,0.35)" }}>
+              className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-bold text-[10px] sm:text-xs transition-all active:scale-95 disabled:opacity-40 btn-accent">
               <PlayCircle size={14} /> Play all
             </button>
             <button onClick={() => shufflePlay(selectedId)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06]">
-              <Shuffle size={14} className="text-[#E8282B]" /> Shuffle
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06] btn-accent">
+              <Shuffle size={14} className="text-[var(--accent)]" /> Shuffle
             </button>
             <button onClick={() => downloadOffline(selectedId)} disabled={downloadingPlaylistId === selectedId}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06] disabled:opacity-40">
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-white/80 font-semibold text-[10px] sm:text-xs border border-white/10 hover:bg-white/[0.06] disabled:opacity-40 btn-accent">
               {downloadingPlaylistId === selectedId ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
               Download offline
             </button>
@@ -505,7 +504,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
               >
                 <div className="relative aspect-square w-full overflow-hidden border-b border-white/[0.08] rounded-t-lg" style={{ background: "var(--surface)" }}>
                   <CoverArt tracks={tracks} imageUrl={pl.playlist_image || null} name={pl.playlist_name} size={52} />
-                  <span className="absolute top-1 left-1 z-10 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                  <span className="absolute top-1 left-1 z-10 w-1.5 h-1.5 rounded-full bg-[var(--accent)] border border-black/20 shadow" />
                 </div>
                 <div className="p-1.5 flex items-center gap-1 relative z-20">
                   <p className="flex-1 min-w-0 text-white text-[9px] font-semibold truncate leading-tight">{pl.playlist_name}</p>
@@ -540,7 +539,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
               >
                 <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0 border border-white/[0.10]" style={{ background: "var(--surface)" }}>
                   <CoverArt tracks={tracks} imageUrl={pl.playlist_image || null} name={pl.playlist_name} size={40} />
-                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                  <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--accent)] border border-black/20 shadow" />
                 </div>
                 <p className="flex-1 text-white text-xs font-semibold truncate">{pl.playlist_name}</p>
                 <PlaylistActionsMenu

@@ -509,7 +509,7 @@ export default function SearchClient() {
           onKeyDown={handleKey}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           placeholder="Search tracks, artists, albums..."
-          className="w-full bg-zinc-800 text-white placeholder-zinc-500 rounded-xl pl-12 pr-44 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition"
+          className="w-full bg-zinc-800 text-white placeholder-zinc-500 rounded-xl pl-12 pr-44 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
           autoComplete="off"
         />
         <button
@@ -523,14 +523,14 @@ export default function SearchClient() {
         <button
           onClick={() => handleSearch()}
           disabled={loadingMain || !query.trim()}
-          className="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 hover:bg-red-400 disabled:opacity-40 text-black font-semibold text-sm px-4 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+          className="absolute right-3 top-1/2 -translate-y-1/2 btn-accent hover:opacity-90 disabled:opacity-40 text-black font-semibold text-sm px-4 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
         >
           {loadingMain ? <Loader2 size={14} className="animate-spin" /> : "Search"}
         </button>
 
         {/* Suggestions dropdown */}
         {showSuggestions && (suggestions.length > 0 || suggestionsLoading) && (
-          <div ref={suggestBoxRef} className="absolute top-full left-0 right-0 mt-1.5 rounded-2xl shadow-2xl z-50 overflow-hidden border border-[#E8282B]/15"
+          <div ref={suggestBoxRef} className="absolute top-full left-0 right-0 mt-1.5 rounded-2xl shadow-2xl z-50 overflow-hidden border border-[var(--accent)]/15"
             style={{ background: "var(--surface)", boxShadow: "0 12px 36px rgba(0,0,0,0.65)" }}>
             {suggestionsLoading && suggestions.length === 0 ? (
               <div className="flex items-center justify-center py-5"><Loader2 size={14} className="animate-spin text-white/30" /></div>
@@ -561,14 +561,14 @@ export default function SearchClient() {
                             <button
                               onClick={(e) => { e.stopPropagation(); toggleSong({ uri: s.uri!, name: s.name, image: s.image, artist: s.sub }); }}
                               title={isSongLiked ? "Unlike" : "Like"}
-                              className={`shrink-0 p-2 rounded-xl transition-colors ${isSongLiked ? "text-[#E8282B]" : "text-white/35 hover:text-[#E8282B] hover:bg-[#E8282B]/10"}`}
+                              className={`shrink-0 p-2 rounded-xl transition-colors ${isSongLiked ? "text-[var(--accent)]" : "text-white/35 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"}`}
                             >
                               <Heart size={14} fill={isSongLiked ? "currentColor" : "none"} />
                             </button>
                           )}
                           {s.uri && (
                             <button onClick={() => handleSuggestionAdd(s)} disabled={isResolving} title="Add to playlist"
-                              className="shrink-0 p-2 rounded-xl text-white/35 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors">
+                              className="shrink-0 p-2 rounded-xl text-white/35 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors">
                               {isResolving ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
                             </button>
                           )}
@@ -596,7 +596,7 @@ export default function SearchClient() {
                   </div>
                 )}
                 <div className="border-t border-white/[0.06] px-4 py-2">
-                  <button onClick={() => handleSearch()} className="text-xs text-white/40 hover:text-[#E8282B] transition-colors">
+                  <button onClick={() => handleSearch()} className="text-xs text-white/40 hover:text-[var(--accent)] transition-colors">
                     See all results for &ldquo;{query}&rdquo; →
                   </button>
                 </div>
@@ -613,12 +613,12 @@ export default function SearchClient() {
             <div className="flex-1 flex flex-col gap-2">
               {listening && (
                 <p className="text-sm text-zinc-200 flex items-center gap-2">
-                  <ListeningWaveform className="text-[#E8282B]" />
+                  <ListeningWaveform className="text-[var(--accent)]" />
                   Listening… hold your phone near the music source.
                 </p>
               )}
               {identifying && <p className="text-sm text-zinc-200">Identifying song…</p>}
-              {identifyError && <p className="text-sm text-red-400">{identifyError}</p>}
+              {identifyError && <p className="text-sm text-[var(--accent)]">{identifyError}</p>}
               {identifiedMatch && (
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
@@ -637,7 +637,7 @@ export default function SearchClient() {
                         };
                         setQueueAndPlay([playable], 0);
                       }}
-                      className="bg-red-500 hover:bg-red-400 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                      className="btn-accent hover:opacity-90 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                     >
                       Play
                     </button>
@@ -659,19 +659,19 @@ export default function SearchClient() {
       )}
 
       {searchError && (
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 flex flex-col gap-3">
+        <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4 flex flex-col gap-3">
           <div className="flex items-start gap-3">
-            <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
+            <AlertCircle size={14} className="text-[var(--accent)] shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className="text-red-300 text-sm font-medium">
+              <p className="text-purple-300 text-sm font-medium">
                 {searchError.status === 401 ? "Session expired" : searchError.status === 429 ? "Too many requests — please wait" : "Search failed"}
               </p>
-              <p className="text-red-400/70 text-xs mt-0.5 break-all">{searchError.message}</p>
+              <p className="text-[var(--accent)]/70 text-xs mt-0.5 break-all">{searchError.message}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {searchError.status === 401 ? (
-              <button onClick={() => signOut({ callbackUrl: "/login" })} className="flex items-center gap-1.5 text-xs bg-red-500 hover:bg-red-400 text-white px-3 py-1.5 rounded-lg transition-colors font-medium">
+              <button onClick={() => signOut({ callbackUrl: "/login" })} className="flex items-center gap-1.5 text-xs btn-accent hover:opacity-90 text-white px-3 py-1.5 rounded-lg transition-colors font-medium">
                 <LogOut size={13} /> Sign out &amp; re-login
               </button>
             ) : (
@@ -762,7 +762,7 @@ export default function SearchClient() {
                     <h3 className="text-white text-sm font-semibold">Matching artists</h3>
                     <button
                       onClick={() => handleTabChange("artist")}
-                      className="text-xs text-[#E8282B] hover:text-[#ff6264] transition-colors"
+                      className="text-xs text-[var(--accent)] hover:text-[#C084FC] transition-colors"
                     >
                       View all
                     </button>
@@ -780,7 +780,7 @@ export default function SearchClient() {
                     <h3 className="text-white text-sm font-semibold">Albums by {matchedArtist.name}</h3>
                     <button
                       onClick={() => handleTabChange("album")}
-                      className="text-xs text-[#E8282B] hover:text-[#ff6264] transition-colors"
+                      className="text-xs text-[var(--accent)] hover:text-[#C084FC] transition-colors"
                     >
                       More albums
                     </button>
@@ -838,7 +838,7 @@ export default function SearchClient() {
           {similarSeed && (
             <div className="mt-6 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-white font-semibold">Similar to <span className="text-red-400">{similarSeed.name}</span></h3>
+                <h3 className="text-white font-semibold">Similar to <span className="text-[var(--accent)]">{similarSeed.name}</span></h3>
                 <button onClick={() => { setSimilarSeed(null); setSimilarTracks([]); }} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">Clear</button>
               </div>
               {loadingSimilar ? (

@@ -39,8 +39,8 @@ export default function LoginClient() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#080406" }}>
       {/* Background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full blur-3xl" style={{ background: "radial-gradient(ellipse, rgba(232,40,43,0.18) 0%, transparent 70%)" }} />
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full blur-3xl" style={{ background: "rgba(232,40,43,0.06)" }} />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full blur-3xl" style={{ background: "radial-gradient(ellipse, rgba(140, 80, 200,0.18) 0%, transparent 70%)" }} />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full blur-3xl" style={{ background: "rgba(140, 80, 200,0.06)" }} />
       </div>
 
       <div className="relative w-full max-w-sm text-center space-y-8">
@@ -61,7 +61,7 @@ export default function LoginClient() {
             { icon: "🎵", label: "Create playlists" },
             { icon: "📌", label: "Pin your favourites" },
           ].map(({ icon, label }) => (
-            <div key={label} className="flex items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: "#161014", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div key={label} className="flex items-center gap-2 rounded-xl px-3 py-2.5 btn-accent" style={{ background: "#161014", border: "1px solid rgba(255,255,255,0.06)" }}>
               <span className="text-base">{icon}</span>
               <span className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.75)" }}>{label}</span>
             </div>
@@ -70,8 +70,8 @@ export default function LoginClient() {
 
         {authError ? (
           <div
-            className="rounded-xl px-4 py-3 text-left text-xs leading-relaxed border border-red-500/30"
-            style={{ background: "rgba(232,40,43,0.12)", color: "rgba(255,200,200,0.95)" }}
+            className="rounded-xl px-4 py-3 text-left text-xs leading-relaxed border border-purple-500/30"
+            style={{ background: "rgba(140, 80, 200,0.12)", color: "rgba(255,200,200,0.95)" }}
           >
             {authError}
           </div>
@@ -81,10 +81,7 @@ export default function LoginClient() {
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition-all duration-200 text-base active:scale-[0.98]"
-          style={{ background: "#E8282B", boxShadow: "0 8px 32px rgba(232,40,43,0.40)" }}
-          onMouseEnter={e => (e.currentTarget.style.background = "#F03336")}
-          onMouseLeave={e => (e.currentTarget.style.background = "#E8282B")}
+          className="w-full flex items-center justify-center gap-3 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition-all duration-200 text-base active:scale-[0.98] btn-accent"
         >
           {loading ? (
             <Loader2 size={14} className="animate-spin" />

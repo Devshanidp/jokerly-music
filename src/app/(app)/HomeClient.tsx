@@ -606,11 +606,11 @@ export default function HomeClient() {
           onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); if (e.key === "Escape") setShowSuggestions(false); }}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           placeholder="Search tracks, artists, albums…"
-          className="w-full border border-white/[0.08] text-white placeholder-white/25 rounded-2xl pl-11 pr-24 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#E8282B]/60 focus:border-[#E8282B]/40 transition-all"
+          className="w-full border border-white/[0.08] text-white placeholder-white/25 rounded-2xl pl-11 pr-24 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent)]//60 focus:border-[var(--accent)]/40 transition-all"
           style={{ background: "var(--card)" }} autoComplete="off"
         />
         <button onClick={handleSearch} disabled={!query.trim()}
-          className="btn-red absolute right-2.5 top-1/2 -translate-y-1/2 disabled:opacity-30 text-white font-semibold text-xs px-4 py-2 rounded-xl">
+          className="btn-accent absolute right-2.5 top-1/2 -translate-y-1/2 disabled:opacity-30 text-white font-semibold text-xs px-4 py-2 rounded-xl">
           Search
         </button>
 
@@ -662,7 +662,7 @@ export default function HomeClient() {
                           </div>
                         </button>
                         <button onClick={(e) => { e.stopPropagation(); if (s.uri) setModalTrack({ name: s.name, uri: s.uri, image: s.image, artist: s.sub }); }}
-                          className="shrink-0 p-1.5 rounded-lg text-[#E8282B]/60 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors opacity-0 group-hover:opacity-100" title="Add to playlist">
+                          className="shrink-0 p-1.5 rounded-lg text-[var(--accent)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors opacity-0 group-hover:opacity-100" title="Add to playlist">
                           <ListPlus size={14} />
                         </button>
                       </div>
@@ -718,12 +718,12 @@ export default function HomeClient() {
         <div className="rounded-2xl border border-white/[0.08] px-4 py-3" style={{ background: "var(--card)" }}>
           {listening && (
             <p className="text-sm text-zinc-200 flex items-center gap-2">
-              <ListeningWaveform className="text-[#E8282B]" />
+              <ListeningWaveform className="text-[var(--accent)]" />
               Listening... hold your phone near the music source.
             </p>
           )}
           {identifying && <p className="text-sm text-zinc-200">Identifying song...</p>}
-          {identifyError && <p className="text-sm text-red-400">{identifyError}</p>}
+          {identifyError && <p className="text-sm text-[var(--accent)]">{identifyError}</p>}
           {identifiedMatch && !identifyError && !listening && !identifying && (
             <p className="text-sm text-zinc-200">
               Found: <span className="font-semibold text-white">{identifiedMatch.title}</span> by {identifiedMatch.artist}
@@ -744,7 +744,7 @@ export default function HomeClient() {
                 className="flex flex-col items-center gap-2 shrink-0 group"
                 style={{ width: 72 }}
               >
-                <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/40 transition-all">
+                <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
                   {t.track_image
                     ? <Image src={t.track_image} alt={t.track_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={14} className="text-white/20" /></div>
@@ -761,7 +761,7 @@ export default function HomeClient() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <Pin size={14} className="text-[#E8282B]" /> Pinned
+            <Pin size={14} className="text-[var(--accent)]" /> Pinned
           </h3>
           <Link href="/pinned" className="text-xs text-white/30 hover:text-white transition-colors">View all</Link>
         </div>
@@ -772,7 +772,7 @@ export default function HomeClient() {
       {pinnedArtists.length > 0 && (
         <section className="space-y-3">
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <UserCircle2 size={14} className="text-[#E8282B]" /> Pinned Artists
+            <UserCircle2 size={14} className="text-[var(--accent)]" /> Pinned Artists
           </h3>
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
             {pinnedArtists.map((pa) => (
@@ -782,7 +782,7 @@ export default function HomeClient() {
                   onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { web: "" }, popularity: 0, type: "artist", uri: "" } as MusicArtist)}
                   className="flex flex-col items-center gap-1.5 w-full"
                 >
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/40 transition-all">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
                     {pa.artist_image ? (
                       <Image src={pa.artist_image} alt={pa.artist_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
@@ -790,7 +790,7 @@ export default function HomeClient() {
                         <Mic2 size={14} className="text-white/20" />
                       </div>
                     )}
-                    <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                    <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--accent)] border border-black/20 shadow" />
                   </div>
                   <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{pa.artist_name}</p>
                 </button>
@@ -802,7 +802,7 @@ export default function HomeClient() {
                     e.stopPropagation();
                     void removePinnedArtist(pa.artist_id);
                   }}
-                  className="absolute top-0 right-0 z-10 w-5 h-5 rounded-full bg-black/70 border border-white/10 text-white/70 hover:text-white hover:bg-red-500/80 flex items-center justify-center transition-colors disabled:opacity-40"
+                  className="absolute top-0 right-0 z-10 w-5 h-5 rounded-full bg-black/70 border border-white/10 text-white/70 hover:text-white hover:bg-purple-600/80 flex items-center justify-center transition-colors disabled:opacity-40"
                 >
                   {removingPinnedArtist === pa.artist_id ? (
                     <Loader2 size={10} className="animate-spin" />
@@ -819,7 +819,7 @@ export default function HomeClient() {
       {pinnedAlbums.length > 0 && (
         <section className="space-y-3">
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <Music size={14} className="text-[#E8282B]" /> Pinned Albums
+            <Music size={14} className="text-[var(--accent)]" /> Pinned Albums
           </h3>
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
             {pinnedAlbums.map((album) => (
@@ -839,7 +839,7 @@ export default function HomeClient() {
                 className="flex flex-col items-center gap-1.5 shrink-0 group"
                 style={{ width: 76 }}
               >
-                <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[#E8282B]/40 transition-all">
+                <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
                   {album.album_image ? (
                     <Image src={album.album_image} alt={album.album_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
@@ -847,7 +847,7 @@ export default function HomeClient() {
                       <Music size={14} className="text-white/20" />
                     </div>
                   )}
-                  <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[#E8282B] border border-black/20 shadow" />
+                  <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--accent)] border border-black/20 shadow" />
                 </div>
                 <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{album.album_name}</p>
                 <p className="text-[9px] text-white/25 text-center truncate w-full leading-tight">{album.artist_name}</p>
@@ -863,13 +863,13 @@ export default function HomeClient() {
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
             {/* Personalize */}
             <button onClick={() => setShowPersonalize(true)}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[#E8282B]/40 transition-all"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40 transition-all"
               style={{ background: "var(--card)" }}>
               <SlidersHorizontal size={12} /> Edit
             </button>
             {/* Refresh */}
             <button onClick={handleRefresh} disabled={isRefreshBusy} title="Refresh feed"
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[#E8282B]/40 transition-all disabled:opacity-40"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40 transition-all disabled:opacity-40"
               style={{ background: "var(--card)" }}>
               <RefreshCw size={12} className={isRefreshBusy ? "animate-spin" : ""} />
               {isRefreshBusy ? "Refreshing…" : "Refresh"}
@@ -882,7 +882,7 @@ export default function HomeClient() {
       {(forYouTracks.length > 0 || forYouLoading) && (
         <section className="space-y-3">
           <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <Sparkles size={14} className="text-[#E8282B]" /> For You
+            <Sparkles size={14} className="text-[var(--accent)]" /> For You
           </h3>
           {forYouLoading ? (
             <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>
@@ -908,7 +908,7 @@ export default function HomeClient() {
                     <p className="text-white/35 text-xs truncate">{artistNames(track)}</p>
                   </div>
                   <button onClick={(e) => { e.stopPropagation(); track.uri && setModalTrack({ name: track.name, uri: track.uri, image: trackImage(track), artist: artistNames(track) }); }}
-                    className="p-1.5 rounded-lg text-[#E8282B]/60 hover:text-[#E8282B] hover:bg-[#E8282B]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                    className="p-1.5 rounded-lg text-[var(--accent)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
                     <ListPlus size={14} />
                   </button>
                 </div>
@@ -924,13 +924,13 @@ export default function HomeClient() {
       {!forYouLoading && forYouTracks.length === 0 && favoriteArtists.length === 0 && feedSections.length > 0 && (
         <div className="rounded-2xl border border-white/[0.07] p-4 flex items-center gap-3"
           style={{ background: "var(--card)" }}>
-          <Sparkles size={22} className="text-[#E8282B]/60 shrink-0" />
+          <Sparkles size={22} className="text-[var(--accent)]/60 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-semibold">Personalise your feed</p>
             <p className="text-white/35 text-xs mt-0.5">Add favourite artists for a &ldquo;For You&rdquo; section</p>
           </div>
           <button onClick={() => setShowPersonalize(true)}
-            className="btn-red shrink-0 px-3 py-1.5 rounded-xl text-white text-xs font-semibold">
+            className="btn-accent shrink-0 px-3 py-1.5 rounded-xl text-white text-xs font-semibold">
             Add
           </button>
         </div>

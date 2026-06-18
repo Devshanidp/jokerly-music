@@ -47,7 +47,7 @@ const aliases = [PRIMARY_HOST, ...EXTRA_ALIASES];
 
 for (const alias of aliases) {
   console.log(`Aliasing https://${alias} → ${deploymentHost}`);
-  runVercel(["alias", "set", deploymentHost, alias, "--yes"]);
+  runVercel(["alias", "set", deploymentHost, alias]);
 }
 
 console.log(`\nProduction ready: https://${PRIMARY_HOST}/`);
