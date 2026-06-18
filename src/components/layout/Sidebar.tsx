@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, ListMusic, Sparkles, Pin, Heart, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { APP_NAME } from "@/lib/branding";
 
 const nav = [
   { href: "/", icon: Home, label: "Home" },
@@ -23,7 +24,7 @@ export default function Sidebar() {
       <div className="p-6 border-b border-zinc-900">
         <h1 className="text-2xl font-bold tracking-tight">
           <span className="text-[var(--accent)]">🎵</span>{" "}
-          <span className="text-white">Jokerly</span>
+          <span className="text-white">{APP_NAME}</span>
         </h1>
       </div>
 

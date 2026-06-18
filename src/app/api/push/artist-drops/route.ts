@@ -1,5 +1,6 @@
 import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
 import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
+import { APP_NAME } from "@/lib/branding";
 import { getWebPush, toPushPayload } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -74,7 +75,7 @@ export async function POST() {
 
     const payload = toPushPayload({
       title: `${artist.artist_name} dropped new music`,
-      body: latest.name ?? "Tap to listen on Jokerly",
+      body: latest.name ?? `Tap to listen on ${APP_NAME}`,
       url: `/search?q=${encodeURIComponent(artist.artist_name)}`,
       icon: latest.images?.[0]?.url ?? "/icon-192.png",
     });

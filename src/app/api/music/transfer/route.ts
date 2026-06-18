@@ -1,5 +1,6 @@
 import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
 import { getApiSessionWithToken, unauthorized } from "@/lib/api-auth";
+import { APP_NAME } from "@/lib/branding";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { refreshAccessToken } from "@/lib/auth";
@@ -153,7 +154,7 @@ async function createMusicPlaylist(
       method: "POST",
       body: JSON.stringify({
         name: playlist.name,
-        description: playlist.description || "Transferred from Jokerly Music",
+        description: playlist.description || `Transferred from ${APP_NAME}`,
         public: isPublic,
       }),
     }

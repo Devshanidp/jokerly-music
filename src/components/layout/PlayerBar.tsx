@@ -12,6 +12,7 @@ import QueueSheet from "@/components/player/QueueSheet";
 import LyricsPanel from "@/components/player/LyricsPanel";
 import SimilarMusicSection from "@/components/player/SimilarMusicSection";
 import { useToastStore } from "@/store/toast";
+import { APP_NAME } from "@/lib/branding";
 
 function formatTime(seconds: number) {
   if (!isFinite(seconds)) return "0:00";
@@ -320,8 +321,8 @@ export default function PlayerBar() {
     const artwork = buildMediaArtwork(currentTrack.image);
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentTrack.name || "Now Playing",
-      artist: currentTrack.artist || "Jokerly",
-      album: "Jokerly",
+      artist: currentTrack.artist || APP_NAME,
+      album: APP_NAME,
       artwork,
     });
   }, [currentTrack]);

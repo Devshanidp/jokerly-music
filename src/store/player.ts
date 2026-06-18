@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getSession } from "next-auth/react";
 import { formatPlaybackEnvironmentError, getInsecurePlaybackMessage } from "@/lib/eme-support";
+import { APP_NAME } from "@/lib/branding";
 import {
   getOfflineDurationMs,
   isOfflinePlaying,
@@ -413,7 +414,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
 
     const player = new playbackCtor.Player({
-      name: "JKMuusic Web Player",
+      name: `${APP_NAME} Web Player`,
       getOAuthToken: async (cb) => {
         try {
           const res = await fetch("/api/music/token", {
