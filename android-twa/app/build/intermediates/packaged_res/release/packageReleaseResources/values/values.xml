@@ -11,7 +11,7 @@
     <color name="navigationDividerColorDark">#000000</color>
     <color name="shortcut_background">#F5F5F5</color>
     <integer name="splashScreenFadeOutDuration">300</integer>
-    <string name="appName" translatable="false">Jokerly</string>
+    <string name="appName" translatable="false">ShaN\'sMusic</string>
     <string name="assetStatements">
     [{
         \"relation\": [\"delegate_permission/common.handle_all_urls\"],
@@ -27,7 +27,7 @@
     <string name="generatorApp" translatable="false">bubblewrap-cli</string>
     <string name="hostName" translatable="false">music.devshanidp.xyz</string>
     <string name="launchUrl" translatable="false">https://music.devshanidp.xyz/</string>
-    <string name="launcherName" translatable="false">Jokerly</string>
+    <string name="launcherName" translatable="false">ShaN\'sMusic</string>
     <string name="orientation" translatable="false">portrait</string>
     <string name="providerAuthority" translatable="false">com.shanid.jokerly.fileprovider</string>
     <string name="webManifestUrl" translatable="false">https://music.devshanidp.xyz/manifest.json</string>
