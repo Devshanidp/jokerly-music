@@ -1,4 +1,5 @@
 import { getApiSession, unauthorized } from "@/lib/api-auth";
+import { APP_NAME } from "@/lib/branding";
 import { getWebPush, toPushPayload } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -29,7 +30,7 @@ export async function POST() {
     return NextResponse.json({ ok: false, available: false, sent: 0 });
   }
   const payload = toPushPayload({
-    title: "JKMuusic notifications enabled",
+    title: `${APP_NAME} notifications enabled`,
     body: "You will now get release alerts for liked artists.",
     url: "/liked",
   });

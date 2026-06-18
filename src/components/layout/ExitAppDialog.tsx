@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/lib/branding";
+
 interface Props {
   open: boolean;
   onCancel: () => void;
@@ -19,7 +21,7 @@ export default function ExitAppDialog({ open, onCancel, onExit }: Props) {
         aria-modal="true"
       >
         <h2 id="exit-app-title" className="text-lg font-semibold text-white">
-          Exit JKMuusic?
+          Exit {APP_NAME}?
         </h2>
         <p className="mt-2 text-sm text-white/55">
           Do you want to leave the app?

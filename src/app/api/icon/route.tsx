@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 
+import { APP_NAME } from "@/lib/branding";
+
 export const runtime = "edge";
 
 const VALID_SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
@@ -27,7 +29,7 @@ export async function GET(req: NextRequest) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={logoUrl}
-          alt="JKMuusic"
+          alt={APP_NAME}
           style={{
             width: "100%",
             height: "100%",

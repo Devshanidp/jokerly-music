@@ -24,8 +24,8 @@ def twaManifest = [
     applicationId: 'com.shanid.jokerly',
     hostName: 'music.devshanidp.xyz', // The domain being opened in the TWA.
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
-    name: 'Jokerly', // The application name.
-    launcherName: 'Jokerly', // The name shown on the Android Launcher.
+    name: "ShaN\\'sMusic", // The application name.
+    launcherName: "ShaN\\'sMusic", // The name shown on the Android Launcher.
     themeColor: '#080406', // The color used for the status bar.
     themeColorDark: '#000000', // The color used for the dark status bar.
     navigationColor: '#000000', // The color used for the navigation bar.
@@ -57,8 +57,8 @@ android {
         applicationId "com.shanid.jokerly"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 3
-        versionName "3"
+        versionCode 4
+        versionName "4"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
