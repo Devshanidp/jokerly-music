@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, ListPlus, Music, Play, RefreshCw } from "lucide-react";
+import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import Image from "next/image";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { PlayableTrack, usePlayerStore } from "@/store/player";
@@ -412,6 +413,17 @@ export default function SimilarMusicSection({ track, variant = "sheet" }: Props)
           </p>
           <p className="text-xs text-white/40 truncate mt-0.5">{artistNames(item)}</p>
         </div>
+        <TrackDownloadButton
+          track={{
+            uri: item.uri ?? "",
+            name: item.name,
+            artist: artistNames(item),
+            image: trackImage(item),
+          }}
+          size={embedded ? 14 : 15}
+          alwaysVisible
+          className={`rounded-xl ${embedded ? "p-2" : "p-2.5"}`}
+        />
         <button
           type="button"
           onClick={(e) => {

@@ -418,6 +418,13 @@ export default function PlayerBar() {
 
   const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
+  const currentDownloadTrack = {
+    uri: currentTrack.uri ?? "",
+    name: currentTrack.name,
+    artist: currentTrack.artist,
+    image: currentTrack.image,
+  };
+
   const cycleRepeatMode = () => {
     if (repeatMode === "off") { setRepeatMode("all"); return; }
     if (repeatMode === "all") { setRepeatMode("one"); return; }
@@ -554,6 +561,12 @@ export default function PlayerBar() {
                       className={`shrink-0 p-2.5 rounded-2xl transition-colors ${isLiked ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/30 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"}`}>
                       <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
                     </button>
+                    <TrackDownloadButton
+                      track={currentDownloadTrack}
+                      size={14}
+                      alwaysVisible
+                      className="p-2.5 rounded-2xl"
+                    />
                     <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
                       className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors disabled:opacity-40">
                       {resolvingAdd ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
@@ -713,18 +726,12 @@ export default function PlayerBar() {
               className={`p-2 rounded-xl transition-colors ${isLiked ? "text-[var(--accent)]" : "text-white/30 hover:text-[var(--accent)]"}`}>
               <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
             </button>
-            {currentTrack.uri ? (
-              <TrackDownloadButton
-                track={{
-                  uri: currentTrack.uri,
-                  name: currentTrack.name,
-                  artist: currentTrack.artist,
-                  image: currentTrack.image,
-                }}
-                size={14}
-                className="!opacity-100 p-2 rounded-xl"
-              />
-            ) : null}
+            <TrackDownloadButton
+              track={currentDownloadTrack}
+              size={14}
+              alwaysVisible
+              className="p-2 rounded-xl"
+            />
             <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
               className="p-2 rounded-xl text-[var(--accent)]/50 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors disabled:opacity-30">
               {resolvingAdd ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
