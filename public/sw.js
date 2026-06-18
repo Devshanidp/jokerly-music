@@ -1,5 +1,5 @@
 // Jokerly Service Worker
-const CACHE_NAME = "jokerly-v6";
+const CACHE_NAME = "jokerly-v7";
 
 // Core shell pages/assets so app chrome loads offline
 const PRECACHE = [
