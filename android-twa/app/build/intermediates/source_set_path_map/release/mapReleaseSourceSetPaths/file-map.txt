@@ -19,10 +19,10 @@ com.shanid.jokerly.app-core-1.13.0-17 C:\Users\ShaN\.gradle\caches\8.11.1\transf
 com.shanid.jokerly.app-profileinstaller-1.3.1-18 C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\res
 com.shanid.jokerly.app-browser-1.9.0-alpha04-19 C:\Users\ShaN\.gradle\caches\8.11.1\transforms\be57bd43967b699c12a0f6b8bd2f21c6\transformed\browser-1.9.0-alpha04\res
 com.shanid.jokerly.app-appcompat-resources-1.7.0-20 C:\Users\ShaN\.gradle\caches\8.11.1\transforms\d6f2e3c3aeb152384c7f6efcc9d99697\transformed\appcompat-resources-1.7.0\res
-com.shanid.jokerly.app-pngs-21 D:\ClaudeVscode\Music App\jokerly-music2\jokerly v2\app\build\generated\res\pngs\release
-com.shanid.jokerly.app-resValues-22 D:\ClaudeVscode\Music App\jokerly-music2\jokerly v2\app\build\generated\res\resValues\release
-com.shanid.jokerly.app-packageReleaseResources-23 D:\ClaudeVscode\Music App\jokerly-music2\jokerly v2\app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
-com.shanid.jokerly.app-packageReleaseResources-24 D:\ClaudeVscode\Music App\jokerly-music2\jokerly v2\app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
-com.shanid.jokerly.app-release-25 D:\ClaudeVscode\Music App\jokerly-music2\jokerly v2\app\build\intermediates\merged_res\release\mergeReleaseResources
-com.shanid.jokerly.app-main-26 D:\ClaudeVscode\Music App\jokerly-music2\jokerly v2\app\src\main\res
-com.shanid.jokerly.app-release-27 D:\ClaudeVscode\Music App\jokerly-music2\jokerly v2\app\src\release\res
+com.shanid.jokerly.app-pngs-21 D:\ClaudeVscode\jokerly-music\android-twa\app\build\generated\res\pngs\release
+com.shanid.jokerly.app-resValues-22 D:\ClaudeVscode\jokerly-music\android-twa\app\build\generated\res\resValues\release
+com.shanid.jokerly.app-packageReleaseResources-23 D:\ClaudeVscode\jokerly-music\android-twa\app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
+com.shanid.jokerly.app-packageReleaseResources-24 D:\ClaudeVscode\jokerly-music\android-twa\app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
+com.shanid.jokerly.app-release-25 D:\ClaudeVscode\jokerly-music\android-twa\app\build\intermediates\merged_res\release\mergeReleaseResources
+com.shanid.jokerly.app-main-26 D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\res
+com.shanid.jokerly.app-release-27 D:\ClaudeVscode\jokerly-music\android-twa\app\src\release\res

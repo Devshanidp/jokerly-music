@@ -28,13 +28,13 @@
     <!-- Value from default config. -->
     <string name="fallbackType" translatable="false">customtabs</string>
     <!-- Value from default config. -->
-    <string name="fullScopeUrl" translatable="false">https://jokerly-music.vercel.app/</string>
+    <string name="fullScopeUrl" translatable="false">https://music.devshanidp.xyz/</string>
     <!-- Value from default config. -->
     <string name="generatorApp" translatable="false">bubblewrap-cli</string>
     <!-- Value from default config. -->
-    <string name="hostName" translatable="false">jokerly-music.vercel.app</string>
+    <string name="hostName" translatable="false">music.devshanidp.xyz</string>
     <!-- Value from default config. -->
-    <string name="launchUrl" translatable="false">https://jokerly-music.vercel.app/</string>
+    <string name="launchUrl" translatable="false">https://music.devshanidp.xyz/</string>
     <!-- Value from default config. -->
     <string name="launcherName" translatable="false">Jokerly</string>
     <!-- Value from default config. -->
@@ -42,6 +42,6 @@
     <!-- Value from default config. -->
     <string name="providerAuthority" translatable="false">com.shanid.jokerly.fileprovider</string>
     <!-- Value from default config. -->
-    <string name="webManifestUrl" translatable="false">https://jokerly-music.vercel.app/manifest.json</string>
+    <string name="webManifestUrl" translatable="false">https://music.devshanidp.xyz/manifest.json</string>
 
 </resources>
