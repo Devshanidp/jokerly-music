@@ -522,30 +522,30 @@ export default function PlayerBar() {
 
                 {/* Controls */}
                 <div className="space-y-3">
-                  <div className="flex items-center justify-center gap-5">
+                  <div className="flex items-center justify-center gap-3">
                   <button onClick={toggleShuffle} title="Shuffle"
-                    className={`p-3 rounded-2xl transition-colors ${shuffleEnabled ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
+                    className={`p-2 rounded-2xl transition-colors ${shuffleEnabled ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
                     <Shuffle size={14} />
                   </button>
                   <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
-                    className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
-                    <SkipBack size={22} fill="currentColor" />
+                    className="p-2 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
+                    <SkipBack size={16} fill="currentColor" />
                   </button>
                   <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning} title={isPlaying ? "Pause" : "Play"}
-                    className="btn-accent p-5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="btn-accent p-3.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
                     {playBusy
-                      ? <Loader2 size={24} className="text-white animate-spin" />
+                      ? <Loader2 size={18} className="text-white animate-spin" />
                       : isPlaying
-                        ? <Pause size={24} fill="white" className="text-white" />
-                        : <Play size={24} fill="white" className="text-white" />
+                        ? <Pause size={18} fill="white" className="text-white" />
+                        : <Play size={18} fill="white" className="text-white" />
                     }
                   </button>
                   <button onClick={handleNextTrack} title="Next" disabled={isTransitioning}
-                    className="p-3 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
-                    <SkipForward size={22} fill="currentColor" />
+                    className="p-2 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
+                    <SkipForward size={16} fill="currentColor" />
                   </button>
                   <button onClick={cycleRepeatMode} title="Repeat"
-                    className={`p-3 rounded-2xl transition-colors ${repeatMode !== "off" ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
+                    className={`p-2 rounded-2xl transition-colors ${repeatMode !== "off" ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
                     <RepeatIcon size={14} />
                   </button>
                   </div>
@@ -684,30 +684,30 @@ export default function PlayerBar() {
           </button>
 
           {/* Playback controls */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <button onClick={toggleShuffle} title="Shuffle"
-              className={`p-2 rounded-xl transition-colors ${shuffleEnabled ? "text-[var(--accent)]" : "text-white/30 hover:text-white"}`}>
-              <Shuffle size={14} />
+              className={`p-1.5 rounded-xl transition-colors ${shuffleEnabled ? "text-[var(--accent)]" : "text-white/30 hover:text-white"}`}>
+              <Shuffle size={12} />
             </button>
             <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
-              className="p-2 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
-              <SkipBack size={14} fill="currentColor" />
+              className="p-1.5 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
+              <SkipBack size={12} fill="currentColor" />
             </button>
             <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning}
-              className="btn-accent mx-1 p-3 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
+              className="btn-accent mx-0.5 p-2.5 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
               {(!currentTrack || !isPlaying) && playBusy
-                ? <Loader2 size={14} className="text-white animate-spin" />
+                ? <Loader2 size={12} className="text-white animate-spin" />
                 : isPlaying
-                  ? <Pause size={14} fill="white" className="text-white" />
-                  : <Play size={14} fill="white" className="text-white ml-0.5" />}
+                  ? <Pause size={12} fill="white" className="text-white" />
+                  : <Play size={12} fill="white" className="text-white ml-0.5" />}
             </button>
             <button onClick={handleNextTrack} title="Next" disabled={isTransitioning}
-              className="p-2 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
-              <SkipForward size={14} fill="currentColor" />
+              className="p-1.5 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
+              <SkipForward size={12} fill="currentColor" />
             </button>
             <button onClick={cycleRepeatMode} title={repeatMode === "one" ? "Repeat one" : repeatMode === "all" ? "Repeat all" : "Repeat off"}
-              className={`p-2 rounded-xl transition-colors ${repeatMode !== "off" ? "text-[var(--accent)]" : "text-white/30 hover:text-white"}`}>
-              <RepeatIcon size={14} />
+              className={`p-1.5 rounded-xl transition-colors ${repeatMode !== "off" ? "text-[var(--accent)]" : "text-white/30 hover:text-white"}`}>
+              <RepeatIcon size={12} />
             </button>
             <button onClick={handleLike} title={isLiked ? "Unlike" : "Like"}
               className={`p-2 rounded-xl transition-colors ${isLiked ? "text-[var(--accent)]" : "text-white/30 hover:text-[var(--accent)]"}`}>
