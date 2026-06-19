@@ -714,9 +714,13 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   playIndex: async (index) => {
+    requestAudioFocus();
     const { queue, deviceId, currentTrack, isPlaying, isTransitioning, queueIndex, player } = get();
     if (index < 0 || index >= queue.length) return;
-    if (isTransitioning) return;
+    if (isTransitioning && isPlaying) return;
+    if (isTransitioning && !isPlaying) {
+      set({ isTransitioning: false, pendingIndex: null });
+    }
 
     const nextTrack = queue[index];
 
@@ -761,8 +765,11 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       nextTrack.uri === currentTrack?.uri
     ) {
       if (isPlaying) return;
-      await get().resumePlayback();
-      return;
+      if (player && deviceId) {
+        await get().resumePlayback();
+        if (get().isPlaying) return;
+      }
+      // Fall through to a full play request if resume did not start playback.
     }
     const uriEntries = queue
       .map((track, queueIndex) => ({ uri: track.uri, queueIndex }))
@@ -792,6 +799,9 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         progressMs: 0,
         durationMs: nextTrack.durationMs ?? 0,
       });
+      if (player) {
+        void player.connect().catch(() => {});
+      }
       return;
     }
 
@@ -956,20 +966,41 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
-    const { player, isPlaying, currentTrack, queue, queueIndex } = get();
-    if (!player || isPlaying) return;
+    const { player, isPlaying, currentTrack, queue, queueIndex, deviceId } = get();
+    if (isPlaying) return;
 
     const track = currentTrack ?? (queueIndex >= 0 ? queue[queueIndex] : null);
-    if (!track?.uri) return;
+    if (!track) return;
+
+    if (!track.uri) {
+      if (queueIndex >= 0) {
+        await get().playIndex(queueIndex);
+      }
+      return;
+    }
+
+    if (!player) return;
 
     userPausedIntent = false;
     suppressAutoResumeUntil = 0;
     requestAudioFocus();
     ignorePausedUntil = Date.now() + 2500;
 
+    if (!deviceId) {
+      pendingPlayOnReadyIndex = queueIndex >= 0 ? queueIndex : null;
+      void player.connect().catch(() => {});
+      if (queueIndex >= 0) {
+        await get().playIndex(queueIndex);
+      }
+      return;
+    }
+
     try {
       await player.togglePlay();
     } catch {
+      if (queueIndex >= 0) {
+        await get().playIndex(queueIndex);
+      }
       return;
     }
 

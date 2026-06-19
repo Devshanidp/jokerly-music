@@ -55,7 +55,6 @@ export default function PlayerBar() {
     isQueueOpen,
     sleepTimerEndsAt,
     initializePlayer,
-    togglePlay,
     pausePlayback,
     resumePlayback,
     playIndex,
@@ -243,9 +242,21 @@ export default function PlayerBar() {
     fetchAndPlay(prev);
   }, [ensurePlayingForAction, fetchAndPlay]);
 
-  const handlePlayPause = useCallback(() => {
-    togglePlay();
-  }, [togglePlay]);
+  const handlePlayPause = useCallback(async () => {
+    const state = usePlayerStore.getState();
+    if (state.isTransitioning && !state.isPlaying) {
+      usePlayerStore.setState({ isTransitioning: false, pendingIndex: null });
+    }
+    if (state.isPlaying) {
+      await pausePlayback();
+      return;
+    }
+    if (state.queueIndex >= 0) {
+      await fetchAndPlay(state.queueIndex);
+      return;
+    }
+    await resumePlayback();
+  }, [pausePlayback, fetchAndPlay, resumePlayback]);
 
   const handleQueuePlayIndex = useCallback((index: number) => {
     if (!ensurePlayingForAction("switch")) return false;
@@ -423,7 +434,7 @@ export default function PlayerBar() {
   const pendingTrack = pendingIndex !== null ? queue[pendingIndex] ?? null : null;
 
   // Play button state
-  const playBusy = (!currentTrack || !isPlaying) && (fetching || isTransitioning || (!isPlayerReady && !sdkError));
+  const playBusy = fetching || (isTransitioning && isPlaying);
   const playDisabled = noTrackUri || playBusy;
 
   const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
@@ -495,7 +506,7 @@ export default function PlayerBar() {
                 </div>
 
                 {/* Switching indicator */}
-                {(isTransitioning || (playBusy && !noTrackUri)) && (
+                {(isTransitioning || fetching) && (
                   <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[11px] uppercase tracking-[0.16em] text-white/25">Up Next</p>
@@ -550,7 +561,7 @@ export default function PlayerBar() {
                   </button>
                   <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning} title={isPlaying ? "Pause" : "Play"}
                     className="btn-accent p-3.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
-                    {playBusy
+                    {fetching
                       ? <Loader2 size={18} className="text-white animate-spin" />
                       : isPlaying
                         ? <Pause size={18} fill="white" className="text-white" />
@@ -718,7 +729,7 @@ export default function PlayerBar() {
             </button>
             <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning}
               className="btn-accent mx-0.5 p-2.5 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
-              {(!currentTrack || !isPlaying) && playBusy
+              {(!currentTrack || !isPlaying) && fetching
                 ? <Loader2 size={12} className="text-white animate-spin" />
                 : isPlaying
                   ? <Pause size={12} fill="white" className="text-white" />
