@@ -5,7 +5,7 @@
     ],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.shanid.jokerly",
+      "package_name": "com_shanmusic.com",
       "sha256_cert_fingerprints": [
         "3D:21:82:BA:65:24:AD:1C:70:E9:65:20:99:C2:DF:F1:FE:31:6F:8F:04:55:BE:D7:0F:FD:51:3E:6E:F0:99:ED"
       ]

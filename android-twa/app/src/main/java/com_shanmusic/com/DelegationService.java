@@ -1,4 +1,4 @@
-package com.shanid.jokerly;
+package com_shanmusic.com;
 
 
 
@@ -11,4 +11,3 @@ public class DelegationService extends
         
     }
 }
-
