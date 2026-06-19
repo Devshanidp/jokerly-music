@@ -22,9 +22,9 @@
      the abbreviated format.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.shanid.jokerly"
-    android:versionCode="5"
-    android:versionName="5" >
+    package="com_shanmusic.com"
+    android:versionCode="6"
+    android:versionName="6" >
 
     <uses-sdk
         android:minSdkVersion="21"
@@ -43,13 +43,13 @@
     </queries>
 
     <permission
-        android:name="com.shanid.jokerly.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        android:name="com_shanmusic.com.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         android:protectionLevel="signature" />
 
-    <uses-permission android:name="com.shanid.jokerly.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+    <uses-permission android:name="com_shanmusic.com.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
 
     <application
-        android:name="com.shanid.jokerly.Application"
+        android:name="com_shanmusic.com.Application"
         android:allowBackup="true"
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:extractNativeLibs="true"
@@ -84,7 +84,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.shanid.jokerly.LauncherActivity"
+            android:name="com_shanmusic.com.LauncherActivity"
             android:alwaysRetainTaskState="true"
             android:exported="true"
             android:label="@string/launcherName" >
@@ -164,7 +164,7 @@
         </provider>
 
         <service
-            android:name="com.shanid.jokerly.DelegationService"
+            android:name="com_shanmusic.com.DelegationService"
             android:enabled="@bool/enableNotification"
             android:exported="@bool/enableNotification" >
             <meta-data
@@ -182,7 +182,7 @@
 
         <provider
             android:name="androidx.startup.InitializationProvider"
-            android:authorities="com.shanid.jokerly.androidx-startup"
+            android:authorities="com_shanmusic.com.androidx-startup"
             android:exported="false" >
             <meta-data
                 android:name="androidx.emoji2.text.EmojiCompatInitializer"

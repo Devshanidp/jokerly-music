@@ -3,8 +3,8 @@
 # min_api: 21
 # common_typos_disable
 # {"id":"com.android.tools.r8.mapping","version":"2.2"}
-# pg_map_id: 9d4a836
-# pg_map_hash: SHA-256 9d4a836eb2f822d014b51f92967f05f71159218d5ccfd51278e586c81609de6b
+# pg_map_id: 35acc69
+# pg_map_hash: SHA-256 35acc69c0abd913e15212f658e7098732e7a3e2e55f0496426b2d0e81a3b0cc6
 android.support.customtabs.ICustomTabsCallback -> a.a:
 # {"id":"sourceFile","fileName":"ICustomTabsCallback.java"}
     java.lang.String DESCRIPTOR -> a
@@ -24606,15 +24606,15 @@ com.google.common.collect.UnmodifiableListIterator -> M.s:
     1:4:void <init>():34:34 -> <init>
     1:6:void add(java.lang.Object):46:46 -> add
     1:6:void set(java.lang.Object):59:59 -> set
-com.shanid.jokerly.Application -> com.shanid.jokerly.Application:
+com_shanmusic.com.Application -> com_shanmusic.com.Application:
 # {"id":"sourceFile","fileName":"Application.java"}
     1:4:void <init>():20:20 -> <init>
     1:4:void onCreate():26:26 -> onCreate
-com.shanid.jokerly.DelegationService -> com.shanid.jokerly.DelegationService:
+com_shanmusic.com.DelegationService -> com_shanmusic.com.DelegationService:
 # {"id":"sourceFile","fileName":"DelegationService.java"}
     1:4:void <init>():5:5 -> <init>
     1:4:void onCreate():9:9 -> onCreate
-com.shanid.jokerly.LauncherActivity -> com.shanid.jokerly.LauncherActivity:
+com_shanmusic.com.LauncherActivity -> com_shanmusic.com.LauncherActivity:
 # {"id":"sourceFile","fileName":"LauncherActivity.java"}
     1:4:void <init>():25:25 -> <init>
     1:5:android.net.Uri getLaunchingUrl():48:48 -> i
