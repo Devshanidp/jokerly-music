@@ -36,7 +36,7 @@ export function proxy(req: NextRequest) {
   });
 
   const isLoginPage = pathname === "/login";
-  const isPublicPage = pathname === "/privacy";
+  const isPublicPage = pathname === "/privacy" || pathname === "/delete-account";
 
   if (!hasSession && !isLoginPage && !isPublicPage) {
     return NextResponse.redirect(new URL("/login", req.url));
