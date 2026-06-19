@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState, useRef } from "react";
-import { usePlayerStore } from "@/store/player";
+import { handleDocumentVisibilityChange, usePlayerStore } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
 import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal } from "lucide-react";
 import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
@@ -153,19 +153,28 @@ export default function PlayerBar() {
   }, [session?.accessToken, sessionError, initializePlayer]);
 
   useEffect(() => {
-    const syncOnReturn = () => {
-      if (document.visibilityState !== "visible") return;
-      void usePlayerStore.getState().maintainPlayback(usePlayerStore.getState().isPlaying);
-    };
+    const syncOnReturn = () => handleDocumentVisibilityChange();
     const onPageShow = (event: PageTransitionEvent) => {
       if (event.persisted) syncOnReturn();
     };
     document.addEventListener("visibilitychange", syncOnReturn);
     window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("focus", syncOnReturn);
     return () => {
       document.removeEventListener("visibilitychange", syncOnReturn);
       window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("focus", syncOnReturn);
     };
+  }, []);
+
+  // Recover from transient SDK pauses (backgrounding, buffering, device blips).
+  useEffect(() => {
+    const id = setInterval(() => {
+      const { isPlaying, currentTrack, isOfflinePlayback } = usePlayerStore.getState();
+      if (!isPlaying || !currentTrack || isOfflinePlayback) return;
+      void usePlayerStore.getState().maintainPlayback(true);
+    }, 15_000);
+    return () => clearInterval(id);
   }, []);
 
   const fetchAndPlay = useCallback(async (index: number, options?: { smooth?: boolean }) => {

@@ -152,13 +152,69 @@ let lastLoggedUri = "";
 let suppressAutoResumeUntil = 0;
 let userPausedIntent = false;
 let lastSdkPositionMs = 0;
+let lastConfirmedPlayingAt = 0;
+let wasPlayingBeforeDocumentHidden = false;
 let pendingPlayOnReadyIndex: number | null = null;
 let playRetryTimer: ReturnType<typeof setTimeout> | null = null;
 let playRetryIndex: number | null = null;
 let playRetryCount = 0;
 let playIntentIndex: number | null = null;
 let notReadyTimer: ReturnType<typeof setTimeout> | null = null;
+let autoResumeTimer: ReturnType<typeof setTimeout> | null = null;
 const MAX_PLAY_RETRIES = 4;
+const UNEXPECTED_PAUSE_RECOVERY_MS = 900;
+const RECENTLY_PLAYING_MS = 45_000;
+
+function clearAutoResumeTimer() {
+  if (!autoResumeTimer) return;
+  clearTimeout(autoResumeTimer);
+  autoResumeTimer = null;
+}
+
+function hadRecentPlaybackIntent() {
+  return Date.now() - lastConfirmedPlayingAt < RECENTLY_PLAYING_MS;
+}
+
+function shouldAttemptPlaybackRecovery() {
+  const { currentTrack, isTransitioning } = usePlayerStore.getState();
+  return (
+    !userPausedIntent &&
+    Date.now() >= suppressAutoResumeUntil &&
+    !!currentTrack?.uri &&
+    !isTransitioning &&
+    playIntentIndex === null &&
+    pendingPlayOnReadyIndex === null
+  );
+}
+
+function scheduleUnexpectedPauseRecovery() {
+  if (!shouldAttemptPlaybackRecovery()) return;
+  clearAutoResumeTimer();
+  autoResumeTimer = setTimeout(() => {
+    autoResumeTimer = null;
+    if (!shouldAttemptPlaybackRecovery()) return;
+    void usePlayerStore.getState().maintainPlayback(true);
+  }, UNEXPECTED_PAUSE_RECOVERY_MS);
+}
+
+/** Keep playback in sync when the tab/TWA returns from background. */
+export function handleDocumentVisibilityChange() {
+  if (typeof document === "undefined") return;
+
+  if (document.visibilityState === "hidden") {
+    const { isPlaying, currentTrack } = usePlayerStore.getState();
+    wasPlayingBeforeDocumentHidden =
+      !userPausedIntent &&
+      !!currentTrack?.uri &&
+      (isPlaying || hadRecentPlaybackIntent());
+    return;
+  }
+
+  const shouldResume = wasPlayingBeforeDocumentHidden;
+  wasPlayingBeforeDocumentHidden = false;
+  if (!shouldResume) return;
+  void usePlayerStore.getState().maintainPlayback(true);
+}
 
 function clearPlayRetry(resetState = true) {
   if (!playRetryTimer) return;
@@ -305,6 +361,10 @@ function hydrateFromSdkState(state: WebPlayerState | null) {
     progressMs: state.position,
     durationMs: state.duration,
   });
+
+  if (!state.paused) {
+    lastConfirmedPlayingAt = Date.now();
+  }
 
   updateMediaSessionState(!state.paused);
 
@@ -476,10 +536,36 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       if (notReadyTimer) clearTimeout(notReadyTimer);
       notReadyTimer = setTimeout(() => {
         notReadyTimer = null;
-        if (!get().player) return;
+        const snapshot = get();
+        const activePlayer = snapshot.player;
+        if (!activePlayer) return;
+
+        const shouldReconnect =
+          !userPausedIntent &&
+          !!snapshot.currentTrack?.uri &&
+          (snapshot.isPlaying || hadRecentPlaybackIntent());
+
+        if (shouldReconnect) {
+          Promise.resolve(activePlayer.connect())
+            .then((connected) => {
+              if (!connected) {
+                clearPlayRetry(true);
+                set({ deviceId: null, isPlayerReady: false });
+                return;
+              }
+              set({ isPlayerReady: true, sdkError: null });
+              void get().maintainPlayback(true);
+            })
+            .catch(() => {
+              clearPlayRetry(true);
+              set({ deviceId: null, isPlayerReady: false });
+            });
+          return;
+        }
+
         clearPlayRetry(true);
         set({ deviceId: null, isPlayerReady: false });
-      }, 900);
+      }, 1200);
     });
 
     player.addListener("player_state_changed", (state) => {
@@ -497,6 +583,9 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       const likelyEnded =
         previous.isPlaying &&
         !userPausedIntent &&
+        !previous.isTransitioning &&
+        playIntentIndex === null &&
+        pendingPlayOnReadyIndex === null &&
         !!nextState &&
         nextState.paused &&
         nextState.position === 0 &&
@@ -504,11 +593,27 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         currentUri === previous.currentTrack?.uri;
 
       if (likelyEnded) {
+        clearAutoResumeTimer();
         set({ endedToken: previous.endedToken + 1, isPlaying: false });
         return;
       }
 
+      const unexpectedPause =
+        previous.isPlaying &&
+        !userPausedIntent &&
+        !previous.isTransitioning &&
+        playIntentIndex === null &&
+        pendingPlayOnReadyIndex === null &&
+        !!nextState &&
+        nextState.paused &&
+        Date.now() >= ignorePausedUntil;
+
+      if (unexpectedPause) {
+        scheduleUnexpectedPauseRecovery();
+      }
+
       if (nextState && !nextState.paused) {
+        clearAutoResumeTimer();
         clearPlayRetry();
         playIntentIndex = null;
         userPausedIntent = false;
@@ -694,7 +799,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     userPausedIntent = false;
     playIntentIndex = index;
     clearPlayRetry(index !== playRetryIndex);
-    ignorePausedUntil = Date.now() + 1800;
+    ignorePausedUntil = Date.now() + 2500;
     const hasActivePlayback = !!currentTrack && isPlaying && queueIndex !== index;
     set({
       pendingIndex: index,
@@ -755,6 +860,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       progressMs: 0,
       durationMs: nextTrack.durationMs ?? 0,
     });
+    lastConfirmedPlayingAt = Date.now();
     updateMediaSessionState(true);
   },
 
@@ -773,6 +879,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     userPausedIntent = true;
     playIntentIndex = null;
     suppressAutoResumeUntil = Date.now() + 60_000;
+    clearAutoResumeTimer();
     clearPlayRetry(true);
     ignorePausedUntil = 0;
 
@@ -787,9 +894,9 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   maintainPlayback: async (resumeIfWasPlaying = false) => {
-    if (Date.now() < suppressAutoResumeUntil) return;
+    if (Date.now() < suppressAutoResumeUntil && userPausedIntent) return;
 
-    const { player, volume, isOfflinePlayback, currentTrack, queueIndex, queue } = get();
+    const { player, volume, isOfflinePlayback, currentTrack, queueIndex, queue, isPlaying } = get();
     if (isOfflinePlayback) {
       if (resumeIfWasPlaying && !isOfflinePlaying()) {
         resumeOfflinePlayback();
@@ -818,7 +925,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
 
     const shouldResume =
-      resumeIfWasPlaying &&
+      (resumeIfWasPlaying || isPlaying || hadRecentPlaybackIntent()) &&
       !userPausedIntent &&
       !!get().currentTrack?.uri &&
       (!state || state.paused);
@@ -830,11 +937,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     userPausedIntent = false;
     suppressAutoResumeUntil = 0;
-    ignorePausedUntil = Date.now() + 1800;
+    ignorePausedUntil = Date.now() + 2500;
 
     try {
       await player.togglePlay();
       set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+      lastConfirmedPlayingAt = Date.now();
       updateMediaSessionState(true);
     } catch { /* ignore */ }
   },
@@ -857,7 +965,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     userPausedIntent = false;
     suppressAutoResumeUntil = 0;
     requestAudioFocus();
-    ignorePausedUntil = Date.now() + 1800;
+    ignorePausedUntil = Date.now() + 2500;
 
     try {
       await player.togglePlay();
@@ -866,6 +974,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
 
     set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+    lastConfirmedPlayingAt = Date.now();
     updateMediaSessionState(true);
   },
 
@@ -893,6 +1002,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     userPausedIntent = true;
     playIntentIndex = null;
     suppressAutoResumeUntil = Date.now() + 60_000;
+    clearAutoResumeTimer();
     pendingPlayOnReadyIndex = null;
     clearPlayRetry();
     stopOfflinePlayback();
