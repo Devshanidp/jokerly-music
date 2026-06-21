@@ -85,8 +85,16 @@ if (!match) {
 }
 
 const fingerprint = match[1].toUpperCase();
+// Play App Signing key (Google re-signs Play Store builds with this cert).
+const PLAY_APP_SIGNING_FINGERPRINT =
+  "B8:4F:AD:56:4B:FE:7E:BC:3C:5B:19:D3:F6:26:BF:26:E7:5A:E6:E3:B3:F7:8D:C8:0C:D2:C3:12:ED:9C:27:42";
+
 const assetLinks = JSON.parse(readFileSync(assetLinksPath, "utf8"));
-assetLinks[0].target.sha256_cert_fingerprints = [fingerprint];
+const fingerprints = new Set([fingerprint, PLAY_APP_SIGNING_FINGERPRINT]);
+for (const existing of assetLinks[0].target.sha256_cert_fingerprints ?? []) {
+  fingerprints.add(existing);
+}
+assetLinks[0].target.sha256_cert_fingerprints = [...fingerprints];
 writeFileSync(assetLinksPath, `${JSON.stringify(assetLinks, null, 2)}\n`);
 
 console.log("Keystore ready:", keystorePath);
