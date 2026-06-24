@@ -1,53 +1,47 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
-import { Loader2, LogIn } from "lucide-react";
+import { useMemo } from "react";
+import { LogIn } from "lucide-react";
 import Image from "next/image";
 import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
-import { submitMusicSignIn } from "@/lib/music-auth-client";
+import { AUTH_PROVIDER_ID } from "@/lib/music-auth-client";
+import { AUTH_SITE_URL } from "@/lib/auth-url";
+import { MUSIC_AUTH_SCOPES } from "@/lib/music-scopes";
 
 function loginErrorMessage(code: string | null): string | null {
   if (!code) return null;
   if (code === "Configuration") {
-    return "Server auth is not configured. In Vercel, set AUTH_SECRET, MUSIC_CLIENT_ID, and MUSIC_CLIENT_SECRET, then redeploy.";
+    return "Sign-in could not start. Close the app completely, reopen it, and try again. If it keeps failing, open https://music.devshanidp.xyz/login in Chrome.";
   }
   if (code === "AccessDenied") {
     return "Access denied. Add your email in your app developer console → User Management (Development mode), then try again.";
   }
   if (code === "OAuthCallback" || code === "Callback") {
-    return "Provider rejected the login. In Vercel, set MUSIC_CLIENT_ID and MUSIC_CLIENT_SECRET from your new app credentials, set NEXTAUTH_URL to https://music.devshanidp.xyz, add that redirect URI in app dashboard, then redeploy.";
+    return "Login was rejected. Check MUSIC_CLIENT_ID and MUSIC_CLIENT_SECRET in Vercel, and add https://music.devshanidp.xyz/api/auth/callback/spotify in your app dashboard.";
   }
   return `Sign-in failed (${code}). Open https://music.devshanidp.xyz/login (not www), then try again.`;
 }
 
-export default function LoginClient() {
+type Props = {
+  csrfToken: string;
+};
+
+export default function LoginClient({ csrfToken }: Props) {
   const searchParams = useSearchParams();
   const authError = useMemo(
     () => loginErrorMessage(searchParams.get("error")),
     [searchParams]
   );
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async () => {
-    setLoading(true);
-    try {
-      await submitMusicSignIn(`${window.location.origin}/`);
-    } catch {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#080406" }}>
-      {/* Background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full blur-3xl" style={{ background: "radial-gradient(ellipse, rgba(140, 80, 200,0.18) 0%, transparent 70%)" }} />
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full blur-3xl" style={{ background: "rgba(140, 80, 200,0.06)" }} />
       </div>
 
       <div className="relative w-full max-w-sm text-center space-y-8">
-        {/* Logo */}
         <div className="space-y-3">
           <div className="flex items-center justify-center">
             <Image src="/logo.png" alt={APP_NAME} width={80} height={80} className="rounded-2xl" unoptimized />
@@ -56,7 +50,6 @@ export default function LoginClient() {
           <p className="text-base" style={{ color: "rgba(255,255,255,0.45)" }}>{APP_TAGLINE}</p>
         </div>
 
-        {/* Features */}
         <div className="grid grid-cols-2 gap-3 text-left">
           {[
             { icon: "🔍", label: "Search tracks & artists" },
@@ -80,19 +73,23 @@ export default function LoginClient() {
           </div>
         ) : null}
 
-        {/* Login button */}
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-3 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition-all duration-200 text-base active:scale-[0.98] btn-accent"
+        <form
+          method="POST"
+          action={`/api/auth/signin/${AUTH_PROVIDER_ID}`}
+          className="w-full"
         >
-          {loading ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
+          <input type="hidden" name="csrfToken" value={csrfToken} />
+          <input type="hidden" name="callbackUrl" value={`${AUTH_SITE_URL}/`} />
+          <input type="hidden" name="scope" value={MUSIC_AUTH_SCOPES} />
+          <input type="hidden" name="show_dialog" value="true" />
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center gap-3 text-white font-bold py-4 rounded-2xl transition-all duration-200 text-base active:scale-[0.98] btn-accent"
+          >
             <LogIn size={14} />
-          )}
-          {loading ? "Connecting..." : "Continue with your account"}
-        </button>
+            Continue with your account
+          </button>
+        </form>
 
         <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
           Each person signs in with their own account. Playlists, likes, and pins are saved per account.
