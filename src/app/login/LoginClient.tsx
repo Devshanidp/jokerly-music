@@ -1,12 +1,11 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Loader2, LogIn } from "lucide-react";
 import Image from "next/image";
 import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
-import { MUSIC_SIGN_IN_OPTIONS, AUTH_PROVIDER_ID } from "@/lib/music-auth-client";
+import { submitMusicSignIn } from "@/lib/music-auth-client";
 
 function loginErrorMessage(code: string | null): string | null {
   if (!code) return null;
@@ -32,7 +31,11 @@ export default function LoginClient() {
 
   const handleLogin = async () => {
     setLoading(true);
-    await signIn(AUTH_PROVIDER_ID, { callbackUrl: `${window.location.origin}/` }, MUSIC_SIGN_IN_OPTIONS);
+    try {
+      await submitMusicSignIn(`${window.location.origin}/`);
+    } catch {
+      setLoading(false);
+    }
   };
 
   return (

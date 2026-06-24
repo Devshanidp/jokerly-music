@@ -1,12 +1,12 @@
 "use client";
 
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { X, Settings, Bell, Loader2, RefreshCw } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
-import { MUSIC_SIGN_IN_OPTIONS, AUTH_PROVIDER_ID } from "@/lib/music-auth-client";
+import { submitMusicSignIn } from "@/lib/music-auth-client";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
@@ -16,12 +16,12 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   const [notifMessage, setNotifMessage] = useState<string | null>(null);
 
   const reconnectAccount = () => {
-    void signIn(AUTH_PROVIDER_ID, { callbackUrl: window.location.href }, MUSIC_SIGN_IN_OPTIONS);
+    void submitMusicSignIn(window.location.href);
   };
 
   const switchAccount = async () => {
     await signOut({ redirect: false });
-    void signIn(AUTH_PROVIDER_ID, { callbackUrl: window.location.origin + "/" }, MUSIC_SIGN_IN_OPTIONS);
+    void submitMusicSignIn(window.location.origin + "/");
   };
 
   useEffect(() => {
