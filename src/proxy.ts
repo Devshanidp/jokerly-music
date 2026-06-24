@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const CANONICAL_HOST = "music.devshanidp.xyz";
+
 // NextAuth v5 session cookie names (HTTP vs HTTPS)
 const SESSION_COOKIE = "authjs.session-token";
 const SECURE_SESSION_COOKIE = "__Secure-authjs.session-token";
@@ -7,6 +9,14 @@ const SECURE_SESSION_COOKIE = "__Secure-authjs.session-token";
 const STATIC_FILE_EXT_RE = /\.(?:png|jpg|jpeg|svg|webp|ico|json|webmanifest|txt|xml|js|css|map)$/i;
 
 export function proxy(req: NextRequest) {
+  const host = req.headers.get("host")?.split(":")[0];
+  if (host && host !== CANONICAL_HOST && (host === "www.devshanidp.xyz" || host === "devshanidp.xyz")) {
+    const url = req.nextUrl.clone();
+    url.protocol = "https:";
+    url.host = CANONICAL_HOST;
+    return NextResponse.redirect(url, 308);
+  }
+
   const { pathname } = req.nextUrl;
 
   // Let static assets, API routes, auth, and Digital Asset Links pass through

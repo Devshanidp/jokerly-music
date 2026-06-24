@@ -6,7 +6,7 @@ import Image from "next/image";
 import { X, Settings, Bell, Loader2, RefreshCw } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
-import { submitMusicSignIn } from "@/lib/music-auth-client";
+import { goToMusicLogin } from "@/lib/music-auth-client";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
@@ -16,12 +16,12 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   const [notifMessage, setNotifMessage] = useState<string | null>(null);
 
   const reconnectAccount = () => {
-    void submitMusicSignIn(window.location.href);
+    goToMusicLogin();
   };
 
   const switchAccount = async () => {
     await signOut({ redirect: false });
-    void submitMusicSignIn(window.location.origin + "/");
+    goToMusicLogin();
   };
 
   useEffect(() => {
