@@ -4,13 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Heart, Music, Mic2, Play, Trash2, Loader2, ArrowLeft, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useLikesStore, LikedSong, LikedArtist } from "@/store/likes";
 import { usePlayerStore, PlayableTrack } from "@/store/player";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import { MusicArtist } from "@/types/music-catalog";
 import TransferResultDialog, { TransferResult } from "@/components/transfer/TransferResultDialog";
-import { MUSIC_SIGN_IN_OPTIONS, AUTH_PROVIDER_ID } from "@/lib/music-auth-client";
+import { submitMusicSignIn } from "@/lib/music-auth-client";
 
 export default function LikedClient() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export default function LikedClient() {
   useEffect(() => { load(); }, [load]);
 
   const continueWithMusicAuth = useCallback(() => {
-    void signIn(AUTH_PROVIDER_ID, { callbackUrl: window.location.href }, MUSIC_SIGN_IN_OPTIONS);
+    void submitMusicSignIn(window.location.href);
   }, []);
 
   const playSong = (song: LikedSong, index: number) => {
