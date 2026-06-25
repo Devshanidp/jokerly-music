@@ -12,5 +12,5 @@ export { AUTH_PROVIDER_ID };
 
 /** Send user to login page (CSRF cookie is set server-side there). */
 export function goToMusicLogin(): void {
-  window.location.assign(`${AUTH_SITE_URL}/login`);
+  window.location.assign("/login/start");
 }

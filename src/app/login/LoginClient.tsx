@@ -1,38 +1,49 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useEffect, useMemo } from "react";
 import { LogIn } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
-import { AUTH_PROVIDER_ID } from "@/lib/music-auth-client";
-import { AUTH_SITE_URL } from "@/lib/auth-url";
-import { MUSIC_AUTH_SCOPES } from "@/lib/music-scopes";
 
 function loginErrorMessage(code: string | null): string | null {
   if (!code) return null;
   if (code === "Configuration") {
-    return "Sign-in could not start. Close the app completely, reopen it, and try again. If it keeps failing, open https://music.devshanidp.xyz/login in Chrome.";
+    return "Login session expired or was blocked. Tap Continue again. If it keeps failing, open https://music.devshanidp.xyz/login/start in Chrome, sign in there, then reopen the app.";
   }
   if (code === "AccessDenied") {
-    return "Access denied. Add your email in your app developer console → User Management (Development mode), then try again.";
+    return "Access denied. Add your email in Spotify Developer Dashboard → User Management (Development mode), then try again.";
   }
   if (code === "OAuthCallback" || code === "Callback") {
-    return "Login was rejected. Check MUSIC_CLIENT_ID and MUSIC_CLIENT_SECRET in Vercel, and add https://music.devshanidp.xyz/api/auth/callback/spotify in your app dashboard.";
+    return "Spotify rejected the login. Confirm your Spotify account is active, then try again.";
   }
-  return `Sign-in failed (${code}). Open https://music.devshanidp.xyz/login (not www), then try again.`;
+  return `Sign-in failed (${code}). Tap Continue to try again.`;
 }
 
-type Props = {
-  csrfToken: string;
-};
-
-export default function LoginClient({ csrfToken }: Props) {
+export default function LoginClient() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const authError = useMemo(
     () => loginErrorMessage(searchParams.get("error")),
     [searchParams]
   );
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const userId = (session as { userId?: string } | null)?.userId?.trim();
+    if (userId && session?.accessToken) router.replace("/");
+  }, [status, session, router]);
+
+  // Drop stale ?error= from the URL after showing it once.
+  useEffect(() => {
+    if (!searchParams.get("error")) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("error");
+    window.history.replaceState({}, "", url.pathname + url.search);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#080406" }}>
@@ -73,23 +84,13 @@ export default function LoginClient({ csrfToken }: Props) {
           </div>
         ) : null}
 
-        <form
-          method="POST"
-          action={`/api/auth/signin/${AUTH_PROVIDER_ID}`}
-          className="w-full"
+        <Link
+          href="/login/start"
+          className="w-full flex items-center justify-center gap-3 text-white font-bold py-4 rounded-2xl transition-all duration-200 text-base active:scale-[0.98] btn-accent"
         >
-          <input type="hidden" name="csrfToken" value={csrfToken} />
-          <input type="hidden" name="callbackUrl" value={`${AUTH_SITE_URL}/`} />
-          <input type="hidden" name="scope" value={MUSIC_AUTH_SCOPES} />
-          <input type="hidden" name="show_dialog" value="true" />
-          <button
-            type="submit"
-            className="w-full flex items-center justify-center gap-3 text-white font-bold py-4 rounded-2xl transition-all duration-200 text-base active:scale-[0.98] btn-accent"
-          >
-            <LogIn size={14} />
-            Continue with your account
-          </button>
-        </form>
+          <LogIn size={14} />
+          Continue with your account
+        </Link>
 
         <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
           Each person signs in with their own account. Playlists, likes, and pins are saved per account.
