@@ -1,0 +1,14 @@
+HTTP/1.1 200 OK
+Age: 0
+Cache-Control: no-store
+Content-Type: text/html; charset=utf-8
+Date: Wed, 24 Jun 2026 17:12:19 GMT
+Server: Vercel
+Set-Cookie: __Host-authjs.csrf-token=ac4740a8d31e325072e5d6c430522ab622676e7f9f80547e62549e0810250caf%7Cc08b98463d23453fa74cf7ab6c652a2ec6f50a1a7bbaed4bdba23d982a710230; Path=/; HttpOnly; Secure; SameSite=Lax
+Set-Cookie: __Secure-authjs.callback-url=https%3A%2F%2Fmusic.devshanidp.xyz; Path=/; HttpOnly; Secure; SameSite=Lax
+Strict-Transport-Security: max-age=63072000
+X-Matched-Path: /login/start
+X-Vercel-Cache: MISS
+X-Vercel-Id: bom1::iad1::f78mc-1782321137859-ff2764090c76
+Transfer-Encoding: chunked
+
