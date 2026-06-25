@@ -68,6 +68,7 @@ const musicProvider: NextAuthConfig["providers"][number] = {
   type: "oauth",
   clientId: musicClientId(),
   clientSecret: musicClientSecret(),
+  // State only — PKCE verifier cookies are often lost on mobile TWA round-trips.
   checks: ["state"],
   authorization: {
     url: CATALOG_ACCOUNTS_AUTHORIZE,
@@ -105,21 +106,24 @@ const musicProvider: NextAuthConfig["providers"][number] = {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  session: { strategy: "jwt" },
   providers: [musicProvider],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, user }) {
       if (account) {
         const userId =
           account.providerAccountId ??
-          (typeof account.userId === "string" ? account.userId : undefined) ??
+          (user && "id" in user ? String(user.id) : undefined) ??
           (typeof token.sub === "string" ? token.sub : undefined);
         return {
           ...token,
+          sub: userId ?? token.sub,
           accessToken: account.access_token,
           refreshToken: account.refresh_token ?? (token as MusicToken).refreshToken,
           accessTokenExpires: account.expires_at ? account.expires_at * 1000 : Date.now() + 3600 * 1000,
           userId,
           authScope: account.scope,
+          error: undefined,
         };
       }
       const musicToken = token as MusicToken;
@@ -127,6 +131,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const withUserId = userId && !musicToken.userId ? { ...musicToken, userId } : musicToken;
       const expiresAt = withUserId.accessTokenExpires ?? 0;
       if (Date.now() < expiresAt - 60_000) return withUserId;
+      if (!withUserId.refreshToken) return withUserId;
       return refreshAccessToken(withUserId);
     },
     async session({ session, token }) {
