@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Home, Search, ListMusic, Sparkles, Pin, Heart, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_NAME } from "@/lib/branding";
+import { APP_LOGO, APP_NAME } from "@/lib/branding";
 
 const nav = [
   { href: "/", icon: Home, label: "Home" },
@@ -22,10 +23,17 @@ export default function Sidebar() {
   return (
     <aside className="w-60 bg-black border-r border-zinc-900 flex flex-col h-full shrink-0">
       <div className="p-6 border-b border-zinc-900">
-        <h1 className="text-2xl font-bold tracking-tight">
-          <span className="text-[var(--accent)]">🎵</span>{" "}
-          <span className="text-white">{APP_NAME}</span>
-        </h1>
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image
+            src={APP_LOGO}
+            alt={APP_NAME}
+            width={36}
+            height={36}
+            className="rounded-xl"
+            unoptimized
+          />
+          <span className="text-white text-xl font-bold tracking-tight">{APP_NAME}</span>
+        </Link>
       </div>
 
       <nav className="flex flex-col gap-1 px-3 pt-3">

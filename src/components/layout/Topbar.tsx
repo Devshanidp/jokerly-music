@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { X, Settings, Bell, Loader2, RefreshCw } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
+import { APP_LOGO, APP_NAME, APP_TAGLINE } from "@/lib/branding";
 import { goToMusicLogin } from "@/lib/music-auth-client";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
@@ -129,7 +129,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
         </div>
         <div className="p-5 space-y-5">
           <div className="flex items-center gap-3">
-            <Image src="/icon-96.png" alt={APP_NAME} width={48} height={48} className="rounded-xl ring-2 ring-white/10" unoptimized />
+            <Image src={APP_LOGO} alt={APP_NAME} width={48} height={48} className="rounded-xl ring-2 ring-white/10" unoptimized />
             <div>
               <p className="text-white font-semibold text-sm">{session?.user?.name}</p>
               <p className="text-white/40 text-xs mt-0.5">{session?.user?.email}</p>
@@ -260,7 +260,7 @@ export default function Topbar() {
             onPointerDown={(e) => go(e, "/")}
             onClick={(e) => e.preventDefault()}
             className="flex items-center gap-2.5 shrink-0">
-            <Image src="/icon-96.png" alt={APP_NAME} width={28} height={28} className="rounded-xl" unoptimized />
+            <Image src={APP_LOGO} alt={APP_NAME} width={28} height={28} className="rounded-xl" unoptimized />
             <div className="flex flex-col items-start leading-tight">
               <span className="text-[var(--accent)] font-bold text-xs sm:text-sm tracking-tight">{APP_NAME}</span>
               <span className="text-[10px] text-white/40 font-medium">{APP_TAGLINE}</span>
@@ -271,7 +271,7 @@ export default function Topbar() {
           <div className="flex items-center gap-2">
             <button onClick={() => setShowSettings(true)}
               className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-white/[0.07] transition-colors">
-              <Image src="/icon-96.png" alt={APP_NAME} width={26} height={26} className="rounded-full ring-1 ring-white/20" unoptimized />
+              <Image src={APP_LOGO} alt={APP_NAME} width={26} height={26} className="rounded-full ring-1 ring-white/20" unoptimized />
               <Settings size={14} className="text-white/30" />
             </button>
           </div>

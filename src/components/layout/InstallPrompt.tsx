@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
-import { APP_NAME } from "@/lib/branding";
+import { APP_ICON_192, APP_NAME } from "@/lib/branding";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -77,7 +77,7 @@ export default function InstallPrompt() {
       >
         {/* Icon */}
         <div className="relative w-12 h-12 rounded-2xl overflow-hidden shrink-0 shadow-lg">
-          <Image src="/icon-192.png" alt={APP_NAME} fill sizes="48px" className="object-cover" unoptimized />
+          <Image src={APP_ICON_192} alt={APP_NAME} fill sizes="48px" className="object-cover" unoptimized />
         </div>
 
         {/* Text */}

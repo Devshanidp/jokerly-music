@@ -6,7 +6,7 @@ import { useEffect, useMemo } from "react";
 import { LogIn } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
+import { APP_LOGO, APP_NAME, APP_TAGLINE } from "@/lib/branding";
 
 function loginErrorMessage(code: string | null): string | null {
   if (!code) return null;
@@ -55,7 +55,7 @@ export default function LoginClient() {
       <div className="relative w-full max-w-sm text-center space-y-8">
         <div className="space-y-3">
           <div className="flex items-center justify-center">
-            <Image src="/logo.png" alt={APP_NAME} width={80} height={80} className="rounded-2xl" unoptimized />
+            <Image src={APP_LOGO} alt={APP_NAME} width={80} height={80} className="rounded-2xl" unoptimized />
           </div>
           <h1 className="text-5xl font-bold text-white tracking-tight">{APP_NAME}</h1>
           <p className="text-base" style={{ color: "rgba(255,255,255,0.45)" }}>{APP_TAGLINE}</p>
