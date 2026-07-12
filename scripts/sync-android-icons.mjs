@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const source = join(root, "public", "icon-512.png");
@@ -37,37 +37,19 @@ const drawableSizes = {
   "drawable-xxxhdpi": 192,
 };
 
-function resize(outPath, size) {
+async function resize(outPath, size) {
   mkdirSync(dirname(outPath), { recursive: true });
-  execFileSync(
-    "magick",
-    [source, "-resize", `${size}x${size}`, outPath],
-    { stdio: "inherit" }
-  );
+  await sharp(source).resize(size, size, { fit: "cover" }).png().toFile(outPath);
 }
 
-function writeIcons(map, fileName) {
+async function writeIcons(map, fileName) {
   for (const [folder, size] of Object.entries(map)) {
-    resize(join(resRoot, folder, fileName), size);
+    await resize(join(resRoot, folder, fileName), size);
   }
 }
 
-try {
-  writeIcons(launcherSizes, "ic_launcher.png");
-  writeIcons(maskableSizes, "ic_maskable.png");
-  writeIcons(drawableSizes, "splash.png");
-  writeIcons(drawableSizes, "ic_notification_icon.png");
-  console.log("Android icons synced from public/icon-512.png");
-} catch {
-  for (const [folder] of Object.entries(launcherSizes)) {
-    mkdirSync(join(resRoot, folder), { recursive: true });
-    copyFileSync(source, join(resRoot, folder, "ic_launcher.png"));
-    copyFileSync(source, join(resRoot, folder, "ic_maskable.png"));
-  }
-  for (const folder of Object.keys(drawableSizes)) {
-    mkdirSync(join(resRoot, folder), { recursive: true });
-    copyFileSync(source, join(resRoot, folder, "splash.png"));
-    copyFileSync(source, join(resRoot, folder, "ic_notification_icon.png"));
-  }
-  console.log("ImageMagick not found; copied icon-512.png to Android resource folders.");
-}
+await writeIcons(launcherSizes, "ic_launcher.png");
+await writeIcons(maskableSizes, "ic_maskable.png");
+await writeIcons(drawableSizes, "splash.png");
+await writeIcons(drawableSizes, "ic_notification_icon.png");
+console.log("Android icons synced from public/icon-512.png");
