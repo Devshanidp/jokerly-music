@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { createPortal } from "react-dom";
 import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X, LayoutGrid, List, Shuffle } from "lucide-react";
@@ -160,6 +161,8 @@ function CoverArt({ tracks, imageUrl, name, size = 160 }: { tracks?: PlaylistTra
 
 // ── Main component ──────────────────────────────────────────────────────────
 export default function PlaylistsClient() {
+  const searchParams = useSearchParams();
+  const openPlaylistId = searchParams.get("id");
   const [playlists, setPlaylists] = useState<MusicPlaylist[]>([]);
   const [viewMode, setViewMode] = useState<PlaylistViewMode>("grid");
   const [loading, setLoading] = useState(true);
@@ -283,6 +286,13 @@ export default function PlaylistsClient() {
     }, 0);
     return () => window.clearTimeout(id);
   }, [load]);
+
+  // Open playlist from ?id=... (e.g. after Magic Mix creates one)
+  useEffect(() => {
+    if (!openPlaylistId || loading || playlists.length === 0) return;
+    if (!playlists.some((p) => p.id === openPlaylistId)) return;
+    setSelectedId(openPlaylistId);
+  }, [openPlaylistId, loading, playlists]);
 
   useEffect(() => {
     const fetchPinnedArtists = () =>

@@ -45,8 +45,7 @@ export default function MagicMixClient() {
       }
 
       showToast(`Created ✨ ${data.name} with ${data.trackCount} tracks!`);
-      // Redirect to the newly created playlist
-      router.push(`/playlist/${data.playlistId}`);
+      router.push(`/playlists?id=${encodeURIComponent(data.playlistId)}`);
       
     } catch (error: any) {
       console.error(error);
