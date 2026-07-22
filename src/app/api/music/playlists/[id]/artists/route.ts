@@ -12,7 +12,7 @@ import {
   type MixArtist,
 } from "@/lib/playlist-meta";
 import { searchCatalog } from "@/lib/music-api";
-import { createClient } from "@/lib/appwrite/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60;

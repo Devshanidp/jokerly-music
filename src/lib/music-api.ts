@@ -29,7 +29,7 @@ async function catalogFetch(url: string, accessToken: string, timeoutMs = 8000):
 }
 
 function buildSearchUrl(query: string, type: string, limit: number, offset = 0) {
-  const safeLimit = Math.floor(Math.max(1, Math.min(limit, 50)));
+  const safeLimit = Math.floor(Math.max(1, Math.min(limit, 10)));
   let url = `${CATALOG_API_V1}/search?q=${encodeURIComponent(query)}&type=${type}&limit=${safeLimit}`;
   if (offset > 0) url += `&offset=${Math.min(Math.floor(offset), 100)}`;
   return url;

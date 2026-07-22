@@ -1,11 +1,11 @@
 import { getApiSession, unauthorized } from "@/lib/api-auth";
-import { createClient, isAppwriteConfigured } from "@/lib/appwrite/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
   const session = await getApiSession();
   if (!session) return unauthorized();
-  if (!isAppwriteConfigured()) return NextResponse.json([]);
+  if (!isSupabaseConfigured()) return NextResponse.json([]);
 
   try {
     const supabase = await createClient();
@@ -31,7 +31,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getApiSession();
   if (!session) return unauthorized();
-  if (!isAppwriteConfigured()) {
+  if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const session = await getApiSession();
   if (!session) return unauthorized();
-  if (!isAppwriteConfigured()) {
+  if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Database not configured" }, { status: 503 });
   }
 

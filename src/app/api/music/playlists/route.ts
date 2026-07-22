@@ -1,6 +1,6 @@
 import { getApiSession, unauthorized } from "@/lib/api-auth";
 import { compilePlaylist, parseSelectedArtists } from "@/lib/compile-playlist";
-import { createClient } from "@/lib/appwrite/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60;
@@ -61,6 +61,8 @@ export async function POST(req: NextRequest) {
       name,
       description,
       image: "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
     .select("id, name, description, image")
     .single();

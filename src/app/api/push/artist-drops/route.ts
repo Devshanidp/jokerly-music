@@ -2,7 +2,7 @@ import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
 import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { APP_NAME } from "@/lib/branding";
 import { getWebPush, toPushPayload } from "@/lib/push";
-import { createClient } from "@/lib/appwrite/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 function isPushStorageUnavailable(error: { code?: string; message?: string } | null) {

@@ -1,5 +1,5 @@
 import { getApiSessionWithToken } from "@/lib/api-auth";
-import { createClient } from "@/lib/appwrite/server";
+import { createClient } from "@/lib/supabase/server";
 import { getArtistTopTracks } from "@/lib/music-api";
 import { normalizeSimilarTrack } from "@/lib/similar-tracks";
 import { NextRequest, NextResponse } from "next/server";

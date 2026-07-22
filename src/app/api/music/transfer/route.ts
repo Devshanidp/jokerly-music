@@ -4,7 +4,7 @@ import { APP_NAME } from "@/lib/branding";
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { refreshAccessToken } from "@/lib/auth";
-import { createClient } from "@/lib/appwrite/server";
+import { createClient } from "@/lib/supabase/server";
 import { catalogIdFromUri, isCatalogTrackUri } from "@/lib/track-uri";
 import { externalWebUrl } from "@/types/music-catalog";
 type TransferAction = "liked" | "playlist";

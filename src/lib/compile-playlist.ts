@@ -406,6 +406,7 @@ export async function compilePlaylist(
     track_artist: track.artist,
 
     position: (count ?? 0) + index + 1,
+    added_at: new Date().toISOString(),
 
   }));
 

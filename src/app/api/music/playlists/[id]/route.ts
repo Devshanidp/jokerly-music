@@ -1,5 +1,5 @@
 import { getApiSession, unauthorized } from "@/lib/api-auth";
-import { createClient } from "@/lib/appwrite/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -66,13 +66,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       track_image: trackImage ?? null,
       track_artist: trackArtist ?? null,
       position: (count ?? 0) + 1,
+      added_at: new Date().toISOString(),
     })
     .select()
     .single();
 
   if (error) {
     // Unique constraint violation — track already in playlist, treat as success
-    if ((error as { code?: string }).code === "23505") {
+    if ((error as { code?: string | number }).code === "23505" || (error as { code?: string | number }).code == 409) {
       return NextResponse.json({ alreadyExists: true }, { status: 200 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });

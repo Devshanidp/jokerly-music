@@ -1,5 +1,5 @@
 import { getApiSession } from "@/lib/api-auth";
-import { createClient } from "@/lib/appwrite/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
