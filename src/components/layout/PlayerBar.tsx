@@ -400,7 +400,7 @@ export default function PlayerBar() {
   if (sdkError && !currentTrack) {
     return (
       <div className="theme-dark fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 border-t border-white/10 px-4 py-3 flex items-center justify-between gap-3"
-        style={{ background: "#111827", backdropFilter: "blur(20px)" }}>
+        style={{ background: "#000000", backdropFilter: "blur(20px)" }}>
         <p className="text-[var(--accent)] text-sm truncate">{sdkError}</p>
         {sdkError.includes("Premium") ||
         sdkError.includes("auth") ||
@@ -464,37 +464,39 @@ export default function PlayerBar() {
 
       {/* ── Expanded Now Playing ── */}
       {expanded && (
-        <div className="theme-dark fixed inset-0 z-50 p-4 sm:p-6 flex items-end sm:items-center justify-center"
-          style={{ background: "rgba(17,24,39,0.72)", backdropFilter: "blur(28px)" }}
+        <div className="fixed inset-0 z-50 p-4 sm:p-6 flex items-end sm:items-center justify-center"
+          style={{ background: "rgba(17,24,39,0.55)", backdropFilter: "blur(28px)" }}
           onClick={() => {
             const wasPlaying = usePlayerStore.getState().isPlaying;
             usePlayerStore.setState({ isPlayerExpanded: false });
             void usePlayerStore.getState().maintainPlayback(wasPlaying);
           }}>
           <div className="w-full max-w-sm max-h-[92vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="rounded-3xl border border-white/10 p-5 shadow-2xl shadow-black/40 flex flex-col min-h-0 max-h-full overflow-hidden"
-              style={{ background: "#111827" }}>
+            <div
+              className="theme-dark box-double box-ink rounded-3xl p-5 shadow-2xl shadow-black/40 flex flex-col min-h-0 max-h-full overflow-hidden"
+              style={{ background: "#000000" }}
+            >
               <div className="mb-4 flex items-center justify-between shrink-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/30">Now Playing</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/40">Now Playing</p>
                 <button onClick={() => {
                   const wasPlaying = usePlayerStore.getState().isPlaying;
                   usePlayerStore.setState({ isPlayerExpanded: false });
                   void usePlayerStore.getState().maintainPlayback(wasPlaying);
                 }}
-                  className="rounded-xl p-2 text-white/30 hover:bg-white/[0.07] hover:text-white transition-colors">
+                  className="rounded-xl p-2 text-white/40 hover:bg-white/10 hover:text-white transition-colors">
                   <ChevronDown size={14} />
                 </button>
               </div>
 
               <div className="space-y-5 overflow-y-auto min-h-0 flex-1 pr-0.5 scrollbar-hide">
                 {/* Album art */}
-                <div className="relative mx-auto aspect-square w-full max-h-[38vh] overflow-hidden rounded-3xl shadow-2xl shadow-black/60 shrink-0"
-                  style={{ background: "var(--card)" }}>
+                <div className="relative mx-auto aspect-square w-full max-h-[38vh] overflow-hidden rounded-3xl shadow-xl shadow-black/20 shrink-0 border-2 border-[#EF4444]/40"
+                  style={{ background: "#121212" }}>
                   {currentTrack.image ? (
                     <Image src={currentTrack.image} alt={currentTrack.name} fill unoptimized className="object-cover" sizes="400px" />
                   ) : (
                     <div className="flex h-full items-center justify-center">
-                      <Music size={56} className="text-white/10" />
+                      <Music size={56} className="text-[#EF4444]/25" />
                     </div>
                   )}
                 </div>
@@ -502,19 +504,19 @@ export default function PlayerBar() {
                 {/* Title */}
                 <div className="min-w-0 text-center">
                   <p className="truncate text-xl font-bold text-white">{currentTrack.name}</p>
-                  <p className="mt-0.5 truncate text-sm text-white/40">{currentTrack.artist}</p>
+                  <p className="mt-0.5 truncate text-sm text-white/55">{currentTrack.artist}</p>
                 </div>
 
                 {/* Switching indicator */}
                 {(isTransitioning || fetching) && (
-                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2 flex items-center justify-between gap-3">
+                  <div className="rounded-2xl border border-[#EF4444]/25 bg-[#EF4444]/5 px-3 py-2 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[11px] uppercase tracking-[0.16em] text-white/25">Up Next</p>
+                      <p className="text-[11px] uppercase tracking-[0.16em] text-[#EF4444]/60">Up Next</p>
                       <p className="text-sm text-white truncate">{pendingTrack?.name ?? currentTrack.name}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Loader2 size={13} className="animate-spin text-white/30" />
-                      <span className="text-xs text-white/30">
+                      <Loader2 size={13} className="animate-spin text-[#EF4444]" />
+                      <span className="text-xs text-white/50">
                         {fetching ? "Loading track…" : isTransitioning ? "Switching…" : "Connecting…"}
                       </span>
                     </div>
@@ -523,12 +525,12 @@ export default function PlayerBar() {
 
                 {/* Progress */}
                 <div className="space-y-1.5">
-                  <div className="group h-1.5 cursor-pointer rounded-full bg-white/[0.08]" onClick={handleSeek}>
+                  <div className="group h-1.5 cursor-pointer rounded-full bg-white/10" onClick={handleSeek}>
                     <div className="relative h-full rounded-full btn-nav-active" style={{ width: `${progressRatio * 100}%` }}>
-                      <div className="absolute right-0 top-1/2 h-3.5 w-3.5 translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 transition-opacity group-hover:opacity-100 shadow-md" />
+                      <div className="absolute right-0 top-1/2 h-3.5 w-3.5 translate-x-1/2 -translate-y-1/2 rounded-full bg-[#EF4444] opacity-0 transition-opacity group-hover:opacity-100 shadow-md" />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs tabular-nums text-white/25">
+                  <div className="flex items-center justify-between text-xs tabular-nums text-white/45">
                     <span>{formatTime(progressMs / 1000)}</span>
                     <span>{formatTime(durationMs / 1000)}</span>
                   </div>
@@ -536,27 +538,27 @@ export default function PlayerBar() {
 
                 {/* Volume */}
                 <div className="flex items-center gap-3">
-                  <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="shrink-0 text-white/30 hover:text-white transition-colors">
+                  <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="shrink-0 text-[#EF4444] hover:text-[#DC2626] transition-colors">
                     <VolumeIcon size={14} />
                   </button>
                   <input
                     type="range" min={0} max={1} step={0.02} value={volume}
                     onChange={(e) => setVolume(parseFloat(e.target.value))}
-                    className="flex-1 h-1 rounded-full appearance-none cursor-pointer accent-[var(--accent)]"
-                    style={{ background: `linear-gradient(to right, var(--accent) ${volume * 100}%, rgba(255,255,255,0.12) ${volume * 100}%)` }}
+                    className="flex-1 h-1 rounded-full appearance-none cursor-pointer accent-[#EF4444]"
+                    style={{ background: `linear-gradient(to right, #EF4444 ${volume * 100}%, rgba(17,24,39,0.12) ${volume * 100}%)` }}
                   />
-                  <span className="text-xs tabular-nums text-white/25 w-7 text-right">{Math.round(volume * 100)}</span>
+                  <span className="text-xs tabular-nums text-white/45 w-7 text-right">{Math.round(volume * 100)}</span>
                 </div>
 
                 {/* Controls */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-center gap-3">
                   <button onClick={toggleShuffle} title="Shuffle"
-                    className={`p-2 rounded-2xl transition-colors ${shuffleEnabled ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
+                    className={`p-2 rounded-2xl transition-colors ${shuffleEnabled ? "text-[#EF4444] bg-[#EF4444]/10" : "text-[#EF4444]/55 hover:text-[#EF4444] hover:bg-[#EF4444]/10"}`}>
                     <Shuffle size={14} />
                   </button>
                   <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
-                    className="p-2 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
+                    className="p-2 rounded-2xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
                     <SkipBack size={16} fill="currentColor" />
                   </button>
                   <button onClick={handlePlayPause} disabled={playDisabled || (isTransitioning && isPlaying)} title={isPlaying ? "Pause" : "Play"}
@@ -569,66 +571,66 @@ export default function PlayerBar() {
                     }
                   </button>
                   <button onClick={handleNextTrack} title="Next" disabled={isTransitioning}
-                    className="p-2 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
+                    className="p-2 rounded-2xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
                     <SkipForward size={16} fill="currentColor" />
                   </button>
                   <button onClick={cycleRepeatMode} title="Repeat"
-                    className={`p-2 rounded-2xl transition-colors ${repeatMode !== "off" ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/25 hover:text-white hover:bg-white/[0.07]"}`}>
+                    className={`p-2 rounded-2xl transition-colors ${repeatMode !== "off" ? "text-[#EF4444] bg-[#EF4444]/10" : "text-[#EF4444]/55 hover:text-[#EF4444] hover:bg-[#EF4444]/10"}`}>
                     <RepeatIcon size={14} />
                   </button>
                   </div>
                   <div className="flex items-center justify-center gap-2">
                     <button onClick={handleLike} title={isLiked ? "Unlike" : "Like"}
-                      className={`shrink-0 p-2.5 rounded-2xl transition-colors ${isLiked ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/30 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"}`}>
+                      className={`shrink-0 p-2.5 rounded-2xl transition-colors ${isLiked ? "text-[#EF4444] bg-[#EF4444]/10" : "text-[#EF4444] hover:bg-[#EF4444]/10"}`}>
                       <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
                     </button>
                     <TrackDownloadButton
                       track={currentDownloadTrack}
                       size={14}
                       alwaysVisible
-                      className="p-2.5 rounded-2xl"
+                      className="p-2.5 rounded-2xl !text-[#EF4444] hover:!bg-[#EF4444]/10"
                     />
                     <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
-                      className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors disabled:opacity-40">
+                      className="shrink-0 p-2.5 rounded-2xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors disabled:opacity-40">
                       {resolvingAdd ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
                     </button>
                     <button onClick={() => { usePlayerStore.setState({ isQueueOpen: true, isPlayerExpanded: false }); }} title="Queue"
-                      className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-white hover:bg-white/[0.07] transition-colors">
+                      className="shrink-0 p-2.5 rounded-2xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
                       <ListOrdered size={14} />
                     </button>
                     <button onClick={() => setShowLyrics(true)} title="Sing-along lyrics"
-                      className={`shrink-0 p-2.5 rounded-2xl transition-colors ${showLyrics ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}>
+                      className={`shrink-0 p-2.5 rounded-2xl transition-colors ${showLyrics ? "text-[#EF4444] bg-[#EF4444]/10" : "text-[#EF4444] hover:bg-[#EF4444]/10"}`}>
                       <MicVocal size={14} />
                     </button>
                     <div className="relative">
                       <button
                         onClick={() => setShowTimerPicker((v) => !v)}
                         title="Sleep timer"
-                        className={`shrink-0 p-2.5 rounded-2xl transition-colors ${sleepTimerEndsAt ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}
+                        className={`shrink-0 p-2.5 rounded-2xl transition-colors ${sleepTimerEndsAt ? "text-[#EF4444] bg-[#EF4444]/10" : "text-[#EF4444] hover:bg-[#EF4444]/10"}`}
                       >
                         <Timer size={14} />
                       </button>
                       {timerRemaining && (
-                        <span className="absolute -top-1 -right-1 text-[9px] font-bold text-[var(--accent)] bg-black/80 px-1 rounded-full leading-tight">
+                        <span className="absolute -top-1 -right-1 text-[9px] font-bold text-white bg-[#EF4444] px-1 rounded-full leading-tight">
                           {timerRemaining}
                         </span>
                       )}
                       {showTimerPicker && (
-                        <div className="absolute bottom-full right-0 mb-2 rounded-2xl border border-white/10 p-3 shadow-2xl z-10 w-44"
-                          style={{ background: "#1F2937" }}>
-                          <p className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Sleep Timer</p>
+                        <div className="absolute bottom-full right-0 mb-2 rounded-2xl border-2 border-[#EF4444] p-3 shadow-2xl z-10 w-44"
+                          style={{ background: "#000000" }}>
+                          <p className="text-[10px] text-[#EF4444]/80 uppercase tracking-widest mb-2">Sleep Timer</p>
                           <div className="grid grid-cols-4 gap-1.5">
                             {[15, 30, 45, 60].map((m) => (
                               <button key={m} onClick={() => { setSleepTimer(m); setShowTimerPicker(false); }}
-                                className={`py-2 rounded-xl text-xs font-medium transition-colors ${sleepTimerEndsAt ? "btn-nav-active text-white" : "text-white/70 hover:bg-white/[0.12]"}`}
-                                style={!sleepTimerEndsAt ? { background: "rgba(255,255,255,0.07)" } : {}}>
+                                className={`py-2 rounded-xl text-xs font-medium transition-colors ${sleepTimerEndsAt ? "btn-nav-active text-white" : "text-white/70 hover:bg-[#EF4444]/10"}`}
+                                style={!sleepTimerEndsAt ? { background: "rgba(255,255,255,0.08)" } : {}}>
                                 {m}m
                               </button>
                             ))}
                           </div>
                           {sleepTimerEndsAt && (
                             <button onClick={() => { setSleepTimer(null); setShowTimerPicker(false); }}
-                              className="mt-2 w-full py-1.5 rounded-xl text-xs text-white/40 hover:text-white hover:bg-white/[0.07] transition-colors">
+                              className="mt-2 w-full py-1.5 rounded-xl text-xs text-[#EF4444]/70 hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
                               Cancel Timer
                             </button>
                           )}
@@ -640,31 +642,31 @@ export default function PlayerBar() {
                   {showLyrics && (
                     <div
                       className="fixed inset-0 z-[999] flex items-center justify-center p-4"
-                      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}
+                      style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)" }}
                       onClick={() => setShowLyrics(false)}
                     >
                       <div
-                        className="theme-dark relative w-full max-w-lg h-[min(85vh,720px)] rounded-3xl border border-white/10 flex flex-col overflow-hidden shadow-2xl"
-                        style={{ background: "#111827" }}
+                        className="theme-dark box-double box-ink relative w-full max-w-lg h-[min(85vh,720px)] rounded-3xl flex flex-col overflow-hidden shadow-2xl"
+                        style={{ background: "#000000" }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         {/* Header */}
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] shrink-0">
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
                           <div className="min-w-0 pr-3">
-                            <p className="text-[10px] uppercase tracking-widest text-white/30 mb-0.5">Sing-along</p>
+                            <p className="text-[10px] uppercase tracking-widest text-white/40 mb-0.5">Sing-along</p>
                             <p className="text-sm font-semibold text-white truncate">{currentTrack.name}</p>
-                            <p className="text-xs text-white/40 truncate">{currentTrack.artist}</p>
+                            <p className="text-xs text-white/50 truncate">{currentTrack.artist}</p>
                           </div>
                           <button
                             onClick={() => setShowLyrics(false)}
-                            className="shrink-0 p-2 rounded-xl text-white/50 hover:text-white hover:bg-white/[0.07] transition-colors"
+                            className="shrink-0 p-2 rounded-xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
                             aria-label="Close lyrics"
                           >
                             <X size={14} />
                           </button>
                         </div>
                         {/* Lyrics — min-h-0 so flex child can scroll instead of collapsing */}
-                        <div className="flex flex-col flex-1 min-h-0 overflow-hidden px-2 py-2">
+                        <div className="flex flex-col flex-1 min-h-0 overflow-hidden px-2 py-2 bg-black">
                           <LyricsPanel
                             track={currentTrack}
                             progressMs={progressMs}
@@ -680,7 +682,7 @@ export default function PlayerBar() {
                   )}
                 </div>
 
-                <p className="text-center text-xs text-white/20 shrink-0">{Math.max(queueIndex + 1, 1)} / {queue.length} in queue</p>
+                <p className="text-center text-xs text-white/35 shrink-0">{Math.max(queueIndex + 1, 1)} / {queue.length} in queue</p>
 
                 <SimilarMusicSection
                   key={`${currentTrack.uri ?? ""}::${currentTrack.name}::${currentTrack.artist}`}
@@ -695,7 +697,7 @@ export default function PlayerBar() {
 
       {/* ── Compact bar ── */}
       <div className="theme-dark fixed bottom-0 left-0 right-0 z-40"
-        style={{ background: "#111827", backdropFilter: "blur(28px)" }}>
+        style={{ background: "#000000", backdropFilter: "blur(28px)" }}>
 
         {/* Progress bar */}
         <div className="h-[3px] cursor-pointer group relative" style={{ background: "rgba(249,250,251,0.15)" }} onClick={handleSeek}>
@@ -753,21 +755,21 @@ export default function PlayerBar() {
               <RepeatIcon size={12} />
             </button>
             <button onClick={handleLike} title={isLiked ? "Unlike" : "Like"}
-              className={`p-2 rounded-xl transition-colors ${isLiked ? "text-[var(--accent)]" : "text-white/30 hover:text-[var(--accent)]"}`}>
+              className={`p-2 rounded-xl transition-colors ${isLiked ? "text-[#EF4444]" : "text-[#EF4444] hover:bg-[#EF4444]/10"}`}>
               <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
             </button>
             <TrackDownloadButton
               track={currentDownloadTrack}
               size={14}
               alwaysVisible
-              className="p-2 rounded-xl"
+              className="p-2 rounded-xl !text-[#EF4444] hover:!bg-[#EF4444]/10"
             />
             <button onClick={handleAddToPlaylist} disabled={resolvingAdd} title="Add to playlist"
-              className="p-2 rounded-xl text-[var(--accent)]/50 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors disabled:opacity-30">
+              className="p-2 rounded-xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors disabled:opacity-30">
               {resolvingAdd ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
             </button>
             <button onClick={() => usePlayerStore.setState({ isQueueOpen: true })} title="Queue"
-              className="p-2 rounded-xl text-white/25 hover:text-white hover:bg-white/[0.06] transition-colors">
+              className="p-2 rounded-xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
               <ListOrdered size={14} />
             </button>
             <div className="hidden sm:flex items-center gap-1.5 shrink-0">

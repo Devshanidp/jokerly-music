@@ -25,6 +25,8 @@ interface Props {
   track: PlayableTrack;
   progressMs: number;
   fullscreen?: boolean;
+  /** Light / white panel styling (Now Playing lyrics modal) */
+  light?: boolean;
   onSeekMs?: (ms: number) => void;
 }
 
@@ -88,7 +90,7 @@ function formatOffset(ms: number): string {
   return ms > 0 ? `+${sec}s` : `${sec}s`;
 }
 
-export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }: Props) {
+export default function LyricsPanel({ track, progressMs, fullscreen, light = false, onSeekMs }: Props) {
   const { toast } = useToastStore();
   const [originalSynced, setOriginalSynced] = useState<LrcLine[] | null>(null);
   const [originalPlain, setOriginalPlain] = useState<string | null>(null);
@@ -316,6 +318,28 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
 
   const hasContent = !loading && !notFound && (!!syncedLines?.length || !!plainText);
 
+  const iconIdle = light
+    ? "text-[#EF4444] hover:bg-[#EF4444]/10"
+    : "text-white/40 hover:text-white hover:bg-white/[0.06]";
+  const iconActive = light
+    ? "bg-[#EF4444]/10 text-[#EF4444]"
+    : "bg-white/[0.1] text-white";
+  const muted = light ? "text-[#111827]/45" : "text-white/25";
+  const soft = light ? "text-[#111827]/55" : "text-white/55";
+  const strong = light ? "text-[#111827]" : "text-white";
+  const nearText = light ? "text-[#111827]/60" : "text-white/55";
+  const farText = light ? "text-[#111827]/35" : "text-white/25";
+  const plainTextCls = light ? "text-[#111827]/75" : "text-white/70";
+  const panelSoft = light
+    ? "rounded-xl border-2 border-[#EF4444]/35 bg-[#EF4444]/[0.04] px-3 py-2.5 space-y-2.5"
+    : "rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 space-y-2.5";
+  const selectCls = light
+    ? "min-w-0 max-w-[7.5rem] text-xs rounded-lg border-2 border-[#EF4444]/40 bg-white text-[#111827] px-2 py-1.5 outline-none focus:border-[#EF4444]"
+    : "min-w-0 max-w-[7.5rem] text-xs rounded-lg border border-white/[0.08] bg-white/[0.06] text-white px-2 py-1.5 outline-none focus:border-[var(--accent)]/40";
+  const inactiveChip = light
+    ? "bg-[#EF4444]/10 text-[#EF4444] hover:bg-[#EF4444]/15"
+    : "bg-white/[0.06] text-white/55 hover:text-white";
+
   return (
     <div className={`flex flex-col min-h-0 ${fullscreen ? "flex-1 h-full" : ""}`}>
       {hasContent && (
@@ -325,9 +349,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
               type="button"
               onClick={toggleSingAlong}
               className={`shrink-0 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
-                singAlong
-                  ? "bg-[var(--accent)] text-white"
-                  : "bg-white/[0.06] text-white/55 hover:text-white"
+                singAlong ? "btn-accent text-white" : inactiveChip
               }`}
               title="Karaoke scroll + highlight"
             >
@@ -337,7 +359,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
               type="button"
               onClick={() => setShowControls((v) => !v)}
               className={`shrink-0 p-1.5 rounded-lg transition-colors ${
-                showControls ? "bg-white/[0.1] text-white" : "text-white/40 hover:text-white hover:bg-white/[0.06]"
+                showControls ? iconActive : iconIdle
               }`}
               title="Font & sync"
               aria-label="Font and sync controls"
@@ -347,23 +369,23 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
             <button
               type="button"
               onClick={handleCopyVerse}
-              className="shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-colors"
+              className={`shrink-0 p-1.5 rounded-lg transition-colors ${iconIdle}`}
               title={syncedLines ? "Copy current verse" : "Copy lyrics"}
               aria-label="Copy verse"
             >
-              {copied ? <Check size={14} className="text-[var(--accent)]" /> : <Copy size={14} />}
+              {copied ? <Check size={14} className="text-[#EF4444]" /> : <Copy size={14} />}
             </button>
             <div className="flex-1" />
             <div className="flex items-center gap-1.5 min-w-0">
-              <Languages size={14} className="text-white/35 shrink-0" />
+              <Languages size={14} className={`shrink-0 ${light ? "text-[#EF4444]" : "text-white/35"}`} />
               <select
                 value={targetLang}
                 onChange={(e) => setTargetLang(e.target.value)}
-                className="min-w-0 max-w-[7.5rem] text-xs rounded-lg border border-white/[0.08] bg-white/[0.06] text-white px-2 py-1.5 outline-none focus:border-[var(--accent)]/40"
+                className={selectCls}
                 aria-label="Translation language"
               >
                 {LYRIC_TARGET_LANGUAGES.map((lang) => (
-                  <option key={lang.code} value={lang.code} className="bg-zinc-900">
+                  <option key={lang.code} value={lang.code} className={light ? "bg-white text-[#111827]" : "bg-zinc-900"}>
                     {lang.label}
                   </option>
                 ))}
@@ -373,7 +395,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
               type="button"
               onClick={() => void handleTranslate()}
               disabled={translating}
-              className="shrink-0 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 transition-colors"
+              className="shrink-0 text-xs font-semibold px-2.5 py-1.5 rounded-lg btn-accent text-white hover:opacity-90 disabled:opacity-50 transition-colors"
             >
               {translating ? "…" : "Translate"}
             </button>
@@ -381,7 +403,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
               <button
                 type="button"
                 onClick={handleShowOriginal}
-                className="shrink-0 text-xs font-medium px-2 py-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors"
+                className={`shrink-0 text-xs font-medium px-2 py-1.5 rounded-lg transition-colors ${iconIdle}`}
               >
                 Original
               </button>
@@ -389,25 +411,25 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
           </div>
 
           {showControls && (
-            <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2.5 space-y-2.5">
+            <div className={panelSoft}>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] uppercase tracking-widest text-white/35">Font</span>
+                <span className={`text-[10px] uppercase tracking-widest ${light ? "text-[#EF4444]/70" : "text-white/35"}`}>Font</span>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => changeFont(-1)}
                     disabled={fontSize === "sm"}
-                    className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.08] disabled:opacity-30"
+                    className={`p-1.5 rounded-lg disabled:opacity-30 ${iconIdle}`}
                     aria-label="Smaller text"
                   >
                     <Minus size={12} />
                   </button>
-                  <span className="text-xs text-white/70 w-8 text-center uppercase">{fontSize}</span>
+                  <span className={`text-xs w-8 text-center uppercase ${soft}`}>{fontSize}</span>
                   <button
                     type="button"
                     onClick={() => changeFont(1)}
                     disabled={fontSize === "xl"}
-                    className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.08] disabled:opacity-30"
+                    className={`p-1.5 rounded-lg disabled:opacity-30 ${iconIdle}`}
                     aria-label="Larger text"
                   >
                     <Plus size={12} />
@@ -417,24 +439,24 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
 
               {syncedLines && (
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] uppercase tracking-widest text-white/35">Sync</span>
+                  <span className={`text-[10px] uppercase tracking-widest ${light ? "text-[#EF4444]/70" : "text-white/35"}`}>Sync</span>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => changeOffset(-250)}
-                      className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.08]"
+                      className={`p-1.5 rounded-lg ${iconIdle}`}
                       aria-label="Lyrics earlier"
                       title="Lyrics earlier"
                     >
                       <Minus size={12} />
                     </button>
-                    <span className="text-xs tabular-nums text-white/70 w-12 text-center">
+                    <span className={`text-xs tabular-nums w-12 text-center ${soft}`}>
                       {formatOffset(offsetMs)}
                     </span>
                     <button
                       type="button"
                       onClick={() => changeOffset(250)}
-                      className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.08]"
+                      className={`p-1.5 rounded-lg ${iconIdle}`}
                       aria-label="Lyrics later"
                       title="Lyrics later"
                     >
@@ -443,7 +465,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
                     <button
                       type="button"
                       onClick={resetOffset}
-                      className="p-1.5 rounded-lg text-white/35 hover:text-white hover:bg-white/[0.08]"
+                      className={`p-1.5 rounded-lg ${iconIdle}`}
                       title="Reset sync"
                       aria-label="Reset sync"
                     >
@@ -456,7 +478,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
               <button
                 type="button"
                 onClick={handleCopyAll}
-                className="w-full text-xs font-medium py-1.5 rounded-lg text-white/55 hover:text-white hover:bg-white/[0.06] transition-colors"
+                className={`w-full text-xs font-medium py-1.5 rounded-lg transition-colors ${iconIdle}`}
               >
                 Copy all lyrics
               </button>
@@ -466,19 +488,19 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
       )}
 
       {showingTranslation && !translateError && (
-        <p className={`text-[10px] text-[var(--accent)]/80 mb-2 ${fullscreen ? "px-1" : ""}`}>
+        <p className={`text-[10px] text-[#EF4444]/90 mb-2 ${fullscreen ? "px-1" : ""}`}>
           Translated to {langLabel}
         </p>
       )}
 
       {translateError && (
-        <p className={`text-[10px] text-[var(--accent)]/90 mb-2 ${fullscreen ? "px-1" : ""}`}>
+        <p className={`text-[10px] text-[#EF4444] mb-2 ${fullscreen ? "px-1" : ""}`}>
           {translateError}
         </p>
       )}
 
       {syncedLines && onSeekMs && hasContent && (
-        <p className={`text-[10px] text-white/25 mb-1 ${fullscreen ? "px-1" : ""}`}>
+        <p className={`text-[10px] mb-1 ${muted} ${fullscreen ? "px-1" : ""}`}>
           Tap a line to jump · adjust Sync if timing is off
         </p>
       )}
@@ -489,21 +511,23 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
           userScrollUntil.current = Date.now() + 2500;
         }}
         className={`overflow-y-auto rounded-2xl px-4 py-3 scrollbar-hide ${
-          fullscreen ? "flex-1 min-h-0" : "max-h-56"
+          fullscreen
+            ? `flex-1 min-h-0 ${light ? "border-2 border-[#EF4444]/30 bg-white" : ""}`
+            : "card-light max-h-56 border border-black/5"
         } ${singAlong && syncedLines ? "space-y-5" : "space-y-3"}`}
-        style={{ background: fullscreen ? "transparent" : "var(--card)" }}
+        style={{ background: fullscreen ? "transparent" : "#000000" }}
       >
         {loading && (
           <div className="flex flex-col items-center justify-center py-8 gap-2">
-            <Loader2 size={14} className="animate-spin text-white/30" />
-            <p className="text-[11px] text-white/25">Loading lyrics…</p>
+            <Loader2 size={14} className={`animate-spin ${light ? "text-[#EF4444]" : "text-white/30"}`} />
+            <p className={`text-[11px] ${muted}`}>Loading lyrics…</p>
           </div>
         )}
 
         {!loading && notFound && (
           <div className="flex flex-col items-center justify-center py-8 gap-2">
-            <MicVocal size={24} className="text-white/15" />
-            <p className="text-xs text-white/30">No lyrics found</p>
+            <MicVocal size={24} className={light ? "text-[#EF4444]/40" : "text-white/15"} />
+            <p className={`text-xs ${muted}`}>No lyrics found</p>
           </div>
         )}
 
@@ -529,12 +553,14 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
                   onSeekMs ? "cursor-pointer select-none" : ""
                 } ${
                   isActive
-                    ? `font-bold text-white scale-[1.02] ${ACTIVE_SIZE[fontSize]} ${
-                        singAlong ? "text-[var(--accent)] drop-shadow-[0_0_18px_rgba(16,185,129,0.35)]" : ""
+                    ? `font-bold scale-[1.02] ${ACTIVE_SIZE[fontSize]} ${
+                        singAlong
+                          ? "text-[#EF4444]"
+                          : strong
                       }`
                     : near
-                      ? `text-white/55 ${NEAR_SIZE[fontSize]}`
-                      : `text-white/25 ${FAR_SIZE[fontSize]}`
+                      ? `${nearText} ${NEAR_SIZE[fontSize]}`
+                      : `${farText} ${FAR_SIZE[fontSize]}`
                 }`}
               >
                 {line.text}
@@ -544,7 +570,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
 
         {!loading && plainText && (
           <pre
-            className={`whitespace-pre-wrap font-sans leading-relaxed text-white/70 ${PLAIN_SIZE[fontSize]}`}
+            className={`whitespace-pre-wrap font-sans leading-relaxed ${plainTextCls} ${PLAIN_SIZE[fontSize]}`}
           >
             {plainText}
           </pre>

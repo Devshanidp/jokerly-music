@@ -64,10 +64,10 @@ export default function TrackDownloadButton({
         alwaysVisible ? "opacity-100" : "sm:opacity-0 sm:group-hover:opacity-100"
       } ${
         isDownloaded
-          ? "text-[var(--accent)] bg-[var(--accent)]/10"
+          ? "text-[#EF4444] bg-[#EF4444]/10"
           : alwaysVisible
-            ? "text-white/35 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"
-            : "text-white/25 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10"
+            ? "text-[#EF4444] hover:bg-[#EF4444]/10"
+            : "text-[#EF4444]/70 hover:text-[#EF4444] hover:bg-[#EF4444]/10"
       } ${className}`}
     >
       {isDownloading ? (

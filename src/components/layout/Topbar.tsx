@@ -3,17 +3,27 @@
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { X, Settings, Bell, Loader2, RefreshCw } from "lucide-react";
+import { X, Settings, Bell, Loader2, RefreshCw, Moon, Sun } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { APP_LOGO, APP_NAME, APP_TAGLINE } from "@/lib/branding";
 import { goToMusicLogin } from "@/lib/music-auth-client";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [notifBusy, setNotifBusy] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifMessage, setNotifMessage] = useState<string | null>(null);
+  const [themeReady, setThemeReady] = useState(false);
+
+  const isDark = (resolvedTheme ?? theme) === "dark";
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setThemeReady(true), 0);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const reconnectAccount = () => {
     goToMusicLogin();
@@ -120,7 +130,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="theme-dark fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="rounded-3xl w-full max-w-sm border border-white/10 shadow-2xl shadow-black/40 overflow-hidden"
-        style={{ background: "#111827" }}>
+        style={{ background: "#000000" }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
           <h2 className="text-white font-semibold">Account</h2>
           <button onClick={onClose} className="p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.07] transition-colors">
@@ -136,6 +146,38 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div className="h-px bg-white/[0.06]" />
+
+          <div className="rounded-2xl border border-white/10 p-3" style={{ background: "rgba(249,250,251,0.06)" }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-white text-sm font-medium flex items-center gap-1.5">
+                  {isDark ? <Moon size={14} className="text-[var(--accent)]" /> : <Sun size={14} className="text-[var(--accent)]" />}
+                  Appearance
+                </p>
+                <p className="text-white/40 text-xs mt-0.5">
+                  {themeReady ? (isDark ? "Dark mode on" : "Light mode on") : "Loading…"}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isDark}
+                aria-label="Toggle dark mode"
+                disabled={!themeReady}
+                onClick={() => setTheme(isDark ? "light" : "dark")}
+                className={`relative shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-50 ${
+                  isDark ? "bg-[var(--accent)]" : "bg-white/20"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                    isDark ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-white/10 p-3" style={{ background: "rgba(249,250,251,0.06)" }}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -172,7 +214,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
               <button
                 onClick={sendTestNotification}
                 disabled={notifBusy}
-                className="mt-2 text-xs text-[var(--accent)] hover:text-[#C084FC] transition-colors"
+                className="mt-2 text-xs text-[var(--accent)] hover:opacity-80 transition-colors"
               >
                 Send test notification
               </button>
@@ -205,11 +247,13 @@ export default function Topbar() {
   const { data: session } = useSession();
   const [showSettings, setShowSettings] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
 
   useBackHandler(showSettings, () => setShowSettings(false));
   const pathname = usePathname();
   const router = useRouter();
   const sessionError = (session as { error?: string } | null)?.error;
+  const isDark = resolvedTheme === "dark";
 
   useEffect(() => {
     const timer = window.setTimeout(() => setMounted(true), 0);
@@ -243,7 +287,7 @@ export default function Topbar() {
   return (
     <>
       {sessionError && (
-        <div className="fixed top-0 left-0 right-0 z-50 btn-accent text-white text-sm px-4 py-2.5 flex items-center justify-between gap-3 border-b border-purple-500/20">
+        <div className="fixed top-0 left-0 right-0 z-50 btn-accent text-white text-sm px-4 py-2.5 flex items-center justify-between gap-3 border-b border-red-500/20">
           <span>Your session expired. Please sign back in.</span>
           <button onClick={() => signOut({ callbackUrl: "/login" })}
             className="shrink-0 bg-white text-[var(--accent)] font-semibold text-xs px-3 py-1.5 rounded-lg">
@@ -251,8 +295,12 @@ export default function Topbar() {
           </button>
         </div>
       )}
-      <header className={`sticky z-30 shrink-0 border-b border-black/5 ${sessionError ? "top-10" : "top-0"}`}
-        style={{ background: "rgba(249,250,251,0.92)", backdropFilter: "blur(24px)" }}>
+      <header
+        className={`sticky z-30 shrink-0 border-b ${sessionError ? "top-10" : "top-0"} ${
+          isDark ? "border-white/10" : "border-black/5"
+        }`}
+        style={{ background: isDark ? "rgba(0,0,0,0.94)" : "rgba(249,250,251,0.92)", backdropFilter: "blur(24px)" }}
+      >
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
 
           {/* Logo */}
@@ -262,16 +310,29 @@ export default function Topbar() {
             className="flex items-center gap-2.5 shrink-0">
             <Image src={APP_LOGO} alt={APP_NAME} width={28} height={28} className="rounded-xl" unoptimized />
             <div className="flex flex-col items-start leading-tight">
-              <span className="text-[var(--near-black)] font-bold text-xs sm:text-sm tracking-tight">{APP_NAME}</span>
+              <span className="text-[var(--foreground)] font-bold text-xs sm:text-sm tracking-tight">{APP_NAME}</span>
               <span className="text-[10px] text-[var(--text-muted)] font-medium">{APP_TAGLINE}</span>
             </div>
           </button>
 
           {/* Right side */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+              className={`p-2 rounded-full transition-colors ${
+                isDark ? "hover:bg-white/[0.08] text-white/70" : "hover:bg-black/[0.04] text-[var(--text-muted)]"
+              }`}
+              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              title={isDark ? "Light mode" : "Dark mode"}
+            >
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
             <button onClick={() => setShowSettings(true)}
-              className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-black/[0.04] transition-colors">
-              <Image src={APP_LOGO} alt={APP_NAME} width={26} height={26} className="rounded-full ring-1 ring-black/10" unoptimized />
+              className={`flex items-center gap-2 pl-1 pr-2 py-1 rounded-full transition-colors ${
+                isDark ? "hover:bg-white/[0.08]" : "hover:bg-black/[0.04]"
+              }`}>
+              <Image src={APP_LOGO} alt={APP_NAME} width={26} height={26} className={`rounded-full ring-1 ${isDark ? "ring-white/20" : "ring-black/10"}`} unoptimized />
               <Settings size={14} className="text-[var(--text-muted)]" />
             </button>
           </div>

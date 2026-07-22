@@ -60,9 +60,9 @@ export default function FloatingNav() {
       <nav
         className="theme-dark pointer-events-auto flex items-center gap-0.5 p-0.5 rounded-full border border-white/10"
         style={{
-          background: "#111827",
+          background: "#000000",
           backdropFilter: "blur(20px)",
-          boxShadow: "0 6px 24px rgba(17,24,39,0.28)",
+          boxShadow: "0 6px 24px rgba(0,0,0,0.45)",
         }}
         aria-label="Main navigation"
       >

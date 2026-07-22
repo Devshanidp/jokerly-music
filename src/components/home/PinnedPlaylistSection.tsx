@@ -39,7 +39,7 @@ interface Props {
 
 type PlaylistViewMode = "grid" | "list";
 const PLAYLIST_VIEW_KEY = "jokerly-playlist-view";
-const playlistCardBorder = "border border-white/[0.12]";
+const playlistCardBorder = "box-double border border-[var(--accent)]";
 
 // ── Cover art ──────────────────────────────────────────────────────────────
 function CoverArt({ tracks, imageUrl, name, size = 130 }: { tracks?: PlaylistTrack[]; imageUrl?: string | null; name: string; size?: number }) {

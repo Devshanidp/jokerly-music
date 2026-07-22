@@ -40,7 +40,7 @@ interface PinnedRow { playlist_id: string; }
 type PlaylistViewMode = "grid" | "list";
 const PLAYLIST_VIEW_KEY = "jokerly-playlist-view";
 
-const playlistCardBorder = "border border-white/[0.12]";
+const playlistCardBorder = "box-double border border-[var(--accent)]";
 interface PlaylistTrack { id: string; track_uri: string; track_name: string; track_image?: string | null; track_artist?: string | null; added_at: string; position: number; }
 interface PinnedArtist { id: string; artist_id: string; artist_name: string; artist_image: string; }
 

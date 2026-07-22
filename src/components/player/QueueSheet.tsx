@@ -199,7 +199,7 @@ function SaveQueueModal({
     >
       <div
         className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border border-white/10 p-4 space-y-4 shadow-2xl"
-        style={{ background: "#111827" }}
+        style={{ background: "#000000" }}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -312,7 +312,7 @@ export default function QueueSheet({ onPlayIndex }: Props) {
   return (
     <div
       className="theme-dark fixed inset-0 z-[55] flex flex-col"
-      style={{ background: "#111827", backdropFilter: "blur(28px)" }}
+      style={{ background: "#000000", backdropFilter: "blur(28px)" }}
     >
       <div className="px-5 pt-5 pb-3 shrink-0 space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -349,12 +349,12 @@ export default function QueueSheet({ onPlayIndex }: Props) {
           </div>
         </div>
 
-        <div className="flex gap-2 p-1 rounded-xl" style={{ background: "var(--card)" }}>
+        <div className="flex gap-2 p-1 rounded-xl border border-white/10" style={{ background: "rgba(255,255,255,0.08)" }}>
           <button
             type="button"
             onClick={() => setTab("queue")}
             className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
-              tab === "queue" ? "btn-nav-active text-white" : "text-white/45 hover:text-white"
+              tab === "queue" ? "btn-nav-active text-white" : "text-white/70 hover:text-white hover:bg-white/[0.06]"
             }`}
           >
             Queue
@@ -363,7 +363,7 @@ export default function QueueSheet({ onPlayIndex }: Props) {
             type="button"
             onClick={() => setTab("similar")}
             className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1 ${
-              tab === "similar" ? "btn-nav-active text-white" : "text-white/45 hover:text-white"
+              tab === "similar" ? "btn-nav-active text-white" : "text-white/70 hover:text-white hover:bg-white/[0.06]"
             }`}
           >
             <Sparkles size={12} /> Similar
