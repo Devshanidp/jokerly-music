@@ -1,5 +1,5 @@
 import { getApiSession, unauthorized } from "@/lib/api-auth";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { createClient, isAppwriteConfigured } from "@/lib/appwrite/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export interface FavoriteArtist {
@@ -11,7 +11,7 @@ export interface FavoriteArtist {
 export async function GET() {
   const session = await getApiSession();
   if (!session) return unauthorized();
-  if (!isSupabaseConfigured()) {
+  if (!isAppwriteConfigured()) {
     return NextResponse.json({ languages: [], favoriteArtists: [] });
   }
 
@@ -33,9 +33,18 @@ export async function GET() {
     }
 
     const languages = data?.languages;
+    let favoriteArtists: FavoriteArtist[] = [];
+    if (typeof data?.favorite_artists === "string") {
+      try {
+        favoriteArtists = JSON.parse(data.favorite_artists);
+      } catch (e) {}
+    } else if (Array.isArray(data?.favorite_artists)) {
+      favoriteArtists = data.favorite_artists;
+    }
+
     return NextResponse.json({
       languages: Array.isArray(languages) ? languages : [],
-      favoriteArtists: (data?.favorite_artists as FavoriteArtist[] | null) ?? [],
+      favoriteArtists,
     });
   } catch (e) {
     console.error("[preferences GET]", e);
@@ -50,18 +59,19 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const session = await getApiSession();
   if (!session) return unauthorized();
-  if (!isSupabaseConfigured()) {
+  if (!isAppwriteConfigured()) {
     return NextResponse.json({ ok: false, error: "Database not configured" }, { status: 503 });
   }
 
   const body = await req.json().catch(() => ({}));
+  console.log("POST /api/preferences body", body);
   const updateData: Record<string, unknown> = {
     user_id: session.userId,
     updated_at: new Date().toISOString(),
   };
 
   if (Array.isArray(body.languages)) updateData.languages = body.languages;
-  if (Array.isArray(body.favoriteArtists)) updateData.favorite_artists = body.favoriteArtists;
+  if (Array.isArray(body.favoriteArtists)) updateData.favorite_artists = JSON.stringify(body.favoriteArtists);
 
   try {
     const supabase = await createClient();

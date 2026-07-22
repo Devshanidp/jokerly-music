@@ -2,7 +2,7 @@ import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
 import { getApiSessionWithToken, unauthorized, tokenExpired } from "@/lib/api-auth";
 import { APP_NAME } from "@/lib/branding";
 import { getWebPush, toPushPayload } from "@/lib/push";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/appwrite/server";
 import { NextResponse } from "next/server";
 
 function isPushStorageUnavailable(error: { code?: string; message?: string } | null) {
@@ -37,7 +37,7 @@ export async function POST() {
 
   const liked = likedRes.data ?? [];
   const subscriptions = subRes.data ?? [];
-  const seenMap = new Map((seenRes.data ?? []).map((r) => [r.artist_id, r.last_release_id]));
+  const seenMap = new Map((seenRes.data ?? []).map((r: any) => [r.artist_id, r.last_release_id]));
 
   if (!liked.length || !subscriptions.length) return NextResponse.json({ ok: true, notified: 0 });
 

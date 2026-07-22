@@ -2,10 +2,10 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, ListMusic, Heart, Download } from "lucide-react";
+import { Home, ListMusic, Heart, Wand2 } from "lucide-react";
 import { usePlayerStore } from "@/store/player";
 
-type NavTarget = "/" | "/playlists" | "/liked" | "/downloaded";
+type NavTarget = "/" | "/playlists" | "/liked" | "/magic-mix";
 
 export default function FloatingNav() {
   const pathname = usePathname();
@@ -17,7 +17,7 @@ export default function FloatingNav() {
     router.prefetch("/");
     router.prefetch("/playlists");
     router.prefetch("/liked");
-    router.prefetch("/downloaded");
+    router.prefetch("/magic-mix");
   }, [router]);
 
   const go = (e: React.PointerEvent<HTMLButtonElement> | React.MouseEvent<HTMLButtonElement>, target: NavTarget) => {
@@ -61,8 +61,8 @@ export default function FloatingNav() {
         aria-label="Main navigation"
       >
         {btn("/", <Home size={14} />, "Home")}
+        {btn("/magic-mix", <Wand2 size={14} />, "Magic Mix")}
         {btn("/playlists", <ListMusic size={14} />, "Playlist")}
-        {btn("/downloaded", <Download size={14} />, "Downloads")}
         {btn("/liked", <Heart size={14} />, "Liked")}
       </nav>
     </div>

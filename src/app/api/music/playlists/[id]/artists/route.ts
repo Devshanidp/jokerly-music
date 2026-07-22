@@ -12,7 +12,7 @@ import {
   type MixArtist,
 } from "@/lib/playlist-meta";
 import { searchCatalog } from "@/lib/music-api";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/appwrite/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60;
@@ -111,10 +111,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       if (tracksError) return NextResponse.json({ error: tracksError.message }, { status: 500 });
 
       const idsToRemove = (tracks ?? [])
-        .filter((track) =>
+        .filter((track: any) =>
           previous.some((artist) => trackMatchesArtist(track.track_artist, artist.name))
         )
-        .map((track) => track.id);
+        .map((track: any) => track.id);
 
       if (idsToRemove.length > 0) {
         const { error: deleteError } = await supabase
@@ -172,11 +172,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (tracksError) return NextResponse.json({ error: tracksError.message }, { status: 500 });
 
-    const idsToRemove = (tracks ?? [])
-      .filter((track) =>
+      const idsToRemove = (tracks ?? [])
+      .filter((track: any) =>
         removed.some((artist) => trackMatchesArtist(track.track_artist, artist.name))
       )
-      .map((track) => track.id);
+      .map((track: any) => track.id);
 
     if (idsToRemove.length > 0) {
       const { error: deleteError } = await supabase

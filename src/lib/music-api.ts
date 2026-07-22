@@ -29,7 +29,7 @@ async function catalogFetch(url: string, accessToken: string, timeoutMs = 8000):
 }
 
 function buildSearchUrl(query: string, type: string, limit: number, offset = 0) {
-  const safeLimit = Math.floor(Math.max(1, Math.min(limit, 10)));
+  const safeLimit = Math.floor(Math.max(1, Math.min(limit, 50)));
   let url = `${CATALOG_API_V1}/search?q=${encodeURIComponent(query)}&type=${type}&limit=${safeLimit}`;
   if (offset > 0) url += `&offset=${Math.min(Math.floor(offset), 100)}`;
   return url;
@@ -91,6 +91,10 @@ export async function getUserTopArtists(accessToken: string, limit = 10) {
 
 export async function getUserPlaylists(accessToken: string) {
   return catalogFetch(`${CATALOG_API_V1}/me/playlists?limit=50`, accessToken);
+}
+
+export async function getPlaylistTracks(playlistId: string, accessToken: string, limit = 20) {
+  return catalogFetch(`${CATALOG_API_V1}/playlists/${playlistId}/tracks?limit=${limit}`, accessToken);
 }
 
 export async function getArtist(artistId: string, accessToken: string) {

@@ -1,5 +1,7 @@
 import { CATALOG_API_V1 } from "@/lib/catalog-endpoints";
-import type { SupabaseClient } from "@supabase/supabase-js";
+// Mocked client type
+// eslint-disable-next-from-line @typescript-eslint/no-explicit-any
+export type SupabaseClient = any;
 
 
 

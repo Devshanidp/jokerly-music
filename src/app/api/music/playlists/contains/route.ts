@@ -1,5 +1,5 @@
 import { getApiSession, unauthorized } from "@/lib/api-auth";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/appwrite/server";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/music/playlists/contains?uri=<track-uri>
@@ -18,5 +18,5 @@ export async function GET(req: NextRequest) {
     .eq("user_id", session.userId)
     .eq("track_uri", uri);
 
-  return NextResponse.json({ playlistIds: (data ?? []).map((r) => r.playlist_id) });
+  return NextResponse.json({ playlistIds: (data ?? []).map((r: any) => r.playlist_id) });
 }

@@ -1,5 +1,5 @@
 import { getApiSessionWithToken } from "@/lib/api-auth";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/appwrite/server";
 import { getArtistTopTracks } from "@/lib/music-api";
 import { normalizeSimilarTrack } from "@/lib/similar-tracks";
 import { NextRequest, NextResponse } from "next/server";
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   const seeds = [
     ...new Set([
       ...requestedArtistIds,
-      ...((likedArtists ?? []).map((a) => a.artist_id).filter(Boolean)),
+      ...((likedArtists ?? []).map((a: { artist_id: string }) => a.artist_id).filter(Boolean)),
     ]),
   ].slice(0, 5);
 
