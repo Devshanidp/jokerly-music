@@ -1,6 +1,6 @@
 import { getApiSessionWithToken, unauthorized } from "@/lib/api-auth";
 import { compilePlaylist, parseSelectedArtists } from "@/lib/compile-playlist";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/appwrite/server";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

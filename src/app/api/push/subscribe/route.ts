@@ -1,5 +1,5 @@
 import { getApiSession, unauthorized } from "@/lib/api-auth";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/appwrite/server";
 import { NextRequest, NextResponse } from "next/server";
 
 interface PushSubscriptionPayload {

@@ -1,11 +1,11 @@
 import { getApiSession, unauthorized } from "@/lib/api-auth";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { createClient, isAppwriteConfigured } from "@/lib/appwrite/server";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   const session = await getApiSession();
   if (!session) return unauthorized();
-  if (!isSupabaseConfigured()) return NextResponse.json({ data: [] });
+  if (!isAppwriteConfigured()) return NextResponse.json({ data: [] });
 
   try {
     const supabase = await createClient();
@@ -30,7 +30,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await getApiSession();
   if (!session) return unauthorized();
-  if (!isSupabaseConfigured()) return NextResponse.json({ ok: true });
+  if (!isAppwriteConfigured()) return NextResponse.json({ ok: true });
 
   const body = await req.json().catch(() => null);
   if (!body?.track_uri || !body?.track_name || !body?.track_artist) {

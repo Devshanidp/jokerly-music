@@ -23,12 +23,12 @@
 23-->
 24<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 25    package="com_shanmusic.com"
-26    android:versionCode="9"
-27    android:versionName="9" >
+26    android:versionCode="11"
+27    android:versionName="11" >
 28
 29    <uses-sdk
 30        android:minSdkVersion="21"
-31        android:targetSdkVersion="35" />
+31        android:targetSdkVersion="36" />
 32
 33    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 33-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:25:9-80
