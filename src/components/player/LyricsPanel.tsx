@@ -530,7 +530,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen, onSeekMs }:
                 } ${
                   isActive
                     ? `font-bold text-white scale-[1.02] ${ACTIVE_SIZE[fontSize]} ${
-                        singAlong ? "text-[var(--accent)] drop-shadow-[0_0_18px_rgba(140,80,200,0.35)]" : ""
+                        singAlong ? "text-[var(--accent)] drop-shadow-[0_0_18px_rgba(16,185,129,0.35)]" : ""
                       }`
                     : near
                       ? `text-white/55 ${NEAR_SIZE[fontSize]}`

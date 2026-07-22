@@ -191,15 +191,15 @@ function SaveQueueModal({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)" }}
+      className="theme-dark fixed inset-0 z-[80] flex items-end sm:items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.08] p-4 space-y-4 shadow-2xl"
-        style={{ background: "var(--surface)" }}
+        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border border-white/10 p-4 space-y-4 shadow-2xl"
+        style={{ background: "#111827" }}
       >
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -311,8 +311,8 @@ export default function QueueSheet({ onPlayIndex }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[55] flex flex-col"
-      style={{ background: "rgba(6,4,16,0.97)", backdropFilter: "blur(28px)" }}
+      className="theme-dark fixed inset-0 z-[55] flex flex-col"
+      style={{ background: "#111827", backdropFilter: "blur(28px)" }}
     >
       <div className="px-5 pt-5 pb-3 shrink-0 space-y-3">
         <div className="flex items-center justify-between gap-2">

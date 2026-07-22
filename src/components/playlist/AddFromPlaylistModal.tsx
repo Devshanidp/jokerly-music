@@ -113,7 +113,7 @@ export default function AddFromPlaylistModal({ targetPlaylistId, targetPlaylistN
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
     >
       <div
-        className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-white/[0.08] flex flex-col"
+        className="sheet-light w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-black/10 flex flex-col"
         style={{ background: "var(--surface)", maxHeight: "min(82vh, calc(100vh - 32px))" }}
       >
         {/* Header */}

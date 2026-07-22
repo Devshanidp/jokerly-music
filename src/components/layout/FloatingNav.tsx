@@ -58,11 +58,11 @@ export default function FloatingNav() {
       className={`fixed left-1/2 -translate-x-1/2 z-[55] transition-all duration-300 pointer-events-none ${bottomClass}`}
     >
       <nav
-        className="pointer-events-auto flex items-center gap-0.5 p-0.5 rounded-full border border-[var(--accent)]/25"
+        className="theme-dark pointer-events-auto flex items-center gap-0.5 p-0.5 rounded-full border border-white/10"
         style={{
-          background: "linear-gradient(180deg, rgba(22, 14, 32, 0.96) 0%, rgba(12, 8, 18, 0.98) 100%)",
+          background: "#111827",
           backdropFilter: "blur(20px)",
-          boxShadow: "0 6px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(192, 132, 252, 0.12)",
+          boxShadow: "0 6px 24px rgba(17,24,39,0.28)",
         }}
         aria-label="Main navigation"
       >

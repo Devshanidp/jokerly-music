@@ -91,7 +91,7 @@ export default function ImportSpotifyPlaylistsSheet({ open, onClose, onImported 
       }}
     >
       <div
-        className="w-full max-w-lg max-h-[85vh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden"
+        className="sheet-light w-full max-w-lg max-h-[85vh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-black/10 shadow-2xl overflow-hidden"
         style={{ background: "var(--surface)" }}
       >
         <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-white/[0.06]">

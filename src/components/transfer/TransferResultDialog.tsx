@@ -42,7 +42,7 @@ export default function TransferResultDialog({ result, onClose, onReauthorize }:
       }}
     >
       <div
-        className="w-full max-w-sm rounded-3xl border border-white/[0.08] p-5 shadow-2xl shadow-black/70"
+        className="sheet-light w-full max-w-sm rounded-3xl border border-black/10 p-5 shadow-2xl shadow-black/20"
         style={{ background: "var(--surface)" }}
       >
         <div className="flex items-start gap-3">

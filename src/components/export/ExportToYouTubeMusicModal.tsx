@@ -98,7 +98,7 @@ export default function ExportToYouTubeMusicModal({ title, tracks, onClose }: Pr
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
     >
       <div
-        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border border-white/[0.08] flex flex-col"
+        className="sheet-light w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border border-black/10 flex flex-col"
         style={{ background: "var(--surface)" }}
       >
         {/* Header */}

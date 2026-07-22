@@ -399,8 +399,8 @@ export default function PlayerBar() {
 
   if (sdkError && !currentTrack) {
     return (
-      <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 border-t border-white/[0.07] px-4 py-3 flex items-center justify-between gap-3"
-        style={{ background: "rgba(7,5,18,0.97)", backdropFilter: "blur(20px)" }}>
+      <div className="theme-dark fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 border-t border-white/10 px-4 py-3 flex items-center justify-between gap-3"
+        style={{ background: "#111827", backdropFilter: "blur(20px)" }}>
         <p className="text-[var(--accent)] text-sm truncate">{sdkError}</p>
         {sdkError.includes("Premium") ||
         sdkError.includes("auth") ||
@@ -464,16 +464,16 @@ export default function PlayerBar() {
 
       {/* ── Expanded Now Playing ── */}
       {expanded && (
-        <div className="fixed inset-0 z-50 p-4 sm:p-6 flex items-end sm:items-center justify-center"
-          style={{ background: "rgba(6,4,16,0.96)", backdropFilter: "blur(28px)" }}
+        <div className="theme-dark fixed inset-0 z-50 p-4 sm:p-6 flex items-end sm:items-center justify-center"
+          style={{ background: "rgba(17,24,39,0.72)", backdropFilter: "blur(28px)" }}
           onClick={() => {
             const wasPlaying = usePlayerStore.getState().isPlaying;
             usePlayerStore.setState({ isPlayerExpanded: false });
             void usePlayerStore.getState().maintainPlayback(wasPlaying);
           }}>
           <div className="w-full max-w-sm max-h-[92vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="rounded-3xl border border-white/[0.08] p-5 shadow-2xl shadow-black/80 flex flex-col min-h-0 max-h-full overflow-hidden"
-              style={{ background: "var(--surface)" }}>
+            <div className="rounded-3xl border border-white/10 p-5 shadow-2xl shadow-black/40 flex flex-col min-h-0 max-h-full overflow-hidden"
+              style={{ background: "#111827" }}>
               <div className="mb-4 flex items-center justify-between shrink-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/30">Now Playing</p>
                 <button onClick={() => {
@@ -560,7 +560,7 @@ export default function PlayerBar() {
                     <SkipBack size={16} fill="currentColor" />
                   </button>
                   <button onClick={handlePlayPause} disabled={playDisabled || (isTransitioning && isPlaying)} title={isPlaying ? "Pause" : "Play"}
-                    className="btn-accent p-3.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="btn-play p-3.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
                     {fetching
                       ? <Loader2 size={18} className="text-white animate-spin" />
                       : isPlaying
@@ -614,8 +614,8 @@ export default function PlayerBar() {
                         </span>
                       )}
                       {showTimerPicker && (
-                        <div className="absolute bottom-full right-0 mb-2 rounded-2xl border border-white/[0.08] p-3 shadow-2xl z-10 w-44"
-                          style={{ background: "var(--surface)" }}>
+                        <div className="absolute bottom-full right-0 mb-2 rounded-2xl border border-white/10 p-3 shadow-2xl z-10 w-44"
+                          style={{ background: "#1F2937" }}>
                           <p className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Sleep Timer</p>
                           <div className="grid grid-cols-4 gap-1.5">
                             {[15, 30, 45, 60].map((m) => (
@@ -644,8 +644,8 @@ export default function PlayerBar() {
                       onClick={() => setShowLyrics(false)}
                     >
                       <div
-                        className="relative w-full max-w-lg h-[min(85vh,720px)] rounded-3xl border border-white/[0.08] flex flex-col overflow-hidden shadow-2xl"
-                        style={{ background: "rgba(15,8,10,0.98)" }}
+                        className="theme-dark relative w-full max-w-lg h-[min(85vh,720px)] rounded-3xl border border-white/10 flex flex-col overflow-hidden shadow-2xl"
+                        style={{ background: "#111827" }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         {/* Header */}
@@ -694,13 +694,13 @@ export default function PlayerBar() {
       )}
 
       {/* ── Compact bar ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40"
-        style={{ background: "rgba(9,3,5,0.97)", backdropFilter: "blur(28px)" }}>
+      <div className="theme-dark fixed bottom-0 left-0 right-0 z-40"
+        style={{ background: "#111827", backdropFilter: "blur(28px)" }}>
 
         {/* Progress bar */}
-        <div className="h-[3px] cursor-pointer group relative" style={{ background: "rgba(255,255,255,0.06)" }} onClick={handleSeek}>
-          <div className="h-full transition-all relative" style={{ width: `${progressRatio * 100}%`, background: "linear-gradient(90deg, #C49A22, var(--accent), #F0C94A)" }}>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md shadow-[rgba(226,182,49,0.4)]" />
+        <div className="h-[3px] cursor-pointer group relative" style={{ background: "rgba(249,250,251,0.15)" }} onClick={handleSeek}>
+          <div className="h-full transition-all relative" style={{ width: `${progressRatio * 100}%`, background: "#F9FAFB" }}>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 rounded-full bg-[var(--off-white)] opacity-0 group-hover:opacity-100 transition-opacity shadow-md shadow-black/20" />
           </div>
         </div>
 
@@ -737,7 +737,7 @@ export default function PlayerBar() {
               <SkipBack size={12} fill="currentColor" />
             </button>
             <button onClick={handlePlayPause} disabled={playDisabled || (isTransitioning && isPlaying)}
-              className="btn-accent mx-0.5 p-2.5 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
+              className="btn-play mx-0.5 p-2.5 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
               {(!currentTrack || !isPlaying) && fetching
                 ? <Loader2 size={12} className="text-white animate-spin" />
                 : isPlaying

@@ -228,7 +228,7 @@ export default function EditMixArtistsSheet({
       />
 
       <div
-        className="relative w-full sm:max-w-md max-h-[90vh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-white/[0.08] shadow-2xl overflow-hidden"
+        className="sheet-light relative w-full sm:max-w-md max-h-[90vh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-black/10 shadow-2xl overflow-hidden"
         style={{ background: "var(--surface)" }}
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">

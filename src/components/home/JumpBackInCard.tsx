@@ -99,7 +99,7 @@ export default function JumpBackInCard() {
         type="button"
         onClick={() => void handlePlay()}
         className="w-full rounded-3xl border border-white/[0.1] overflow-hidden text-left group relative"
-        style={{ background: "linear-gradient(135deg, rgba(140,80,200,0.22), rgba(12,6,10,0.95))" }}
+        style={{ background: "linear-gradient(135deg, rgba(17,24,39,0.08), #FFFFFF)" }}
       >
         <div className="flex items-center gap-4 p-3.5 sm:p-4">
           <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shrink-0 shadow-lg ring-1 ring-white/10">

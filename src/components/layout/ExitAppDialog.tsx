@@ -14,7 +14,7 @@ export default function ExitAppDialog({ open, onCancel, onExit }: Props) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div
-        className="w-full max-w-sm rounded-2xl border border-white/10 p-5 shadow-2xl"
+        className="sheet-light w-full max-w-sm rounded-2xl border border-black/10 p-5 shadow-2xl"
         style={{ background: "var(--surface)" }}
         role="dialog"
         aria-labelledby="exit-app-title"

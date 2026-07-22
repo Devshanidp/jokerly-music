@@ -32,7 +32,7 @@ export default function ExportPlaylistSheet({
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
     >
       <div
-        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border border-white/[0.08]"
+        className="sheet-light w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border border-black/10"
         style={{ background: "var(--surface)" }}
       >
         <div className="flex items-center justify-between p-4 border-b border-white/[0.06]">

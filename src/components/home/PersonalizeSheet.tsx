@@ -90,7 +90,7 @@ export default function PersonalizeSheet({ initialLangs, initialArtists, onSave,
       className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4"
       style={{ background: "rgba(0,0,0,0.80)", backdropFilter: "blur(8px)" }}
     >
-      <div className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden border border-white/[0.08] shadow-2xl"
+      <div className="sheet-light w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden border border-black/10 shadow-2xl"
         style={{ background: "var(--surface)", maxHeight: "min(88vh, calc(100vh - 16px))", marginBottom: "max(0px, env(safe-area-inset-bottom))" }}>
 
         {/* Drag handle */}

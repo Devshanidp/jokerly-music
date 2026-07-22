@@ -118,9 +118,9 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="rounded-3xl w-full max-w-sm border border-white/[0.09] shadow-2xl shadow-black/60 overflow-hidden"
-        style={{ background: "var(--surface)" }}>
+    <div className="theme-dark fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="rounded-3xl w-full max-w-sm border border-white/10 shadow-2xl shadow-black/40 overflow-hidden"
+        style={{ background: "#111827" }}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
           <h2 className="text-white font-semibold">Account</h2>
           <button onClick={onClose} className="p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.07] transition-colors">
@@ -136,7 +136,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div className="h-px bg-white/[0.06]" />
-          <div className="rounded-2xl border border-[var(--accent)]/20 p-3" style={{ background: "rgba(140, 80, 200,0.06)" }}>
+          <div className="rounded-2xl border border-white/10 p-3" style={{ background: "rgba(249,250,251,0.06)" }}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-white text-sm font-medium">Account permissions</p>
@@ -251,8 +251,8 @@ export default function Topbar() {
           </button>
         </div>
       )}
-      <header className={`sticky z-30 shrink-0 ${sessionError ? "top-10" : "top-0"}`}
-        style={{ background: "rgba(9,3,5,0.95)", backdropFilter: "blur(24px)" }}>
+      <header className={`sticky z-30 shrink-0 border-b border-black/5 ${sessionError ? "top-10" : "top-0"}`}
+        style={{ background: "rgba(249,250,251,0.92)", backdropFilter: "blur(24px)" }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
 
           {/* Logo */}
@@ -262,17 +262,17 @@ export default function Topbar() {
             className="flex items-center gap-2.5 shrink-0">
             <Image src={APP_LOGO} alt={APP_NAME} width={28} height={28} className="rounded-xl" unoptimized />
             <div className="flex flex-col items-start leading-tight">
-              <span className="text-[var(--accent)] font-bold text-xs sm:text-sm tracking-tight">{APP_NAME}</span>
-              <span className="text-[10px] text-white/40 font-medium">{APP_TAGLINE}</span>
+              <span className="text-[var(--near-black)] font-bold text-xs sm:text-sm tracking-tight">{APP_NAME}</span>
+              <span className="text-[10px] text-[var(--text-muted)] font-medium">{APP_TAGLINE}</span>
             </div>
           </button>
 
           {/* Right side */}
           <div className="flex items-center gap-2">
             <button onClick={() => setShowSettings(true)}
-              className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-white/[0.07] transition-colors">
-              <Image src={APP_LOGO} alt={APP_NAME} width={26} height={26} className="rounded-full ring-1 ring-white/20" unoptimized />
-              <Settings size={14} className="text-white/30" />
+              className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-black/[0.04] transition-colors">
+              <Image src={APP_LOGO} alt={APP_NAME} width={26} height={26} className="rounded-full ring-1 ring-black/10" unoptimized />
+              <Settings size={14} className="text-[var(--text-muted)]" />
             </button>
           </div>
         </div>
