@@ -894,6 +894,15 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       pauseOfflinePlayback();
       set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
       updateMediaSessionState(false);
+      const after = get();
+      if (after.queue.length > 0 && after.queueIndex >= 0) {
+        saveListeningContext({
+          queue: after.queue,
+          queueIndex: after.queueIndex,
+          progressMs: after.progressMs,
+          durationMs: after.durationMs,
+        });
+      }
       return;
     }
 

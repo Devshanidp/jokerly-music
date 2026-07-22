@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { PinnedAlbum, PinnedPlaylist } from "@/types";
 import Link from "next/link";
-import { Pin, Search, Loader2, Music, Mic2, Play, ListPlus, RefreshCw, Sparkles, SlidersHorizontal, UserCircle2, X } from "lucide-react";
+import { Pin, Search, Loader2, Music, Mic2, Play, ListPlus, RefreshCw, Sparkles, SlidersHorizontal, UserCircle2, X, GripVertical, Check } from "lucide-react";
 import PinnedPlaylistSection from "@/components/home/PinnedPlaylistSection";
+import JumpBackInCard from "@/components/home/JumpBackInCard";
 import PersonalizeSheet, { FavoriteArtist } from "@/components/home/PersonalizeSheet";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import AlbumSheet from "@/components/music/AlbumSheet";
@@ -16,6 +17,29 @@ import Image from "next/image";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import { LANGUAGES } from "@/lib/languages";
 import ListeningWaveform from "@/components/ui/ListeningWaveform";
+import {
+  HOME_SECTION_IDS,
+  HOME_SECTION_LABELS,
+  HomeSectionId,
+  readHomeSectionOrder,
+  saveHomeSectionOrder,
+} from "@/lib/home-order";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Suggestion {
   type: "track" | "artist" | "album";
@@ -134,6 +158,56 @@ function PinnedSkeleton() {
   );
 }
 
+function SortableHomeSection({
+  id,
+  reorderMode,
+  children,
+}: {
+  id: HomeSectionId;
+  reorderMode: boolean;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: !reorderMode,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.7 : 1,
+    zIndex: isDragging ? 20 : undefined,
+  };
+
+  if (!reorderMode) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        ...style,
+        background: "rgba(255,255,255,0.02)",
+      }}
+      className="rounded-2xl border border-dashed border-white/15 p-2 space-y-2"
+    >
+      <div className="flex items-center gap-2 px-1">
+        <button
+          type="button"
+          className="p-1 text-white/35 hover:text-white touch-none cursor-grab active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+          aria-label={`Reorder ${HOME_SECTION_LABELS[id]}`}
+        >
+          <GripVertical size={14} />
+        </button>
+        <span className="text-xs font-semibold text-white/55">{HOME_SECTION_LABELS[id]}</span>
+      </div>
+      <div className="pointer-events-none opacity-80">{children}</div>
+    </div>
+  );
+}
+
 export default function HomeClient() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -173,6 +247,8 @@ export default function HomeClient() {
   const [removingPinnedArtist, setRemovingPinnedArtist] = useState<string | null>(null);
   const [pinnedAlbums, setPinnedAlbums] = useState<PinnedAlbum[]>([]);
   const [recentlyPlayed, setRecentlyPlayed] = useState<RecentTrack[]>([]);
+  const [sectionOrder, setSectionOrder] = useState<HomeSectionId[]>([...HOME_SECTION_IDS]);
+  const [reorderMode, setReorderMode] = useState(false);
 
   const [listening, setListening] = useState(false);
   const [identifying, setIdentifying] = useState(false);
@@ -185,6 +261,28 @@ export default function HomeClient() {
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestBoxRef = useRef<HTMLDivElement>(null);
   const { setQueueAndPlay } = usePlayerStore();
+
+  useEffect(() => {
+    setSectionOrder(readHomeSectionOrder());
+  }, []);
+
+  const sectionSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } })
+  );
+
+  const handleSectionDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setSectionOrder((prev) => {
+      const oldIndex = prev.indexOf(active.id as HomeSectionId);
+      const newIndex = prev.indexOf(over.id as HomeSectionId);
+      if (oldIndex < 0 || newIndex < 0) return prev;
+      const next = arrayMove(prev, oldIndex, newIndex);
+      saveHomeSectionOrder(next);
+      return next;
+    });
+  };
 
   const fetchPinnedPlaylists = useCallback(async () => {
     setPinnedLoading(true);
@@ -732,193 +830,232 @@ export default function HomeClient() {
         </div>
       )}
 
-      {/* Recently Played */}
-      {recentlyPlayed.length > 0 && (
-        <section className="space-y-3">
-          <h3 className="text-white font-bold text-base">Recently Played</h3>
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-            {recentlyPlayed.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setQueueAndPlay([{ name: t.track_name, artist: t.track_artist, image: t.track_image ?? undefined, uri: t.track_uri }], 0)}
-                className="flex flex-col items-center gap-2 shrink-0 group"
-                style={{ width: 72 }}
-              >
-                <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
-                  {t.track_image
-                    ? <Image src={t.track_image} alt={t.track_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                    : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={14} className="text-white/20" /></div>
-                  }
-                </div>
-                <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{t.track_name}</p>
+      {/* Recently Played / Pinned / For You — ordered */}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          <button
+            type="button"
+            onClick={() => setReorderMode((v) => !v)}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
+              reorderMode
+                ? "border-[var(--accent)]/50 text-white bg-[var(--accent)]/15"
+                : "border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40"
+            }`}
+            style={!reorderMode ? { background: "var(--card)" } : undefined}
+          >
+            {reorderMode ? <Check size={12} /> : <GripVertical size={12} />}
+            {reorderMode ? "Done" : "Reorder"}
+          </button>
+          {langs && langs.length > 0 && (
+            <>
+              <button onClick={() => setShowPersonalize(true)}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40 transition-all"
+                style={{ background: "var(--card)" }}>
+                <SlidersHorizontal size={12} /> Edit
               </button>
-            ))}
-          </div>
-        </section>
+              <button onClick={handleRefresh} disabled={isRefreshBusy} title="Refresh feed"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40 transition-all disabled:opacity-40"
+                style={{ background: "var(--card)" }}>
+                <RefreshCw size={12} className={isRefreshBusy ? "animate-spin" : ""} />
+                {isRefreshBusy ? "Refreshing…" : "Refresh"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {reorderMode && (
+        <p className="text-[11px] text-white/35 -mt-4">Drag sections to change your home layout. Saved on this device.</p>
       )}
 
-      {/* Pinned Playlists */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <Pin size={14} className="text-[var(--accent)]" /> Pinned
-          </h3>
-          <Link href="/pinned" className="text-xs text-white/30 hover:text-white transition-colors">View all</Link>
-        </div>
-        {pinnedLoading ? <PinnedSkeleton /> : <PinnedPlaylistSection pinned={pinned} />}
-      </section>
+      <DndContext sensors={sectionSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+        <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
+          <div className="space-y-8">
+            {sectionOrder.map((sectionId) => {
+              let body: React.ReactNode = null;
 
-      {/* Pinned Artists */}
-      {pinnedArtists.length > 0 && (
-        <section className="space-y-3">
-          <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <UserCircle2 size={14} className="text-[var(--accent)]" /> Pinned Artists
-          </h3>
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-            {pinnedArtists.map((pa) => (
-              <div key={pa.id} className="relative shrink-0 group" style={{ width: 72 }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { web: "" }, popularity: 0, type: "artist", uri: "" } as MusicArtist)}
-                  className="flex flex-col items-center gap-1.5 w-full"
-                >
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
-                    {pa.artist_image ? (
-                      <Image src={pa.artist_image} alt={pa.artist_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
+              if (sectionId === "jumpBack") {
+                body = <JumpBackInCard />;
+              } else if (sectionId === "recent" && recentlyPlayed.length > 0) {
+                body = (
+                  <section className="space-y-3">
+                    <h3 className="text-white font-bold text-base">Recently Played</h3>
+                    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+                      {recentlyPlayed.map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => setQueueAndPlay([{ name: t.track_name, artist: t.track_artist, image: t.track_image ?? undefined, uri: t.track_uri }], 0)}
+                          className="flex flex-col items-center gap-2 shrink-0 group"
+                          style={{ width: 72 }}
+                        >
+                          <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
+                            {t.track_image
+                              ? <Image src={t.track_image} alt={t.track_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                              : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={14} className="text-white/20" /></div>
+                            }
+                          </div>
+                          <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{t.track_name}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                );
+              } else if (sectionId === "pinned") {
+                body = (
+                  <section className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-white font-bold text-base flex items-center gap-2">
+                        <Pin size={14} className="text-[var(--accent)]" /> Pinned
+                      </h3>
+                      <Link href="/pinned" className="text-xs text-white/30 hover:text-white transition-colors">View all</Link>
+                    </div>
+                    {pinnedLoading ? <PinnedSkeleton /> : <PinnedPlaylistSection pinned={pinned} />}
+                  </section>
+                );
+              } else if (sectionId === "pinnedArtists" && pinnedArtists.length > 0) {
+                body = (
+                  <section className="space-y-3">
+                    <h3 className="text-white font-bold text-base flex items-center gap-2">
+                      <UserCircle2 size={14} className="text-[var(--accent)]" /> Pinned Artists
+                    </h3>
+                    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+                      {pinnedArtists.map((pa) => (
+                        <div key={pa.id} className="relative shrink-0 group" style={{ width: 72 }}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { web: "" }, popularity: 0, type: "artist", uri: "" } as MusicArtist)}
+                            className="flex flex-col items-center gap-1.5 w-full"
+                          >
+                            <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
+                              {pa.artist_image ? (
+                                <Image src={pa.artist_image} alt={pa.artist_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Mic2 size={14} className="text-white/20" />
+                                </div>
+                              )}
+                              <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--accent)] border border-black/20 shadow" />
+                            </div>
+                            <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{pa.artist_name}</p>
+                          </button>
+                          <button
+                            type="button"
+                            title="Remove artist"
+                            disabled={removingPinnedArtist === pa.artist_id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void removePinnedArtist(pa.artist_id);
+                            }}
+                            className="absolute top-0 right-0 z-10 w-5 h-5 rounded-full bg-black/70 border border-white/10 text-white/70 hover:text-white hover:bg-purple-600/80 flex items-center justify-center transition-colors disabled:opacity-40"
+                          >
+                            {removingPinnedArtist === pa.artist_id ? (
+                              <Loader2 size={10} className="animate-spin" />
+                            ) : (
+                              <X size={10} />
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              } else if (sectionId === "pinnedAlbums" && pinnedAlbums.length > 0) {
+                body = (
+                  <section className="space-y-3">
+                    <h3 className="text-white font-bold text-base flex items-center gap-2">
+                      <Music size={14} className="text-[var(--accent)]" /> Pinned Albums
+                    </h3>
+                    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+                      {pinnedAlbums.map((album) => (
+                        <button
+                          key={album.id}
+                          onClick={() => setSelectedAlbum({
+                            id: album.album_id,
+                            name: album.album_name,
+                            images: album.album_image ? [{ url: album.album_image }] : [],
+                            release_date: "",
+                            artists: [{ id: album.album_id, name: album.artist_name, external_urls: { web: "" } }],
+                            external_urls: { web: "" },
+                            total_tracks: 0,
+                            album_type: "album",
+                            uri: "",
+                          })}
+                          className="flex flex-col items-center gap-1.5 shrink-0 group"
+                          style={{ width: 76 }}
+                        >
+                          <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
+                            {album.album_image ? (
+                              <Image src={album.album_image} alt={album.album_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Music size={14} className="text-white/20" />
+                              </div>
+                            )}
+                            <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--accent)] border border-black/20 shadow" />
+                          </div>
+                          <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{album.album_name}</p>
+                          <p className="text-[9px] text-white/25 text-center truncate w-full leading-tight">{album.artist_name}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                );
+              } else if (sectionId === "forYou" && (forYouTracks.length > 0 || forYouLoading)) {
+                body = (
+                  <section className="space-y-3">
+                    <h3 className="text-white font-bold text-base flex items-center gap-2">
+                      <Sparkles size={14} className="text-[var(--accent)]" /> For You
+                    </h3>
+                    {forYouLoading ? (
+                      <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>
+                        {[0,1,2,3,4].map((j) => <TrackRowSkeleton key={j} />)}
+                      </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Mic2 size={14} className="text-white/20" />
+                      <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>
+                        {forYouTracks.slice(0, 8).map((track, i) => (
+                          <div key={track.id}
+                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.05] transition-colors group border-b border-white/[0.04] last:border-0 cursor-pointer"
+                            onClick={() => setQueueAndPlay(forYouTracks.map(toPlayableFromTrack), i)}>
+                            <span className="text-white/20 text-xs w-5 text-right shrink-0 tabular-nums">{i + 1}</span>
+                            <div className="relative w-10 h-10 shrink-0">
+                              {trackImage(track)
+                                ? <Image src={trackImage(track)!} alt={track.name} fill unoptimized sizes="40px" className="rounded-xl object-cover" />
+                                : <div className="w-10 h-10 bg-white/[0.06] rounded-xl flex items-center justify-center"><Music size={14} className="text-white/20" /></div>}
+                              <div className="absolute inset-0 rounded-xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Play size={13} fill="white" className="text-white" />
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white text-sm font-medium truncate">{track.name}</p>
+                              <p className="text-white/35 text-xs truncate">{artistNames(track)}</p>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); track.uri && setModalTrack({ name: track.name, uri: track.uri, image: trackImage(track), artist: artistNames(track) }); }}
+                              className="p-1.5 rounded-lg text-[var(--accent)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
+                              <ListPlus size={14} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
-                    <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--accent)] border border-black/20 shadow" />
-                  </div>
-                  <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{pa.artist_name}</p>
-                </button>
-                <button
-                  type="button"
-                  title="Remove artist"
-                  disabled={removingPinnedArtist === pa.artist_id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void removePinnedArtist(pa.artist_id);
-                  }}
-                  className="absolute top-0 right-0 z-10 w-5 h-5 rounded-full bg-black/70 border border-white/10 text-white/70 hover:text-white hover:bg-purple-600/80 flex items-center justify-center transition-colors disabled:opacity-40"
-                >
-                  {removingPinnedArtist === pa.artist_id ? (
-                    <Loader2 size={10} className="animate-spin" />
-                  ) : (
-                    <X size={10} />
-                  )}
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+                  </section>
+                );
+              }
 
-      {pinnedAlbums.length > 0 && (
-        <section className="space-y-3">
-          <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <Music size={14} className="text-[var(--accent)]" /> Pinned Albums
-          </h3>
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-            {pinnedAlbums.map((album) => (
-              <button
-                key={album.id}
-                onClick={() => setSelectedAlbum({
-                  id: album.album_id,
-                  name: album.album_name,
-                  images: album.album_image ? [{ url: album.album_image }] : [],
-                  release_date: "",
-                  artists: [{ id: album.album_id, name: album.artist_name, external_urls: { web: "" } }],
-                  external_urls: { web: "" },
-                  total_tracks: 0,
-                  album_type: "album",
-                  uri: "",
-                })}
-                className="flex flex-col items-center gap-1.5 shrink-0 group"
-                style={{ width: 76 }}
-              >
-                <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
-                  {album.album_image ? (
-                    <Image src={album.album_image} alt={album.album_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Music size={14} className="text-white/20" />
+              if (!body && !reorderMode) return null;
+
+              return (
+                <SortableHomeSection key={sectionId} id={sectionId} reorderMode={reorderMode}>
+                  {body ?? (
+                    <div className="px-2 py-3 text-xs text-white/30">
+                      {HOME_SECTION_LABELS[sectionId]} (empty)
                     </div>
                   )}
-                  <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-[var(--accent)] border border-black/20 shadow" />
-                </div>
-                <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{album.album_name}</p>
-                <p className="text-[9px] text-white/25 text-center truncate w-full leading-tight">{album.artist_name}</p>
-              </button>
-            ))}
+                </SortableHomeSection>
+              );
+            })}
           </div>
-        </section>
-      )}
-
-      {/* Action buttons */}
-      {langs && langs.length > 0 && (
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-            {/* Personalize */}
-            <button onClick={() => setShowPersonalize(true)}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40 transition-all"
-              style={{ background: "var(--card)" }}>
-              <SlidersHorizontal size={12} /> Edit
-            </button>
-            {/* Refresh */}
-            <button onClick={handleRefresh} disabled={isRefreshBusy} title="Refresh feed"
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40 transition-all disabled:opacity-40"
-              style={{ background: "var(--card)" }}>
-              <RefreshCw size={12} className={isRefreshBusy ? "animate-spin" : ""} />
-              {isRefreshBusy ? "Refreshing…" : "Refresh"}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── For You section ── */}
-      {(forYouTracks.length > 0 || forYouLoading) && (
-        <section className="space-y-3">
-          <h3 className="text-white font-bold text-base flex items-center gap-2">
-            <Sparkles size={14} className="text-[var(--accent)]" /> For You
-          </h3>
-          {forYouLoading ? (
-            <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>
-              {[0,1,2,3,4].map((j) => <TrackRowSkeleton key={j} />)}
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>
-              {forYouTracks.slice(0, 8).map((track, i) => (
-                <div key={track.id}
-                  className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.05] transition-colors group border-b border-white/[0.04] last:border-0 cursor-pointer"
-                  onClick={() => setQueueAndPlay(forYouTracks.map(toPlayableFromTrack), i)}>
-                  <span className="text-white/20 text-xs w-5 text-right shrink-0 tabular-nums">{i + 1}</span>
-                  <div className="relative w-10 h-10 shrink-0">
-                    {trackImage(track)
-                      ? <Image src={trackImage(track)!} alt={track.name} fill unoptimized sizes="40px" className="rounded-xl object-cover" />
-                      : <div className="w-10 h-10 bg-white/[0.06] rounded-xl flex items-center justify-center"><Music size={14} className="text-white/20" /></div>}
-                    <div className="absolute inset-0 rounded-xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Play size={13} fill="white" className="text-white" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{track.name}</p>
-                    <p className="text-white/35 text-xs truncate">{artistNames(track)}</p>
-                  </div>
-                  <button onClick={(e) => { e.stopPropagation(); track.uri && setModalTrack({ name: track.name, uri: track.uri, image: trackImage(track), artist: artistNames(track) }); }}
-                    className="p-1.5 rounded-lg text-[var(--accent)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
-                    <ListPlus size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Picks section hidden by request */}
+        </SortableContext>
+      </DndContext>
 
       {/* No favourite artists CTA */}
       {!forYouLoading && forYouTracks.length === 0 && favoriteArtists.length === 0 && feedSections.length > 0 && (
