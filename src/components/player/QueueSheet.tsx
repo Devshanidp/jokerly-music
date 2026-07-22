@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PlayableTrack, usePlayerStore } from "@/store/player";
-import { ChevronDown, Music, Trash2, Play, Pause, GripVertical, Sparkles } from "lucide-react";
+import { useToastStore } from "@/store/toast";
+import { useBackHandler } from "@/hooks/useBackHandler";
+import { ChevronDown, Music, Trash2, Play, Pause, GripVertical, Sparkles, ListPlus, Loader2, X } from "lucide-react";
 import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import SimilarMusicSection from "@/components/player/SimilarMusicSection";
 import Image from "next/image";
@@ -24,6 +26,12 @@ import { CSS } from "@dnd-kit/utilities";
 
 interface Props {
   onPlayIndex: (index: number) => boolean | void;
+}
+
+function defaultQueuePlaylistName() {
+  const d = new Date();
+  const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `Saved queue · ${label}`;
 }
 
 function SortableTrack({
@@ -63,7 +71,6 @@ function SortableTrack({
           : "border-transparent hover:bg-white/[0.05] hover:border-white/[0.06]"
       }`}
     >
-      {/* Drag handle */}
       <button
         {...attributes}
         {...listeners}
@@ -122,6 +129,127 @@ function SortableTrack({
   );
 }
 
+function SaveQueueModal({
+  trackCount,
+  defaultName,
+  onClose,
+  onSaved,
+}: {
+  trackCount: number;
+  defaultName: string;
+  onClose: () => void;
+  onSaved: (playlistId: string) => void;
+}) {
+  useBackHandler(true, onClose);
+  const { toast } = useToastStore();
+  const queue = usePlayerStore((s) => s.queue);
+  const [name, setName] = useState(defaultName);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    const trimmed = name.trim();
+    if (!trimmed || saving) return;
+
+    const tracks = queue
+      .filter((t) => Boolean(t.uri))
+      .map((t) => ({
+        uri: t.uri as string,
+        name: t.name,
+        artist: t.artist,
+        image: t.image ?? null,
+      }));
+
+    if (!tracks.length) {
+      toast("No playable tracks in queue to save");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/music/playlists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: trimmed,
+          description: "Saved from queue",
+          tracks,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Failed (${res.status})`);
+
+      const added = typeof data.addedCount === "number" ? data.addedCount : tracks.length;
+      toast(`Saved ${added} tracks to “${trimmed}”`, "success");
+      window.dispatchEvent(new CustomEvent("playlist-updated", { detail: { playlistId: data.id } }));
+      onSaved(String(data.id));
+    } catch (e) {
+      toast((e as Error).message || "Could not save queue");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)" }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border border-white/[0.08] p-4 space-y-4 shadow-2xl"
+        style={{ background: "var(--surface)" }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-white font-semibold">Save queue as playlist</h3>
+            <p className="text-xs text-white/40 mt-0.5">{trackCount} tracks</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/[0.08]"
+            aria-label="Close"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void handleSave();
+          }}
+          placeholder="Playlist name"
+          className="w-full px-3 py-2.5 rounded-xl text-sm border border-white/[0.08] bg-white/[0.03] text-white placeholder-white/25 outline-none focus:border-[var(--accent)]/50"
+        />
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2.5 rounded-xl text-sm text-white/55 hover:bg-white/[0.05]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saving || !name.trim()}
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold btn-accent text-white disabled:opacity-40 flex items-center justify-center gap-2"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <ListPlus size={14} />}
+            {saving ? "Saving…" : "Save playlist"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function QueueSheet({ onPlayIndex }: Props) {
   const {
     queue,
@@ -137,8 +265,11 @@ export default function QueueSheet({ onPlayIndex }: Props) {
     usePlayerStore.setState({ queueSheetTab: next });
   const activeRef = useRef<HTMLDivElement | null>(null);
   const [similarSeed, setSimilarSeed] = useState<PlayableTrack | null>(null);
+  const [showSave, setShowSave] = useState(false);
   const prevOpenRef = useRef(false);
   const prevTabRef = useRef(tab);
+
+  const savableCount = queue.filter((t) => Boolean(t.uri)).length;
 
   useEffect(() => {
     const justOpened = isQueueOpen && !prevOpenRef.current;
@@ -183,10 +314,9 @@ export default function QueueSheet({ onPlayIndex }: Props) {
       className="fixed inset-0 z-[55] flex flex-col"
       style={{ background: "rgba(6,4,16,0.97)", backdropFilter: "blur(28px)" }}
     >
-      {/* Header */}
       <div className="px-5 pt-5 pb-3 shrink-0 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
             <h2 className="text-white font-bold text-lg">
               {tab === "queue" ? "Queue" : "Similar"}
             </h2>
@@ -198,12 +328,25 @@ export default function QueueSheet({ onPlayIndex }: Props) {
                   : "Based on now playing"}
             </p>
           </div>
-          <button
-            onClick={() => usePlayerStore.setState({ isQueueOpen: false })}
-            className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
-          >
-            <ChevronDown size={14} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {tab === "queue" && savableCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowSave(true)}
+                title="Save queue as playlist"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-white/80 hover:text-white hover:bg-white/[0.08] border border-white/[0.08] transition-colors"
+              >
+                <ListPlus size={13} />
+                Save
+              </button>
+            )}
+            <button
+              onClick={() => usePlayerStore.setState({ isQueueOpen: false })}
+              className="p-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
+            >
+              <ChevronDown size={14} />
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-2 p-1 rounded-xl" style={{ background: "var(--card)" }}>
@@ -228,7 +371,6 @@ export default function QueueSheet({ onPlayIndex }: Props) {
         </div>
       </div>
 
-      {/* Track list / similar — keep both panels mounted to avoid DOM reconciliation errors */}
       <div className="flex-1 min-h-0 relative">
         <div
           className={`absolute inset-0 overflow-y-auto px-3 pb-6 space-y-0.5 ${
@@ -292,6 +434,18 @@ export default function QueueSheet({ onPlayIndex }: Props) {
           )}
         </div>
       </div>
+
+      {showSave && (
+        <SaveQueueModal
+          trackCount={savableCount}
+          defaultName={defaultQueuePlaylistName()}
+          onClose={() => setShowSave(false)}
+          onSaved={() => {
+            setShowSave(false);
+            usePlayerStore.setState({ isQueueOpen: false });
+          }}
+        />
+      )}
     </div>
   );
 }

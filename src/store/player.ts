@@ -14,6 +14,7 @@ import {
 } from "@/lib/offline-player";
 import { fetchOfflineBlob } from "@/store/offline";
 import { useOfflineStore } from "@/store/offline";
+import { saveListeningContext } from "@/lib/listening-context";
 import {
   CATALOG_API_V1,
   WEB_PLAYBACK_GLOBAL,
@@ -689,6 +690,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   setQueueAndPlay: async (tracks, index) => {
     requestAudioFocus(); // steal iOS audio focus synchronously within the user gesture
     set({ queue: tracks, isPlayerExpanded: true, isQueueOpen: false });
+    saveListeningContext({
+      queue: tracks,
+      queueIndex: index,
+      progressMs: 0,
+      durationMs: tracks[index]?.durationMs ?? 0,
+    });
     get().playIndex(index);
   },
 
@@ -908,6 +915,15 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
     updateMediaSessionState(false);
+    const after = get();
+    if (after.queue.length > 0 && after.queueIndex >= 0) {
+      saveListeningContext({
+        queue: after.queue,
+        queueIndex: after.queueIndex,
+        progressMs: after.progressMs,
+        durationMs: after.durationMs,
+      });
+    }
   },
 
   maintainPlayback: async (resumeIfWasPlaying = false) => {
