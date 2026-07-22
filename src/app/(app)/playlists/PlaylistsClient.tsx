@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { createPortal } from "react-dom";
-import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X, LayoutGrid, List, Shuffle, Share2 } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X, LayoutGrid, List, Shuffle, Share2, Upload } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -31,6 +31,8 @@ import PlaylistActionsMenu from "@/components/playlist/PlaylistActionsMenu";
 import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import SharePlaylistModal from "@/components/playlist/SharePlaylistModal";
 import ImportSpotifyPlaylistsSheet from "@/components/playlist/ImportSpotifyPlaylistsSheet";
+import ExportPlaylistSheet from "@/components/playlist/ExportPlaylistSheet";
+import ExportToYouTubeMusicModal from "@/components/export/ExportToYouTubeMusicModal";
 import { useOfflineStore } from "@/store/offline";
 
 interface EditState { id: string; name: string; description: string; }
@@ -174,6 +176,16 @@ export default function PlaylistsClient() {
   const [showArtistMixSheet, setShowArtistMixSheet] = useState(false);
   const [showImportSpotify, setShowImportSpotify] = useState(false);
   const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
+  const [exportTarget, setExportTarget] = useState<{
+    id: string;
+    name: string;
+    tracks: PlaylistTrack[];
+  } | null>(null);
+  const [youtubeExport, setYoutubeExport] = useState<{
+    name: string;
+    tracks: { name: string; artist: string }[];
+  } | null>(null);
+  const [exportLoadingId, setExportLoadingId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [saving, setSaving] = useState(false);
@@ -284,13 +296,36 @@ export default function PlaylistsClient() {
     try {
       const res = await fetch(`/api/music/playlists/${id}?_t=${Date.now()}`);
       const data = await res.json();
-      setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
+      const items = (data.items ?? []) as PlaylistTrack[];
+      setTracksMap((prev) => ({ ...prev, [id]: items }));
+      return items;
     } catch {
       setTracksMap((prev) => ({ ...prev, [id]: [] }));
+      return [] as PlaylistTrack[];
     } finally {
       setLoadingTracks(null);
     }
   }, []);
+
+  const openExportForPlaylist = useCallback(
+    async (pl: MusicPlaylist) => {
+      setExportLoadingId(pl.id);
+      try {
+        let list = tracksMap[pl.id];
+        if (!list) {
+          list = await fetchTracks(pl.id);
+        }
+        if (!list.length) {
+          toast("No tracks to export — open the playlist and add songs first");
+          return;
+        }
+        setExportTarget({ id: pl.id, name: pl.name, tracks: list });
+      } finally {
+        setExportLoadingId(null);
+      }
+    },
+    [fetchTracks, tracksMap, toast]
+  );
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -638,6 +673,7 @@ export default function PlaylistsClient() {
             onTogglePin={() => togglePin(pl)}
             onDownloadOffline={() => downloadPlaylistOfflineTracks(pl.id, tracks)}
             onShare={() => setShareTarget({ id: pl.id, name: pl.name })}
+            onExport={() => void openExportForPlaylist(pl)}
           />
           <button
             onClick={() => setShareTarget({ id: pl.id, name: pl.name })}
@@ -646,6 +682,15 @@ export default function PlaylistsClient() {
             style={{ color: "rgba(255,255,255,0.4)" }}
           >
             <Share2 size={14} />
+          </button>
+          <button
+            onClick={() => void openExportForPlaylist(pl)}
+            disabled={tracks.length === 0 || exportLoadingId === pl.id}
+            title="Export to YouTube Music & other apps"
+            className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+            style={{ color: "rgba(255,255,255,0.4)" }}
+          >
+            {exportLoadingId === pl.id ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
           </button>
           <button onClick={() => setAddFromPlaylist(true)}
             title="Add tracks from another playlist"
@@ -659,12 +704,6 @@ export default function PlaylistsClient() {
             style={{ color: isMix ? "var(--accent)" : "rgba(255,255,255,0.4)", background: isMix ? "rgba(140, 80, 200,0.10)" : "transparent" }}
           >
             <Users size={14} />
-          </button>
-          <button onClick={() => handleDownloadM3U(pl, tracks)} disabled={tracks.length === 0}
-            title="Download M3U for TuneMyMusic"
-            className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors disabled:opacity-40 disabled:pointer-events-none"
-            style={{ color: "rgba(255,255,255,0.4)" }}>
-            <Download size={14} />
           </button>
           <button onClick={() => setEdit({ id: pl.id, name: pl.name, description: pl.description ?? "" })}
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -809,6 +848,44 @@ export default function PlaylistsClient() {
             void handleArtistsSaved(pl.id, artists, description, addedCount, removedCount);
           }}
         />
+        {shareTarget && (
+          <SharePlaylistModal
+            open
+            playlistId={shareTarget.id}
+            playlistName={shareTarget.name}
+            onClose={() => setShareTarget(null)}
+          />
+        )}
+        {exportTarget && (
+          <ExportPlaylistSheet
+            open
+            playlistName={exportTarget.name}
+            trackCount={exportTarget.tracks.length}
+            onClose={() => setExportTarget(null)}
+            onExportYouTube={() => {
+              const target = exportTarget;
+              setExportTarget(null);
+              setYoutubeExport({
+                name: target.name,
+                tracks: target.tracks.map((t) => ({
+                  name: t.track_name,
+                  artist: t.track_artist ?? "",
+                })),
+              });
+            }}
+            onDownloadM3U={() => {
+              handleDownloadM3U(pl, exportTarget.tracks);
+              setExportTarget(null);
+            }}
+          />
+        )}
+        {youtubeExport && (
+          <ExportToYouTubeMusicModal
+            title={youtubeExport.name}
+            tracks={youtubeExport.tracks}
+            onClose={() => setYoutubeExport(null)}
+          />
+        )}
         {artistMixFab}
       </div>
     );
@@ -986,6 +1063,7 @@ export default function PlaylistsClient() {
                       else toast("Open playlist to load tracks first");
                     }}
                     onShare={() => setShareTarget({ id: pl.id, name: pl.name })}
+                    onExport={() => void openExportForPlaylist(pl)}
                     onOpen={() => openPlaylist(pl)}
                   />
                 </div>
@@ -1044,6 +1122,7 @@ export default function PlaylistsClient() {
                     else toast("Open playlist to load tracks first");
                   }}
                   onShare={() => setShareTarget({ id: pl.id, name: pl.name })}
+                  onExport={() => void openExportForPlaylist(pl)}
                   onOpen={() => openPlaylist(pl)}
                 />
               </div>
@@ -1108,6 +1187,37 @@ export default function PlaylistsClient() {
           playlistId={shareTarget.id}
           playlistName={shareTarget.name}
           onClose={() => setShareTarget(null)}
+        />
+      )}
+      {exportTarget && (
+        <ExportPlaylistSheet
+          open
+          playlistName={exportTarget.name}
+          trackCount={exportTarget.tracks.length}
+          onClose={() => setExportTarget(null)}
+          onExportYouTube={() => {
+            const pl = exportTarget;
+            setExportTarget(null);
+            setYoutubeExport({
+              name: pl.name,
+              tracks: pl.tracks.map((t) => ({
+                name: t.track_name,
+                artist: t.track_artist ?? "",
+              })),
+            });
+          }}
+          onDownloadM3U={() => {
+            const plMeta = playlists.find((p) => p.id === exportTarget.id);
+            if (plMeta) handleDownloadM3U(plMeta, exportTarget.tracks);
+            setExportTarget(null);
+          }}
+        />
+      )}
+      {youtubeExport && (
+        <ExportToYouTubeMusicModal
+          title={youtubeExport.name}
+          tracks={youtubeExport.tracks}
+          onClose={() => setYoutubeExport(null)}
         />
       )}
       <ImportSpotifyPlaylistsSheet
