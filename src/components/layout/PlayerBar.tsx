@@ -644,7 +644,7 @@ export default function PlayerBar() {
                       onClick={() => setShowLyrics(false)}
                     >
                       <div
-                        className="relative w-full max-w-lg max-h-[85vh] rounded-3xl border border-white/[0.08] flex flex-col overflow-hidden shadow-2xl"
+                        className="relative w-full max-w-lg h-[min(85vh,720px)] rounded-3xl border border-white/[0.08] flex flex-col overflow-hidden shadow-2xl"
                         style={{ background: "rgba(15,8,10,0.98)" }}
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -662,8 +662,8 @@ export default function PlayerBar() {
                             <X size={14} />
                           </button>
                         </div>
-                        {/* Lyrics */}
-                        <div className="flex flex-col flex-1 overflow-hidden px-2 py-2">
+                        {/* Lyrics — min-h-0 so flex child can scroll instead of collapsing */}
+                        <div className="flex flex-col flex-1 min-h-0 overflow-hidden px-2 py-2">
                           <LyricsPanel track={currentTrack} progressMs={progressMs} fullscreen />
                         </div>
                       </div>

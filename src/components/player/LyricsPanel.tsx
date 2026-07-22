@@ -45,7 +45,14 @@ export default function LyricsPanel({ track, progressMs, fullscreen }: Props) {
     resetDisplay(null, null);
 
     const artist = track.artist.split(",")[0].trim();
-    const url = `/api/lyrics?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track.name)}`;
+    const params = new URLSearchParams({
+      artist,
+      track: track.name,
+    });
+    if (track.durationMs && track.durationMs > 0) {
+      params.set("duration", String(Math.round(track.durationMs / 1000)));
+    }
+    const url = `/api/lyrics?${params.toString()}`;
 
     fetch(url)
       .then(async (response) => {
@@ -75,7 +82,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen }: Props) {
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
-  }, [track.name, track.artist, resetDisplay]);
+  }, [track.name, track.artist, track.durationMs, resetDisplay]);
 
   const handleShowOriginal = () => {
     resetDisplay(originalSynced, originalPlain);
@@ -153,7 +160,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen }: Props) {
     LYRIC_TARGET_LANGUAGES.find((l) => l.code === targetLang)?.label ?? targetLang;
 
   return (
-    <div className={`flex flex-col min-h-0 ${fullscreen ? "flex-1" : ""}`}>
+    <div className={`flex flex-col min-h-0 ${fullscreen ? "flex-1 h-full" : ""}`}>
       {!loading && !notFound && (
         <div
           className={`shrink-0 flex flex-wrap items-center gap-2 mb-2 ${fullscreen ? "px-1" : ""}`}
@@ -208,7 +215,7 @@ export default function LyricsPanel({ track, progressMs, fullscreen }: Props) {
       <div
         ref={containerRef}
         className={`overflow-y-auto rounded-2xl px-4 py-3 space-y-3 scrollbar-hide ${
-          fullscreen ? "flex-1 h-0" : "max-h-56"
+          fullscreen ? "flex-1 min-h-0" : "max-h-56"
         }`}
         style={{ background: fullscreen ? "transparent" : "var(--card)" }}
       >
