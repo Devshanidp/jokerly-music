@@ -23,6 +23,12 @@ export default function FloatingNav() {
   const go = (e: React.PointerEvent<HTMLButtonElement> | React.MouseEvent<HTMLButtonElement>, target: NavTarget) => {
     e.preventDefault();
     e.stopPropagation();
+    // Always reset to the playlist list (clears Magic Mix ?id= deep link)
+    if (target === "/playlists") {
+      router.push("/playlists", { scroll: false });
+      window.dispatchEvent(new Event("playlists-show-list"));
+      return;
+    }
     if (pathname === target) return;
     router.push(target, { scroll: false });
   };

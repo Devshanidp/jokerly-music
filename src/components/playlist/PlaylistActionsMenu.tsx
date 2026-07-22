@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MoreVertical, Shuffle, Pin, Download, ListMusic, Loader2 } from "lucide-react";
+import { MoreVertical, Shuffle, Pin, Download, ListMusic, Loader2, Share2 } from "lucide-react";
 
 interface Props {
   isPinned: boolean;
@@ -11,6 +11,7 @@ interface Props {
   onShufflePlay: () => void;
   onTogglePin: () => void;
   onDownloadOffline: () => void;
+  onShare?: () => void;
   onOpen?: () => void;
   className?: string;
   /** overlay = on artwork; card = grid footer; default = list row */
@@ -25,6 +26,7 @@ export default function PlaylistActionsMenu({
   onShufflePlay,
   onTogglePin,
   onDownloadOffline,
+  onShare,
   onOpen,
   className = "",
   variant = "default",
@@ -98,6 +100,8 @@ export default function PlaylistActionsMenu({
         >
           {onOpen &&
             item(<ListMusic size={14} className="text-white/50" />, "Open playlist", onOpen)}
+          {onShare &&
+            item(<Share2 size={14} className="text-white/50" />, "Share link / QR", onShare)}
           {item(
             <Shuffle size={14} className="text-[var(--accent)]" />,
             "Shuffle play",

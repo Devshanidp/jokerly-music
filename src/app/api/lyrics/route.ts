@@ -29,6 +29,15 @@ function parseLrc(lrc: string): LrcLine[] {
   });
 }
 
+/** Strip remasters / feats / extras that break lyric lookups. */
+function cleanTrackName(track: string): string {
+  return track
+    .replace(/\s*[\(\[].*?(remaster|remix|live|edit|version|bonus|deluxe|feat\.?|ft\.?|with).*?[\)\]]/gi, "")
+    .replace(/\s*-\s*(remaster(ed)?|radio edit|live|remix).*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function normalizeLrclibRecord(raw: unknown): LrclibPayload | null {
   if (!raw || typeof raw !== "object") return null;
   const row = raw as Record<string, unknown>;
@@ -61,45 +70,81 @@ function payloadToResult(data: LrclibPayload): LyricsResult {
   return { kind: "notFound" };
 }
 
+async function fetchJson(url: string, timeoutMs = 8_000): Promise<unknown | null> {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "ShaNsMusic/1.0 (lyrics)",
+      },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 async function fetchLrclibGet(artist: string, track: string): Promise<LrclibPayload | null> {
   const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(track)}`;
-  const res = await fetch(url, {
-    signal: AbortSignal.timeout(10_000),
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) return null;
-  return normalizeLrclibRecord(await res.json());
+  return normalizeLrclibRecord(await fetchJson(url));
 }
 
 async function fetchLrclibSearch(artist: string, track: string): Promise<LrclibPayload | null> {
-  const url = `https://lrclib.net/api/search?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(track)}`;
-  const res = await fetch(url, {
-    signal: AbortSignal.timeout(10_000),
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) return null;
-  const rows = (await res.json()) as unknown;
-  if (!Array.isArray(rows) || rows.length === 0) return null;
+  const urls = [
+    `https://lrclib.net/api/search?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(track)}`,
+    `https://lrclib.net/api/search?q=${encodeURIComponent(`${track} ${artist}`)}`,
+  ];
 
-  for (const row of rows) {
-    const normalized = normalizeLrclibRecord(row);
-    if (normalized) return normalized;
+  for (const url of urls) {
+    const rows = await fetchJson(url);
+    if (!Array.isArray(rows) || rows.length === 0) continue;
+    for (const row of rows) {
+      const normalized = normalizeLrclibRecord(row);
+      if (normalized) return normalized;
+    }
   }
   return null;
+}
+
+/** Plain-lyrics fallback when lrclib is down / empty. */
+async function fetchLyricsOvh(artist: string, track: string): Promise<LrclibPayload | null> {
+  const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(track)}`;
+  const data = (await fetchJson(url, 12_000)) as { lyrics?: string; error?: string } | null;
+  const lyrics = data?.lyrics?.trim();
+  if (!lyrics) return null;
+  // lyrics.ovh often prefixes with blank lines / "Paroles de la chanson..."
+  const cleaned = lyrics
+    .replace(/^Paroles de la chanson.*\n+/i, "")
+    .replace(/^\n+/, "")
+    .trim();
+  if (!cleaned) return null;
+  return { plainLyrics: cleaned, syncedLyrics: null, instrumental: false };
 }
 
 async function fetchLyrics(artist: string, track: string): Promise<LrclibPayload | null> {
   const direct = await fetchLrclibGet(artist, track);
   if (direct) return direct;
-  return fetchLrclibSearch(artist, track);
+
+  const searched = await fetchLrclibSearch(artist, track);
+  if (searched) return searched;
+
+  return fetchLyricsOvh(artist, track);
 }
 
 function artistCandidates(artist: string): string[] {
   const parts = artist
-    .split(",")
+    .split(/[,&]| feat\.? | ft\.? | featuring /i)
     .map((name) => name.trim())
     .filter(Boolean);
-  return [...new Set([artist.trim(), ...parts])];
+  return [...new Set([artist.trim(), ...parts].filter(Boolean))];
+}
+
+function trackCandidates(track: string): string[] {
+  const cleaned = cleanTrackName(track);
+  return [...new Set([track.trim(), cleaned].filter(Boolean))];
 }
 
 const CACHE_HEADERS = { "Cache-Control": "private, max-age=86400" };
@@ -114,21 +159,24 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    for (const candidate of artistCandidates(artist)) {
-      const data = await fetchLyrics(candidate, track);
-      if (!data) continue;
+    for (const trackName of trackCandidates(track)) {
+      for (const candidate of artistCandidates(artist)) {
+        const data = await fetchLyrics(candidate, trackName);
+        if (!data) continue;
 
-      const result = payloadToResult(data);
-      if (result.kind === "synced") {
-        return NextResponse.json({ syncedLines: result.syncedLines }, { headers: CACHE_HEADERS });
-      }
-      if (result.kind === "plain") {
-        return NextResponse.json({ plainText: result.plainText }, { headers: CACHE_HEADERS });
+        const result = payloadToResult(data);
+        if (result.kind === "synced") {
+          return NextResponse.json({ syncedLines: result.syncedLines }, { headers: CACHE_HEADERS });
+        }
+        if (result.kind === "plain") {
+          return NextResponse.json({ plainText: result.plainText }, { headers: CACHE_HEADERS });
+        }
       }
     }
 
     return NextResponse.json({ notFound: true });
-  } catch {
+  } catch (e) {
+    console.error("[lyrics GET]", e);
     return NextResponse.json({ error: "Could not load lyrics" }, { status: 500 });
   }
 }

@@ -97,6 +97,29 @@ export async function getPlaylistTracks(playlistId: string, accessToken: string,
   return catalogFetch(`${CATALOG_API_V1}/playlists/${playlistId}/tracks?limit=${limit}`, accessToken);
 }
 
+/** Fetch all tracks from a catalog playlist (paginated). */
+export async function getAllPlaylistTracks(playlistId: string, accessToken: string, maxTracks = 200) {
+  const items: any[] = [];
+  let offset = 0;
+  const pageSize = 50;
+
+  while (items.length < maxTracks) {
+    const limit = Math.min(pageSize, maxTracks - items.length);
+    const data: any = await catalogFetch(
+      `${CATALOG_API_V1}/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`,
+      accessToken,
+      15_000
+    );
+    const page = data?.items ?? [];
+    if (!page.length) break;
+    items.push(...page);
+    if (!data.next || page.length < limit) break;
+    offset += page.length;
+  }
+
+  return items;
+}
+
 export async function getArtist(artistId: string, accessToken: string) {
   return catalogFetch(`${CATALOG_API_V1}/artists/${artistId}`, accessToken);
 }

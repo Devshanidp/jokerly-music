@@ -767,10 +767,17 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       if (isPlaying) return;
       if (player && deviceId) {
         await get().resumePlayback();
-        if (get().isPlaying) return;
+        const sdk = await player.getCurrentState().catch(() => null);
+        if (sdk && !sdk.paused) return;
+        // Fall through to a full play request if resume did not start playback.
       }
-      // Fall through to a full play request if resume did not start playback.
     }
+    const resumeSameTrack =
+      index === queueIndex &&
+      !!nextTrack.uri &&
+      nextTrack.uri === currentTrack?.uri;
+    const startPositionMs = resumeSameTrack ? Math.max(0, get().progressMs || 0) : 0;
+
     const uriEntries = queue
       .map((track, queueIndex) => ({ uri: track.uri, queueIndex }))
       .filter((item): item is { uri: string; queueIndex: number } => Boolean(item.uri));
@@ -820,7 +827,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         ? {}
         : {
             isPlaying: false,
-            progressMs: 0,
+            progressMs: resumeSameTrack ? startPositionMs : 0,
             durationMs: nextTrack.durationMs ?? 0,
           }),
     });
@@ -830,7 +837,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         deviceId,
         uris: uriEntries.map((item) => item.uri),
         offset: { position: targetPosition },
-        positionMs: 0,
+        positionMs: startPositionMs,
       });
     } catch (e) {
       const errorText = parseErrorText(e);
@@ -867,7 +874,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       isPlaying: true,
       isTransitioning: false,
       isOfflinePlayback: false,
-      progressMs: 0,
+      progressMs: startPositionMs,
       durationMs: nextTrack.durationMs ?? 0,
     });
     lastConfirmedPlayingAt = Date.now();
@@ -884,7 +891,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
 
     const { player, isPlaying } = get();
-    if (!player || !isPlaying) return;
+    if (!player) return;
 
     userPausedIntent = true;
     playIntentIndex = null;
@@ -896,7 +903,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     try {
       await player.pause();
     } catch {
-      return;
+      // Still mark paused so UI matches user intent
     }
 
     set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
@@ -906,7 +913,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   maintainPlayback: async (resumeIfWasPlaying = false) => {
     if (Date.now() < suppressAutoResumeUntil && userPausedIntent) return;
 
-    const { player, volume, isOfflinePlayback, currentTrack, queueIndex, queue, isPlaying } = get();
+    const { player, volume, isOfflinePlayback, currentTrack, queueIndex, queue, isPlaying, deviceId, progressMs } = get();
     if (isOfflinePlayback) {
       if (resumeIfWasPlaying && !isOfflinePlaying()) {
         resumeOfflinePlayback();
@@ -949,8 +956,28 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     suppressAutoResumeUntil = 0;
     ignorePausedUntil = Date.now() + 2500;
 
+    // Prefer verified resume; fall back to Play API (never fake isPlaying)
+    if (state?.paused) {
+      try {
+        await player.togglePlay();
+        await new Promise((r) => setTimeout(r, 120));
+        const after = await player.getCurrentState().catch(() => null);
+        if (after && !after.paused) {
+          set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+          lastConfirmedPlayingAt = Date.now();
+          updateMediaSessionState(true);
+          return;
+        }
+      } catch { /* fall through */ }
+    }
+
+    if (!deviceId) return;
     try {
-      await player.togglePlay();
+      await playerApi("play", {
+        deviceId,
+        uris: [track.uri],
+        positionMs: Math.max(0, state?.position ?? progressMs ?? 0),
+      });
       set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
       lastConfirmedPlayingAt = Date.now();
       updateMediaSessionState(true);
@@ -966,8 +993,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
-    const { player, isPlaying, currentTrack, queue, queueIndex, deviceId } = get();
-    if (isPlaying) return;
+    const { player, isPlaying, currentTrack, queue, queueIndex, deviceId, progressMs } = get();
+    if (isPlaying) {
+      const sdkPlaying = await player?.getCurrentState().catch(() => null);
+      if (sdkPlaying && !sdkPlaying.paused) return;
+      // UI thinks playing but SDK is paused — continue and force play
+    }
 
     const track = currentTrack ?? (queueIndex >= 0 ? queue[queueIndex] : null);
     if (!track) return;
@@ -986,27 +1017,66 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     requestAudioFocus();
     ignorePausedUntil = Date.now() + 2500;
 
+    try {
+      if (player.activateElement) await player.activateElement();
+    } catch { /* ignore */ }
+
     if (!deviceId) {
       pendingPlayOnReadyIndex = queueIndex >= 0 ? queueIndex : null;
       void player.connect().catch(() => {});
-      if (queueIndex >= 0) {
-        await get().playIndex(queueIndex);
-      }
+      set({ isPlaying: false, isTransitioning: false });
       return;
     }
 
+    const before = await player.getCurrentState().catch(() => null);
+    const positionMs = Math.max(0, before?.position ?? progressMs ?? 0);
+
+    if (before?.paused) {
+      try {
+        await player.togglePlay();
+        await new Promise((r) => setTimeout(r, 150));
+        const after = await player.getCurrentState().catch(() => null);
+        if (after && !after.paused) {
+          set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+          lastConfirmedPlayingAt = Date.now();
+          updateMediaSessionState(true);
+          return;
+        }
+      } catch {
+        // Fall through to Play API
+      }
+    }
+
+    // togglePlay often no-ops with null SDK context — force Web API play
     try {
-      await player.togglePlay();
-    } catch {
-      if (queueIndex >= 0) {
-        await get().playIndex(queueIndex);
-      }
-      return;
-    }
+      const uriEntries = queue
+        .map((t, i) => ({ uri: t.uri, queueIndex: i }))
+        .filter((item): item is { uri: string; queueIndex: number } => Boolean(item.uri));
+      const targetPosition = uriEntries.findIndex((item) => item.queueIndex === queueIndex);
 
-    set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
-    lastConfirmedPlayingAt = Date.now();
-    updateMediaSessionState(true);
+      await playerApi("play", {
+        deviceId,
+        uris: uriEntries.length > 0 ? uriEntries.map((item) => item.uri) : [track.uri],
+        ...(targetPosition >= 0 ? { offset: { position: targetPosition } } : {}),
+        positionMs,
+      });
+
+      await new Promise((r) => setTimeout(r, 200));
+      const after = await player.getCurrentState().catch(() => null);
+      const confirmed = after ? !after.paused : true;
+      set({
+        isPlaying: confirmed,
+        isTransitioning: false,
+        pendingIndex: null,
+        progressMs: positionMs,
+      });
+      if (confirmed) {
+        lastConfirmedPlayingAt = Date.now();
+        updateMediaSessionState(true);
+      }
+    } catch {
+      set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+    }
   },
 
   togglePlay: async () => {

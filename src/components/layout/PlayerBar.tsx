@@ -559,7 +559,7 @@ export default function PlayerBar() {
                     className="p-2 rounded-2xl text-white/70 hover:text-white hover:bg-white/[0.07] transition-colors">
                     <SkipBack size={16} fill="currentColor" />
                   </button>
-                  <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning} title={isPlaying ? "Pause" : "Play"}
+                  <button onClick={handlePlayPause} disabled={playDisabled || (isTransitioning && isPlaying)} title={isPlaying ? "Pause" : "Play"}
                     className="btn-accent p-3.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
                     {fetching
                       ? <Loader2 size={18} className="text-white animate-spin" />
@@ -727,7 +727,7 @@ export default function PlayerBar() {
               className="p-1.5 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
               <SkipBack size={12} fill="currentColor" />
             </button>
-            <button onClick={handlePlayPause} disabled={playDisabled || isTransitioning}
+            <button onClick={handlePlayPause} disabled={playDisabled || (isTransitioning && isPlaying)}
               className="btn-accent mx-0.5 p-2.5 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
               {(!currentTrack || !isPlaying) && fetching
                 ? <Loader2 size={12} className="text-white animate-spin" />

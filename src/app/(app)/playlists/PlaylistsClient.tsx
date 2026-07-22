@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useBackHandler } from "@/hooks/useBackHandler";
 import { createPortal } from "react-dom";
-import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X, LayoutGrid, List, Shuffle } from "lucide-react";
+import { ListMusic, Plus, Pencil, Pin, Loader2, Check, Trash2, Music, Play, Trash, PlayCircle, GripVertical, ListPlus, ArrowLeft, FolderInput, UserCircle2, Mic2, Heart, Download, Users, X, LayoutGrid, List, Shuffle, Share2 } from "lucide-react";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor,
   useSensor, useSensors, DragEndEvent,
@@ -29,6 +29,8 @@ import { isMixPlaylist, parseMixArtistRecords, parseMixArtists } from "@/lib/pla
 import { shuffleArray } from "@/lib/shuffle";
 import PlaylistActionsMenu from "@/components/playlist/PlaylistActionsMenu";
 import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
+import SharePlaylistModal from "@/components/playlist/SharePlaylistModal";
+import ImportSpotifyPlaylistsSheet from "@/components/playlist/ImportSpotifyPlaylistsSheet";
 import { useOfflineStore } from "@/store/offline";
 
 interface EditState { id: string; name: string; description: string; }
@@ -161,13 +163,17 @@ function CoverArt({ tracks, imageUrl, name, size = 160 }: { tracks?: PlaylistTra
 
 // ── Main component ──────────────────────────────────────────────────────────
 export default function PlaylistsClient() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const openPlaylistId = searchParams.get("id");
+  const deepLinkHandled = useRef<string | null>(null);
   const [playlists, setPlaylists] = useState<MusicPlaylist[]>([]);
   const [viewMode, setViewMode] = useState<PlaylistViewMode>("grid");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showArtistMixSheet, setShowArtistMixSheet] = useState(false);
+  const [showImportSpotify, setShowImportSpotify] = useState(false);
+  const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [saving, setSaving] = useState(false);
@@ -221,11 +227,17 @@ export default function PlaylistsClient() {
 
   const selectedPlaylist = playlists.find((p) => p.id === selectedId) ?? null;
 
-  useBackHandler(!!selectedId, () => {
+  const closePlaylistDetail = useCallback(() => {
     setSelectedId(null);
     setEdit(null);
     setAddFromPlaylist(false);
-  });
+    // Drop ?id= so Back / Playlist nav shows the list, not the Magic Mix again
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("id")) {
+      router.replace("/playlists", { scroll: false });
+    }
+  }, [router]);
+
+  useBackHandler(!!selectedId, closePlaylistDetail);
   useBackHandler(showArtistMixSheet, () => setShowArtistMixSheet(false));
   useBackHandler(editArtistsOpen, () => setEditArtistsOpen(false));
   useBackHandler(!!addModal, () => setAddModal(null));
@@ -287,12 +299,31 @@ export default function PlaylistsClient() {
     return () => window.clearTimeout(id);
   }, [load]);
 
-  // Open playlist from ?id=... (e.g. after Magic Mix creates one)
+  // Open playlist from ?id=... once (e.g. after Magic Mix), then leave the list free
   useEffect(() => {
     if (!openPlaylistId || loading || playlists.length === 0) return;
+    if (deepLinkHandled.current === openPlaylistId) return;
     if (!playlists.some((p) => p.id === openPlaylistId)) return;
+    deepLinkHandled.current = openPlaylistId;
     setSelectedId(openPlaylistId);
   }, [openPlaylistId, loading, playlists]);
+
+  // When ?id= is cleared (Back or Playlist nav), return to the list
+  useEffect(() => {
+    if (openPlaylistId) return;
+    if (deepLinkHandled.current) {
+      deepLinkHandled.current = null;
+      setSelectedId(null);
+      setEdit(null);
+      setAddFromPlaylist(false);
+    }
+  }, [openPlaylistId]);
+
+  useEffect(() => {
+    const showList = () => closePlaylistDetail();
+    window.addEventListener("playlists-show-list", showList);
+    return () => window.removeEventListener("playlists-show-list", showList);
+  }, [closePlaylistDetail]);
 
   useEffect(() => {
     const fetchPinnedArtists = () =>
@@ -591,7 +622,7 @@ export default function PlaylistsClient() {
         {/* Back + actions header */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => { setSelectedId(null); setEdit(null); setAddFromPlaylist(false); }}
+            onClick={closePlaylistDetail}
             className="flex items-center gap-1 text-[10px] sm:text-xs font-medium transition-colors"
             style={{ color: "rgba(255,255,255,0.55)" }}
           >
@@ -606,7 +637,16 @@ export default function PlaylistsClient() {
             onShufflePlay={() => shufflePlayPlaylist(tracks)}
             onTogglePin={() => togglePin(pl)}
             onDownloadOffline={() => downloadPlaylistOfflineTracks(pl.id, tracks)}
+            onShare={() => setShareTarget({ id: pl.id, name: pl.name })}
           />
+          <button
+            onClick={() => setShareTarget({ id: pl.id, name: pl.name })}
+            title="Share link / QR"
+            className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors"
+            style={{ color: "rgba(255,255,255,0.4)" }}
+          >
+            <Share2 size={14} />
+          </button>
           <button onClick={() => setAddFromPlaylist(true)}
             title="Add tracks from another playlist"
             className="p-2 rounded-xl hover:bg-white/[0.07] transition-colors" style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -812,6 +852,12 @@ export default function PlaylistsClient() {
             </button>
           </div>
           <button
+            onClick={() => setShowImportSpotify(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/80 font-semibold text-sm transition-all active:scale-95 border border-white/[0.1] hover:bg-white/[0.06]"
+          >
+            <FolderInput size={14} /> Import
+          </button>
+          <button
             onClick={() => setCreating(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-sm transition-all active:scale-95 shadow-lg btn-accent"
           >
@@ -879,7 +925,7 @@ export default function PlaylistsClient() {
             <ListMusic size={28} className="opacity-30" />
           </div>
           <p className="text-sm font-medium">No playlists yet</p>
-          <p className="text-xs mt-1 opacity-60">Tap + to mix artists, or New for an empty playlist</p>
+          <p className="text-xs mt-1 opacity-60">Import from Spotify, tap + to mix artists, or New for an empty playlist</p>
         </div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
@@ -939,6 +985,7 @@ export default function PlaylistsClient() {
                       if (list.length) downloadPlaylistOfflineTracks(pl.id, list);
                       else toast("Open playlist to load tracks first");
                     }}
+                    onShare={() => setShareTarget({ id: pl.id, name: pl.name })}
                     onOpen={() => openPlaylist(pl)}
                   />
                 </div>
@@ -996,6 +1043,7 @@ export default function PlaylistsClient() {
                     if (list.length) downloadPlaylistOfflineTracks(pl.id, list);
                     else toast("Open playlist to load tracks first");
                   }}
+                  onShare={() => setShareTarget({ id: pl.id, name: pl.name })}
                   onOpen={() => openPlaylist(pl)}
                 />
               </div>
@@ -1054,6 +1102,26 @@ export default function PlaylistsClient() {
 
       {addModal && <AddToPlaylistModal track={addModal} onClose={() => setAddModal(null)} />}
       {selectedArtist && <ArtistSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />}
+      {shareTarget && (
+        <SharePlaylistModal
+          open
+          playlistId={shareTarget.id}
+          playlistName={shareTarget.name}
+          onClose={() => setShareTarget(null)}
+        />
+      )}
+      <ImportSpotifyPlaylistsSheet
+        open={showImportSpotify}
+        onClose={() => setShowImportSpotify(false)}
+        onImported={(pl, pinnedNow) => {
+          setPlaylists((prev) => [pl, ...prev.filter((p) => p.id !== pl.id)]);
+          if (pinnedNow) {
+            setPinned((prev) => new Set(prev).add(pl.id));
+            window.dispatchEvent(new Event("pinned-playlists-updated"));
+          }
+          setSelectedId(pl.id);
+        }}
+      />
       {artistMixFab}
     </div>
   );
