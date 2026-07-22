@@ -58,7 +58,7 @@ export default function FloatingNav() {
       className={`fixed left-1/2 -translate-x-1/2 z-[55] transition-all duration-300 pointer-events-none ${bottomClass}`}
     >
       <nav
-        className="pointer-events-auto flex items-center gap-0.5 p-0.5 rounded-full border border-purple-300/20"
+        className="pointer-events-auto flex items-center gap-0.5 p-0.5 rounded-full border border-[var(--accent)]/25"
         style={{
           background: "linear-gradient(180deg, rgba(22, 14, 32, 0.96) 0%, rgba(12, 8, 18, 0.98) 100%)",
           backdropFilter: "blur(20px)",
