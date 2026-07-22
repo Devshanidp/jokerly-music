@@ -596,7 +596,7 @@ export default function PlayerBar() {
                       className="shrink-0 p-2.5 rounded-2xl text-white/30 hover:text-white hover:bg-white/[0.07] transition-colors">
                       <ListOrdered size={14} />
                     </button>
-                    <button onClick={() => setShowLyrics(true)} title="Lyrics"
+                    <button onClick={() => setShowLyrics(true)} title="Sing-along lyrics"
                       className={`shrink-0 p-2.5 rounded-2xl transition-colors ${showLyrics ? "text-[var(--accent)] bg-[var(--accent)]/10" : "text-white/30 hover:text-white hover:bg-white/[0.07]"}`}>
                       <MicVocal size={14} />
                     </button>
@@ -651,6 +651,7 @@ export default function PlayerBar() {
                         {/* Header */}
                         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06] shrink-0">
                           <div className="min-w-0 pr-3">
+                            <p className="text-[10px] uppercase tracking-widest text-white/30 mb-0.5">Sing-along</p>
                             <p className="text-sm font-semibold text-white truncate">{currentTrack.name}</p>
                             <p className="text-xs text-white/40 truncate">{currentTrack.artist}</p>
                           </div>
@@ -664,7 +665,15 @@ export default function PlayerBar() {
                         </div>
                         {/* Lyrics — min-h-0 so flex child can scroll instead of collapsing */}
                         <div className="flex flex-col flex-1 min-h-0 overflow-hidden px-2 py-2">
-                          <LyricsPanel track={currentTrack} progressMs={progressMs} fullscreen />
+                          <LyricsPanel
+                            track={currentTrack}
+                            progressMs={progressMs}
+                            fullscreen
+                            onSeekMs={(ms) => {
+                              const dur = usePlayerStore.getState().durationMs || 1;
+                              seek(Math.min(1, Math.max(0, ms / dur)));
+                            }}
+                          />
                         </div>
                       </div>
                     </div>
