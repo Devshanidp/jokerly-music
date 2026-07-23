@@ -5,7 +5,7 @@
   --color-submarine-yellow: #E2B631;
   --color-deep-charcoal: #121212;
   --color-vibrant-emerald: #10B981;
-  --color-off-white: #D9CCF0;
+  --color-off-white: #F9FAFB;
   --color-near-black: #111827;
   --color-dark-red: #991B1B;
   --color-red: #EF4444;
@@ -13,7 +13,7 @@
 
 :root {
   /* ── Brand palette ── */
-  --off-white: #D9CCF0;
+  --off-white: #F9FAFB;
   --near-black: #111827;
   --dark-red: #991B1B;
   --red: #EF4444;
@@ -23,8 +23,8 @@
   --vinyl-black: #181818;
   --submarine-yellow: #E2B631;
 
-  /* ── Layer system — light lavender page, black boxes ── */
-  --background:  #D9CCF0;
+  /* ── Layer system — off-white page, black boxes ── */
+  --background:  #F9FAFB;
   --surface:     #000000;
   --card:        #000000;
   --card-raised: #121212;
@@ -39,7 +39,7 @@
   --violet:      #7C3AED;
   --violet-dim:  rgba(124, 58, 237, 0.12);
 
-  /* ── Text — red on light lavender page ── */
+  /* ── Text — red on off-white page ── */
   --foreground:      #EF4444;
   --text-secondary:  rgba(239, 68, 68, 0.72);
   --text-muted:      rgba(239, 68, 68, 0.50);
@@ -50,7 +50,7 @@
   --border-accent: #EF4444;
   --box-border-outer: #EF4444;
   --box-border-inner: rgba(239, 68, 68, 0.50);
-  --box-gap: #D9CCF0;
+  --box-gap: #F9FAFB;
 }
 
 body {
@@ -86,12 +86,12 @@ html.dark {
 }
 
 html:not(.dark) {
-  --box-gap: #D9CCF0;
-  background: #D9CCF0;
+  --box-gap: #F9FAFB;
+  background: #F9FAFB;
 }
 
 html:not(.dark) body {
-  background: #D9CCF0 !important;
+  background: #F9FAFB !important;
 }
 
 /* Prevent iOS Safari auto-zoom on input focus (requires font-size >= 16px) */
@@ -112,7 +112,7 @@ body::after {
 body::before {
   top: 0;
   height: 70vh;
-  background: radial-gradient(ellipse 90% 55% at 50% -10%, rgba(124, 58, 237, 0.14) 0%, transparent 65%);
+  background: radial-gradient(ellipse 90% 55% at 50% -10%, rgba(17,24,39,0.04) 0%, transparent 65%);
 }
 
 html.dark body::before {
@@ -122,7 +122,7 @@ html.dark body::before {
 body::after {
   bottom: 0;
   height: 40vh;
-  background: radial-gradient(ellipse 90% 55% at 50% 115%, rgba(124, 58, 237, 0.10) 0%, transparent 70%);
+  background: radial-gradient(ellipse 90% 55% at 50% 115%, rgba(17,24,39,0.03) 0%, transparent 70%);
 }
 
 html.dark body::after {
@@ -225,7 +225,7 @@ main .rounded-lg[style*="var(--card)"]:not(button) {
   transform: scale(0.97);
 }
 
-/* Page labels on lavender bg — remap text-white → red (light mode only) */
+/* Page labels on off-white bg — remap text-white → red (light mode only) */
 html:not(.dark) main .text-white { color: #EF4444; }
 html:not(.dark) main .text-white\/90 { color: rgba(239, 68, 68, 0.90); }
 html:not(.dark) main .text-white\/85 { color: rgba(239, 68, 68, 0.85); }
