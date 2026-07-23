@@ -369,7 +369,12 @@ html:not(.dark) .box-double .text-white\/10,
 html:not(.dark) .on-ink .text-white\/10,
 html:not(.dark) .on-ink.text-white\/10 { color: rgba(249, 250, 251, 0.10) !important; }
 html:not(.dark) .sheet-light .placeholder-white\/25::placeholder,
-html:not(.dark) main [style*="var(--card)"] .placeholder-white\/25::placeholder { color: rgba(249, 250, 251, 0.35); }
+html:not(.dark) main [style*="var(--card)"] .placeholder-white\/25::placeholder,
+html:not(.dark) main [style*="var(--card)"].placeholder-white\/25::placeholder,
+html:not(.dark) main [style*="var(--surface)"] .placeholder-white\/25::placeholder,
+html:not(.dark) main [style*="var(--surface)"].placeholder-white\/25::placeholder,
+html:not(.dark) .on-ink.placeholder-white\/25::placeholder,
+html:not(.dark) .on-ink .placeholder-white\/25::placeholder { color: rgba(249, 250, 251, 0.45) !important; }
 
 /* Compact dark chips / menus — light label/icons on black (light mode) */
 html:not(.dark) .on-ink,

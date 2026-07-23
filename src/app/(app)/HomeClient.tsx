@@ -688,13 +688,13 @@ export default function HomeClient() {
     <div className="space-y-8">
 
       {/* Search bar */}
-      <div className="relative">
+      <div className="relative on-ink">
         <button
           type="button"
           onClick={handleIdentifySong}
           disabled={listening || identifying}
           title="Identify song"
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-lg flex items-center justify-center text-white/45 hover:text-white hover:bg-white/[0.06] transition-colors disabled:opacity-50"
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-lg flex items-center justify-center text-white/55 hover:text-white hover:bg-white/[0.06] transition-colors disabled:opacity-50"
         >
           {listening ? <ListeningWaveform /> : identifying ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
         </button>
@@ -704,8 +704,8 @@ export default function HomeClient() {
           onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); if (e.key === "Escape") setShowSuggestions(false); }}
           onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           placeholder="Search tracks, artists, albums…"
-          className="w-full border border-white/[0.08] text-white placeholder-white/25 rounded-2xl pl-11 pr-24 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent)]//60 focus:border-[var(--accent)]/40 transition-all"
-          style={{ background: "var(--card)" }} autoComplete="off"
+          className="on-ink w-full border border-white/[0.08] text-white placeholder-white/25 rounded-2xl pl-11 pr-24 py-3.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/60 focus:border-[var(--accent)]/40 transition-all"
+          style={{ background: "var(--card)", color: "var(--button-text)" }} autoComplete="off"
         />
         <button onClick={handleSearch} disabled={!query.trim()}
           className="btn-accent absolute right-2.5 top-1/2 -translate-y-1/2 disabled:opacity-30 text-white font-semibold text-xs px-4 py-2 rounded-xl">

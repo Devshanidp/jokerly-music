@@ -983,7 +983,7 @@ export default function PlaylistsClient() {
             ))}
           </div>
         ) : (
-          <div className={`rounded-xl overflow-hidden divide-y divide-white/[0.08] ${playlistCardBorder}`} style={{ background: "var(--card)" }}>
+          <div className={`rounded-xl overflow-hidden divide-y-2 divide-white/25 ${playlistCardBorder}`} style={{ background: "var(--card)" }}>
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="flex items-center gap-2.5 p-2.5 animate-pulse">
                 <div className="w-10 h-10 rounded-md shrink-0" style={{ background: "var(--surface)" }} />
@@ -1072,7 +1072,7 @@ export default function PlaylistsClient() {
         </div>
       ) : (
         <div
-          className={`rounded-xl overflow-hidden divide-y divide-white/[0.10] ${playlistCardBorder}`}
+          className={`rounded-xl overflow-hidden divide-y-2 divide-white/25 ${playlistCardBorder}`}
           style={{ background: "var(--card)" }}
         >
           {playlists.map((pl) => {

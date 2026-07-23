@@ -525,7 +525,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
         </div>
       ) : (
         <div
-          className={`rounded-xl overflow-hidden divide-y divide-white/[0.10] ${playlistCardBorder}`}
+          className={`rounded-xl overflow-hidden divide-y-2 divide-white/25 ${playlistCardBorder}`}
           style={{ background: "var(--card)" }}
         >
           {pinned.map((pl) => {
