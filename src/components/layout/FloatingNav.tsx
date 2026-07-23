@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { Home, ListMusic, Heart, Wand2 } from "lucide-react";
 import { usePlayerStore } from "@/store/player";
 
@@ -10,6 +11,8 @@ type NavTarget = "/" | "/playlists" | "/liked" | "/magic-mix";
 export default function FloatingNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const hasPlayer = usePlayerStore((s) => s.currentTrack !== null);
   const isExpanded = usePlayerStore((s) => s.isPlayerExpanded);
 
@@ -58,7 +61,9 @@ export default function FloatingNav() {
       className={`fixed left-1/2 -translate-x-1/2 z-[55] transition-all duration-300 pointer-events-none ${bottomClass}`}
     >
       <nav
-        className="theme-dark pointer-events-auto flex items-center gap-0.5 p-0.5 rounded-full border-2 border-white"
+        className={`theme-dark pointer-events-auto flex items-center gap-0.5 p-0.5 rounded-full border-2 ${
+          isDark ? "border-white" : "border-[var(--accent)]"
+        }`}
         style={{
           background: "#000000",
           backdropFilter: "blur(20px)",
