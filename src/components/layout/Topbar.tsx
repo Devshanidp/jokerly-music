@@ -296,9 +296,7 @@ export default function Topbar() {
         </div>
       )}
       <header
-        className={`sticky z-30 shrink-0 border-b ${sessionError ? "top-10" : "top-0"} ${
-          isDark ? "border-white/10" : "border-black/5"
-        }`}
+        className={`sticky z-30 shrink-0 border-b-2 border-white ${sessionError ? "top-10" : "top-0"}`}
         style={{ background: isDark ? "rgba(0,0,0,0.94)" : "rgba(249,250,251,0.92)", backdropFilter: "blur(24px)" }}
       >
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
@@ -308,7 +306,7 @@ export default function Topbar() {
             onPointerDown={(e) => go(e, "/")}
             onClick={(e) => e.preventDefault()}
             className="flex items-center gap-2.5 shrink-0">
-            <Image src={APP_LOGO} alt={APP_NAME} width={28} height={28} className="rounded-xl" unoptimized />
+            <Image src={APP_LOGO} alt={APP_NAME} width={28} height={28} className="rounded-full ring-2 ring-white" unoptimized />
             <div className="flex flex-col items-start leading-tight">
               <span className="text-[var(--foreground)] font-bold text-xs sm:text-sm tracking-tight">{APP_NAME}</span>
               <span className="text-[10px] text-[var(--text-muted)] font-medium">{APP_TAGLINE}</span>
@@ -332,7 +330,7 @@ export default function Topbar() {
               className={`flex items-center gap-2 pl-1 pr-2 py-1 rounded-full transition-colors ${
                 isDark ? "hover:bg-white/[0.08]" : "hover:bg-black/[0.04]"
               }`}>
-              <Image src={APP_LOGO} alt={APP_NAME} width={26} height={26} className={`rounded-full ring-1 ${isDark ? "ring-white/20" : "ring-black/10"}`} unoptimized />
+              <Image src={APP_LOGO} alt={APP_NAME} width={26} height={26} className="rounded-full ring-2 ring-white" unoptimized />
               <Settings size={14} className="text-[var(--text-muted)]" />
             </button>
           </div>
