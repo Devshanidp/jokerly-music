@@ -658,8 +658,7 @@ export default function PlaylistsClient() {
         <div className="flex items-center gap-3">
           <button
             onClick={closePlaylistDetail}
-            className="flex items-center gap-1 text-[10px] sm:text-xs font-medium transition-colors"
-            style={{ color: "rgba(255,255,255,0.55)" }}
+            className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-[var(--accent)] hover:opacity-80 transition-opacity"
           >
             <ArrowLeft size={14} /> Back
           </button>

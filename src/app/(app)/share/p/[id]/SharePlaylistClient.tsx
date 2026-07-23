@@ -112,7 +112,7 @@ export default function SharePlaylistClient({ playlistId }: { playlistId: string
 
   return (
     <div className="max-w-lg mx-auto w-full space-y-5 pt-2 pb-8">
-      <Link href="/playlists" className="inline-flex items-center gap-1 text-xs text-white/45 hover:text-white transition-colors">
+      <Link href="/playlists" className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent)] hover:opacity-80 transition-opacity">
         <ArrowLeft size={14} /> Playlists
       </Link>
 
