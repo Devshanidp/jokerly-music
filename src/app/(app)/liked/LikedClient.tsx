@@ -152,7 +152,7 @@ export default function LikedClient() {
         {(["songs", "artists"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-colors capitalize ${
-              tab === t ? "btn-nav-active text-white" : "text-white/50 hover:text-white hover:bg-white/[0.07]"
+              tab === t ? "btn-nav-active text-white" : "on-ink text-white/50 hover:text-white hover:bg-white/[0.07]"
             }`}
             style={tab !== t ? { background: "var(--card)" } : {}}>
             {t}
@@ -270,7 +270,7 @@ function ArtistsTab({ artists, onOpen, onUnlike }: {
         <div key={a.id} className="relative group">
           <button onClick={() => onOpen(a)}
             className="w-full flex flex-col items-center gap-2 p-3 rounded-2xl transition-all hover:bg-white/[0.05] border border-transparent hover:border-white/[0.08]">
-            <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-white/[0.06] group-hover:ring-[var(--accent)]//40 transition-all">
+            <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-[var(--accent)] group-hover:ring-[var(--accent-bright)] transition-all">
               {a.artist_image
                 ? <Image src={a.artist_image} alt={a.artist_name} fill unoptimized sizes="64px" className="object-cover" />
                 : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Mic2 size={14} className="text-white/20" /></div>}

@@ -61,7 +61,8 @@ export default function PlaylistActionsMenu({
         setOpen(false);
         onClick();
       }}
-      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm text-white/85 hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm hover:bg-white/[0.06] disabled:opacity-40 transition-colors"
+      style={{ color: "var(--button-text)" }}
     >
       {icon}
       <span>{label}</span>
@@ -97,16 +98,16 @@ export default function PlaylistActionsMenu({
 
       {open && (
         <div
-          className={`${menuPosition} z-[80] min-w-[200px] rounded-xl border border-white/10 py-1 shadow-2xl overflow-hidden`}
-          style={{ background: "rgba(12,4,6,0.98)", backdropFilter: "blur(16px)" }}
+          className={`on-ink ${menuPosition} z-[80] min-w-[200px] rounded-xl border border-white/10 py-1 shadow-2xl overflow-hidden`}
+          style={{ background: "var(--card)", backdropFilter: "blur(16px)" }}
         >
           {onOpen &&
-            item(<ListMusic size={14} className="text-white/50" />, "Open playlist", onOpen)}
+            item(<ListMusic size={14} style={{ color: "var(--button-text)", opacity: 0.5 }} />, "Open playlist", onOpen)}
           {onShare &&
-            item(<Share2 size={14} className="text-white/50" />, "Share link / QR", onShare)}
+            item(<Share2 size={14} style={{ color: "var(--button-text)", opacity: 0.5 }} />, "Share link / QR", onShare)}
           {onExport &&
             item(
-              <Upload size={14} className="text-white/50" />,
+              <Upload size={14} style={{ color: "var(--button-text)", opacity: 0.5 }} />,
               "Export to other apps",
               onExport,
               trackCount === 0
@@ -121,7 +122,7 @@ export default function PlaylistActionsMenu({
             pinning ? (
               <Loader2 size={14} className="animate-spin text-[var(--accent)]" />
             ) : (
-              <Pin size={14} className={isPinned ? "text-[var(--accent)]" : "text-white/50"} />
+              <Pin size={14} className={isPinned ? "text-[var(--accent)]" : undefined} style={isPinned ? undefined : { color: "var(--button-text)", opacity: 0.5 }} />
             ),
             isPinned ? "Remove from pinned" : "Pin to pinned",
             onTogglePin,
@@ -131,7 +132,7 @@ export default function PlaylistActionsMenu({
             downloadingPlaylist ? (
               <Loader2 size={14} className="animate-spin text-[var(--accent)]" />
             ) : (
-              <Download size={14} className="text-white/50" />
+              <Download size={14} style={{ color: "var(--button-text)", opacity: 0.5 }} />
             ),
             "Download for offline",
             onDownloadOffline,

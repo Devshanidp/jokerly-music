@@ -839,7 +839,7 @@ export default function HomeClient() {
             className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
               reorderMode
                 ? "border-[var(--accent)]/50 text-white bg-[var(--accent)]/15"
-                : "border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40"
+                : "on-ink border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40"
             }`}
             style={!reorderMode ? { background: "var(--card)" } : undefined}
           >
@@ -849,12 +849,12 @@ export default function HomeClient() {
           {langs && langs.length > 0 && (
             <>
               <button onClick={() => setShowPersonalize(true)}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40 transition-all"
+                className="on-ink flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40 transition-all"
                 style={{ background: "var(--card)" }}>
                 <SlidersHorizontal size={12} /> Edit
               </button>
               <button onClick={handleRefresh} disabled={isRefreshBusy} title="Refresh feed"
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40 transition-all disabled:opacity-40"
+                className="on-ink flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/[0.10] text-white/50 hover:text-white hover:border-[var(--accent)]/40 transition-all disabled:opacity-40"
                 style={{ background: "var(--card)" }}>
                 <RefreshCw size={12} className={isRefreshBusy ? "animate-spin" : ""} />
                 {isRefreshBusy ? "Refreshing…" : "Refresh"}
@@ -926,7 +926,7 @@ export default function HomeClient() {
                             onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { web: "" }, popularity: 0, type: "artist", uri: "" } as MusicArtist)}
                             className="flex flex-col items-center gap-1.5 w-full"
                           >
-                            <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
+                            <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-[var(--accent)] group-hover:ring-[var(--accent-bright)] transition-all">
                               {pa.artist_image ? (
                                 <Image src={pa.artist_image} alt={pa.artist_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                               ) : (

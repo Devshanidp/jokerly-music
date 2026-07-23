@@ -903,7 +903,7 @@ export default function PlaylistsClient() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <div
-            className="flex items-center rounded-xl border border-white/[0.12] p-0.5"
+            className="on-ink flex items-center rounded-xl border border-white/[0.12] p-0.5"
             style={{ background: "var(--surface)" }}
             role="group"
             aria-label="Playlist layout"
@@ -1144,7 +1144,7 @@ export default function PlaylistsClient() {
                   onClick={() => setSelectedArtist({ id: pa.artist_id, name: pa.artist_name, images: pa.artist_image ? [{ url: pa.artist_image }] : [], followers: { total: 0 }, genres: [], external_urls: { web: "" }, popularity: 0, type: "artist", uri: "" } as MusicArtist)}
                   className="flex flex-col items-center gap-1.5 w-full"
                 >
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/[0.06] ring-2 ring-[var(--accent)] group-hover:ring-[var(--accent-bright)] transition-all">
                     {pa.artist_image ? (
                       <Image src={pa.artist_image} alt={pa.artist_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (

@@ -464,7 +464,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
     <>
       <div className="flex justify-end mb-2">
         <div
-          className="flex items-center rounded-xl border border-white/[0.12] p-0.5"
+          className="on-ink flex items-center rounded-xl border border-white/[0.12] p-0.5"
           style={{ background: "var(--surface)" }}
           role="group"
           aria-label="Pinned playlist layout"
