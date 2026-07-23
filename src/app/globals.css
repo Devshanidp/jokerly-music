@@ -5,7 +5,7 @@
   --color-submarine-yellow: #E2B631;
   --color-deep-charcoal: #121212;
   --color-vibrant-emerald: #10B981;
-  --color-off-white: #F9FAFB;
+  --color-off-white: #D9CCF0;
   --color-near-black: #111827;
   --color-dark-red: #991B1B;
   --color-red: #EF4444;
@@ -13,7 +13,7 @@
 
 :root {
   /* ── Brand palette ── */
-  --off-white: #F9FAFB;
+  --off-white: #D9CCF0;
   --near-black: #111827;
   --dark-red: #991B1B;
   --red: #EF4444;
@@ -23,8 +23,8 @@
   --vinyl-black: #181818;
   --submarine-yellow: #E2B631;
 
-  /* ── Layer system — Off-White page, black boxes ── */
-  --background:  #F9FAFB;
+  /* ── Layer system — light lavender page, black boxes ── */
+  --background:  #D9CCF0;
   --surface:     #000000;
   --card:        #000000;
   --card-raised: #121212;
@@ -39,10 +39,10 @@
   --violet:      #7C3AED;
   --violet-dim:  rgba(124, 58, 237, 0.12);
 
-  /* ── Text ── */
-  --foreground:      #111827;
-  --text-secondary:  rgba(17, 24, 39, 0.65);
-  --text-muted:      rgba(17, 24, 39, 0.40);
+  /* ── Text — red on light lavender page ── */
+  --foreground:      #EF4444;
+  --text-secondary:  rgba(239, 68, 68, 0.72);
+  --text-muted:      rgba(239, 68, 68, 0.50);
   --button-text:     #F9FAFB;
 
   /* ── Borders ── */
@@ -50,7 +50,7 @@
   --border-accent: #EF4444;
   --box-border-outer: #EF4444;
   --box-border-inner: rgba(239, 68, 68, 0.50);
-  --box-gap: #F9FAFB;
+  --box-gap: #D9CCF0;
 }
 
 body {
@@ -86,7 +86,12 @@ html.dark {
 }
 
 html:not(.dark) {
-  --box-gap: #F9FAFB;
+  --box-gap: #D9CCF0;
+  background: #D9CCF0;
+}
+
+html:not(.dark) body {
+  background: #D9CCF0 !important;
 }
 
 /* Prevent iOS Safari auto-zoom on input focus (requires font-size >= 16px) */
@@ -107,7 +112,7 @@ body::after {
 body::before {
   top: 0;
   height: 70vh;
-  background: radial-gradient(ellipse 90% 55% at 50% -10%, rgba(17,24,39,0.04) 0%, transparent 65%);
+  background: radial-gradient(ellipse 90% 55% at 50% -10%, rgba(124, 58, 237, 0.14) 0%, transparent 65%);
 }
 
 html.dark body::before {
@@ -117,7 +122,7 @@ html.dark body::before {
 body::after {
   bottom: 0;
   height: 40vh;
-  background: radial-gradient(ellipse 90% 55% at 50% 115%, rgba(17,24,39,0.03) 0%, transparent 70%);
+  background: radial-gradient(ellipse 90% 55% at 50% 115%, rgba(124, 58, 237, 0.10) 0%, transparent 70%);
 }
 
 html.dark body::after {
@@ -220,26 +225,32 @@ main .rounded-lg[style*="var(--card)"]:not(button) {
   transform: scale(0.97);
 }
 
-/* Page labels on off-white bg — remap text-white → dark (light mode only) */
-html:not(.dark) main .text-white { color: #111827; }
-html:not(.dark) main .text-white\/90 { color: rgba(17, 24, 39, 0.90); }
-html:not(.dark) main .text-white\/85 { color: rgba(17, 24, 39, 0.85); }
-html:not(.dark) main .text-white\/80 { color: rgba(17, 24, 39, 0.80); }
-html:not(.dark) main .text-white\/75 { color: rgba(17, 24, 39, 0.75); }
-html:not(.dark) main .text-white\/70 { color: rgba(17, 24, 39, 0.70); }
-html:not(.dark) main .text-white\/65 { color: rgba(17, 24, 39, 0.65); }
-html:not(.dark) main .text-white\/60 { color: rgba(17, 24, 39, 0.60); }
-html:not(.dark) main .text-white\/55 { color: rgba(17, 24, 39, 0.55); }
-html:not(.dark) main .text-white\/50 { color: rgba(17, 24, 39, 0.50); }
-html:not(.dark) main .text-white\/45 { color: rgba(17, 24, 39, 0.45); }
-html:not(.dark) main .text-white\/40 { color: rgba(17, 24, 39, 0.40); }
-html:not(.dark) main .text-white\/35 { color: rgba(17, 24, 39, 0.35); }
-html:not(.dark) main .text-white\/30 { color: rgba(17, 24, 39, 0.30); }
-html:not(.dark) main .text-white\/25 { color: rgba(17, 24, 39, 0.25); }
-html:not(.dark) main .text-white\/20 { color: rgba(17, 24, 39, 0.20); }
-html:not(.dark) main .text-white\/15 { color: rgba(17, 24, 39, 0.15); }
-html:not(.dark) main .text-white\/10 { color: rgba(17, 24, 39, 0.10); }
-html:not(.dark) main .placeholder-white\/25::placeholder { color: rgba(17, 24, 39, 0.35); }
+/* Page labels on lavender bg — remap text-white → red (light mode only) */
+html:not(.dark) main .text-white { color: #EF4444; }
+html:not(.dark) main .text-white\/90 { color: rgba(239, 68, 68, 0.90); }
+html:not(.dark) main .text-white\/85 { color: rgba(239, 68, 68, 0.85); }
+html:not(.dark) main .text-white\/80 { color: rgba(239, 68, 68, 0.80); }
+html:not(.dark) main .text-white\/75 { color: rgba(239, 68, 68, 0.75); }
+html:not(.dark) main .text-white\/70 { color: rgba(239, 68, 68, 0.70); }
+html:not(.dark) main .text-white\/65 { color: rgba(239, 68, 68, 0.65); }
+html:not(.dark) main .text-white\/60 { color: rgba(239, 68, 68, 0.60); }
+html:not(.dark) main .text-white\/55 { color: rgba(239, 68, 68, 0.55); }
+html:not(.dark) main .text-white\/50 { color: rgba(239, 68, 68, 0.50); }
+html:not(.dark) main .text-white\/45 { color: rgba(239, 68, 68, 0.45); }
+html:not(.dark) main .text-white\/40 { color: rgba(239, 68, 68, 0.45); }
+html:not(.dark) main .text-white\/35 { color: rgba(239, 68, 68, 0.40); }
+html:not(.dark) main .text-white\/30 { color: rgba(239, 68, 68, 0.35); }
+html:not(.dark) main .text-white\/25 { color: rgba(239, 68, 68, 0.30); }
+html:not(.dark) main .text-white\/20 { color: rgba(239, 68, 68, 0.25); }
+html:not(.dark) main .text-white\/15 { color: rgba(239, 68, 68, 0.20); }
+html:not(.dark) main .text-white\/10 { color: rgba(239, 68, 68, 0.15); }
+html:not(.dark) main .placeholder-white\/25::placeholder { color: rgba(239, 68, 68, 0.40); }
+
+/* Also remap zinc/gray page labels used on Magic Mix etc. */
+html:not(.dark) main .text-zinc-400,
+html:not(.dark) main .text-zinc-500,
+html:not(.dark) main .text-zinc-600 { color: rgba(239, 68, 68, 0.55) !important; }
+html:not(.dark) main .text-zinc-300 { color: rgba(239, 68, 68, 0.75) !important; }
 
 /* Black boxes (cards/sheets/chips) keep light text in light mode */
 html:not(.dark) main [style*="var(--card)"] .text-white,

@@ -299,7 +299,7 @@ export default function Topbar() {
         className={`sticky z-30 shrink-0 border-b-2 ${sessionError ? "top-10" : "top-0"} ${
           isDark ? "border-white" : "border-[var(--accent)]"
         }`}
-        style={{ background: isDark ? "rgba(0,0,0,0.94)" : "rgba(249,250,251,0.92)", backdropFilter: "blur(24px)" }}
+        style={{ background: isDark ? "rgba(0,0,0,0.94)" : "rgba(217,204,240,0.94)", backdropFilter: "blur(24px)" }}
       >
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
 
