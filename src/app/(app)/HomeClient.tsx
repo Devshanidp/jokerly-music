@@ -888,7 +888,7 @@ export default function HomeClient() {
                           className="flex flex-col items-center gap-2 shrink-0 group"
                           style={{ width: 72 }}
                         >
-                          <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
+                          <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-[var(--accent)] group-hover:ring-[var(--accent-bright)] transition-all">
                             {t.track_image
                               ? <Image src={t.track_image} alt={t.track_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                               : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={14} className="text-white/20" /></div>
@@ -983,7 +983,7 @@ export default function HomeClient() {
                           className="flex flex-col items-center gap-1.5 shrink-0 group"
                           style={{ width: 76 }}
                         >
-                          <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white/[0.06] ring-2 ring-white/[0.05] group-hover:ring-[var(--accent)]//40 transition-all">
+                          <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white/[0.06] ring-2 ring-[var(--accent)] group-hover:ring-[var(--accent-bright)] transition-all">
                             {album.album_image ? (
                               <Image src={album.album_image} alt={album.album_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
                             ) : (
