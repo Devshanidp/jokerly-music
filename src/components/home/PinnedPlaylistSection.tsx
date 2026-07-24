@@ -433,7 +433,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, selectedId)}>
               <SortableContext items={tracks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                <div>
+                <div className="divide-y divide-white/50">
                   {tracks.map((track, i) => (
                     <SortableTrackRow key={track.id} track={track} index={i} playlistId={selectedId}
                       onPlay={() => playAll(selectedId, i)}

@@ -103,6 +103,79 @@ export async function authenticateYtm(cookieString: string) {
   }
 }
 
+export function normalizeYtmCookie(cookieString: string): string {
+  let normalized = cookieString.trim();
+  if (normalized.toLowerCase().startsWith("cookie:")) {
+    normalized = normalized.slice(normalized.indexOf(":") + 1).trim();
+  }
+  if (!normalized.includes("=")) {
+    normalized = `__Secure-1PAPISID=${normalized}`;
+  }
+  return normalized;
+}
+
+export type YTMPlaylistSummary = {
+  id: string;
+  name: string;
+  trackCount: number;
+  image: string | null;
+};
+
+export type YTMPlaylistTrack = {
+  title: string;
+  artist: string;
+  image: string | null;
+};
+
+export async function listYTLibraryPlaylists(cookieString: string): Promise<YTMPlaylistSummary[]> {
+  const ytma = await authenticateYtm(normalizeYtmCookie(cookieString));
+  const playlists = await ytma.getLibraryPlaylists();
+  if (!playlists?.length) return [];
+
+  return playlists
+    .filter((pl: any) => pl?.id)
+    .map((pl: any) => {
+      const thumbs = pl.thumbnails as { url?: string }[] | undefined;
+      const image = thumbs?.length ? thumbs[thumbs.length - 1]?.url ?? thumbs[0]?.url ?? null : null;
+      return {
+        id: String(pl.id),
+        name: String(pl.name || "Untitled playlist"),
+        trackCount: typeof pl.count === "number" ? pl.count : 0,
+        image,
+      };
+    });
+}
+
+export async function getYTPlaylistTracks(
+  cookieString: string,
+  playlistId: string
+): Promise<{ name: string; tracks: YTMPlaylistTrack[] }> {
+  const ytma = await authenticateYtm(normalizeYtmCookie(cookieString));
+  const detail = await ytma.getPlaylist(playlistId, 8);
+  if (!detail) {
+    throw new Error("Could not load that YouTube Music playlist");
+  }
+
+  const tracks: YTMPlaylistTrack[] = [];
+  for (const track of detail.tracks ?? []) {
+    const title = (track as any).title || (track as any).name;
+    if (!title) continue;
+    const artists = (track as any).artists as { name?: string }[] | undefined;
+    const artist =
+      artists?.map((a) => a.name).filter(Boolean).join(", ") ||
+      (track as any).artist?.name ||
+      "Unknown";
+    const thumbs = (track as any).thumbnails as { url?: string }[] | undefined;
+    const image = thumbs?.length ? thumbs[thumbs.length - 1]?.url ?? thumbs[0]?.url ?? null : null;
+    tracks.push({ title: String(title), artist: String(artist), image });
+  }
+
+  return {
+    name: String(detail.name || "Imported from YouTube Music"),
+    tracks,
+  };
+}
+
 export async function createYTPlaylist(
   cookieString: string,
   playlistName: string,

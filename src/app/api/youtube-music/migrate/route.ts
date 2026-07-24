@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { migrateTracksToYTPlaylist, YTMTrackSearchPayload, YTMPrivacy } from "@/lib/youtubeMusic";
+import {
+  migrateTracksToYTPlaylist,
+  normalizeYtmCookie,
+  YTMTrackSearchPayload,
+  YTMPrivacy,
+} from "@/lib/youtubeMusic";
 
 interface MigrateRequestBody {
   cookieString: string;
@@ -24,15 +29,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "tracksToMove must be a non-empty array" }, { status: 400 });
     }
 
-    let normalizedCookie = cookieString.trim();
-    if (normalizedCookie.toLowerCase().startsWith("cookie:")) {
-      normalizedCookie = normalizedCookie.slice(normalizedCookie.indexOf(":") + 1).trim();
-    }
-    if (!normalizedCookie.includes("=")) {
-      normalizedCookie = `__Secure-1PAPISID=${normalizedCookie}`;
-    }
-
-    const result = await migrateTracksToYTPlaylist(normalizedCookie, playlistName, playlistDescription, tracksToMove, privacy);
+    const normalizedCookie = normalizeYtmCookie(cookieString);
+    const result = await migrateTracksToYTPlaylist(
+      normalizedCookie,
+      playlistName,
+      playlistDescription,
+      tracksToMove,
+      privacy
+    );
     return NextResponse.json(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

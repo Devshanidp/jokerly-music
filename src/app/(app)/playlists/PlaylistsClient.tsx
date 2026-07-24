@@ -31,6 +31,7 @@ import PlaylistActionsMenu from "@/components/playlist/PlaylistActionsMenu";
 import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import SharePlaylistModal from "@/components/playlist/SharePlaylistModal";
 import ImportSpotifyPlaylistsSheet from "@/components/playlist/ImportSpotifyPlaylistsSheet";
+import ImportYouTubeMusicSheet from "@/components/playlist/ImportYouTubeMusicSheet";
 import ExportPlaylistSheet from "@/components/playlist/ExportPlaylistSheet";
 import ExportToYouTubeMusicModal from "@/components/export/ExportToYouTubeMusicModal";
 import { useOfflineStore } from "@/store/offline";
@@ -174,7 +175,9 @@ export default function PlaylistsClient() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showArtistMixSheet, setShowArtistMixSheet] = useState(false);
+  const [showImportChooser, setShowImportChooser] = useState(false);
   const [showImportSpotify, setShowImportSpotify] = useState(false);
+  const [showImportYouTube, setShowImportYouTube] = useState(false);
   const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
   const [exportTarget, setExportTarget] = useState<{
     id: string;
@@ -813,7 +816,7 @@ export default function PlaylistsClient() {
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => handleDragEnd(e, pl.id)}>
               <SortableContext items={tracks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                <div>
+                <div className="divide-y divide-white/50">
                   {tracks.map((t, i) => (
                     <SortableTrackRow key={t.id} track={t} index={i} playlistId={pl.id}
                       onPlay={() => playTrack(tracks, i)}
@@ -928,7 +931,7 @@ export default function PlaylistsClient() {
             </button>
           </div>
           <button
-            onClick={() => setShowImportSpotify(true)}
+            onClick={() => setShowImportChooser(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/80 font-semibold text-sm transition-all active:scale-95 border border-white/[0.1] hover:bg-white/[0.06]"
           >
             <FolderInput size={14} /> Import
@@ -1219,9 +1222,79 @@ export default function PlaylistsClient() {
           onClose={() => setYoutubeExport(null)}
         />
       )}
+      {showImportChooser && (
+        <div
+          className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(8px)" }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowImportChooser(false);
+          }}
+        >
+          <div
+            className="sheet-light w-full max-w-sm rounded-t-3xl sm:rounded-3xl border border-black/10 shadow-2xl overflow-hidden p-5 space-y-3"
+            style={{ background: "var(--surface)" }}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-base font-bold text-white">Import playlist</h3>
+              <button
+                type="button"
+                onClick={() => setShowImportChooser(false)}
+                className="rounded-xl p-1.5 text-white/30 hover:bg-white/[0.07] hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="text-xs text-white/40 pb-1">Choose a source</p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowImportChooser(false);
+                setShowImportSpotify(true);
+              }}
+              className="w-full flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-black/15 px-4 py-3.5 text-left hover:bg-white/[0.05] transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/15 flex items-center justify-center shrink-0">
+                <FolderInput size={18} className="text-[var(--accent)]" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">Spotify</p>
+                <p className="text-[11px] text-white/40">Copy from your linked Spotify account</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowImportChooser(false);
+                setShowImportYouTube(true);
+              }}
+              className="w-full flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-black/15 px-4 py-3.5 text-left hover:bg-white/[0.05] transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/15 flex items-center justify-center shrink-0">
+                <Upload size={18} className="text-[var(--accent)]" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">YouTube Music</p>
+                <p className="text-[11px] text-white/40">Paste cookies, then pick a playlist</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
       <ImportSpotifyPlaylistsSheet
         open={showImportSpotify}
         onClose={() => setShowImportSpotify(false)}
+        onImported={(pl, pinnedNow) => {
+          setPlaylists((prev) => [pl, ...prev.filter((p) => p.id !== pl.id)]);
+          if (pinnedNow) {
+            setPinned((prev) => new Set(prev).add(pl.id));
+            window.dispatchEvent(new Event("pinned-playlists-updated"));
+          }
+          setSelectedId(pl.id);
+        }}
+      />
+      <ImportYouTubeMusicSheet
+        open={showImportYouTube}
+        onClose={() => setShowImportYouTube(false)}
         onImported={(pl, pinnedNow) => {
           setPlaylists((prev) => [pl, ...prev.filter((p) => p.id !== pl.id)]);
           if (pinnedNow) {
