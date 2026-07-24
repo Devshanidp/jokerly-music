@@ -1,6 +1,5 @@
 export const HOME_SECTION_IDS = [
   "jumpBack",
-  "recent",
   "pinned",
   "pinnedArtists",
   "pinnedAlbums",
@@ -11,7 +10,6 @@ export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
 
 export const HOME_SECTION_LABELS: Record<HomeSectionId, string> = {
   jumpBack: "Jump back in",
-  recent: "Recently Played",
   pinned: "Pinned",
   pinnedArtists: "Pinned Artists",
   pinnedAlbums: "Pinned Albums",

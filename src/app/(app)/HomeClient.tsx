@@ -61,15 +61,6 @@ interface PinnedArtist {
   artist_image: string;
 }
 
-interface RecentTrack {
-  id: number;
-  track_uri: string;
-  track_name: string;
-  track_artist: string;
-  track_image: string | null;
-  played_at: string;
-}
-
 interface IdentifiedMatch {
   title: string;
   artist: string;
@@ -246,7 +237,6 @@ export default function HomeClient() {
   const [pinnedArtists, setPinnedArtists] = useState<PinnedArtist[]>([]);
   const [removingPinnedArtist, setRemovingPinnedArtist] = useState<string | null>(null);
   const [pinnedAlbums, setPinnedAlbums] = useState<PinnedAlbum[]>([]);
-  const [recentlyPlayed, setRecentlyPlayed] = useState<RecentTrack[]>([]);
   const [sectionOrder, setSectionOrder] = useState<HomeSectionId[]>([...HOME_SECTION_IDS]);
   const [reorderMode, setReorderMode] = useState(false);
 
@@ -317,7 +307,7 @@ export default function HomeClient() {
     }
   }, []);
 
-  // Always fetch pinned playlists, pinned artists + recently played on mount
+  // Always fetch pinned playlists + pinned artists on mount
   useEffect(() => {
     if (!isSessionHealthy) {
       setPinnedLoading(false);
@@ -332,11 +322,6 @@ export default function HomeClient() {
     fetch("/api/pinned-artists")
       .then((r) => r.json())
       .then((data) => { if (Array.isArray(data)) setPinnedArtists(data); })
-      .catch(() => {});
-
-    fetch("/api/recently-played")
-      .then((r) => r.json())
-      .then((d) => { if (Array.isArray(d.data)) setRecentlyPlayed(d.data); })
       .catch(() => {});
   }, [fetchPinnedAlbums, fetchPinnedPlaylists, isSessionHealthy]);
 
@@ -830,7 +815,7 @@ export default function HomeClient() {
         </div>
       )}
 
-      {/* Recently Played / Pinned / For You — ordered */}
+      {/* Pinned / For You — ordered */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           <button
@@ -876,30 +861,6 @@ export default function HomeClient() {
 
               if (sectionId === "jumpBack") {
                 body = <JumpBackInCard />;
-              } else if (sectionId === "recent" && recentlyPlayed.length > 0) {
-                body = (
-                  <section className="space-y-3">
-                    <h3 className="text-white font-bold text-base">Recently Played</h3>
-                    <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-                      {recentlyPlayed.map((t) => (
-                        <button
-                          key={t.id}
-                          onClick={() => setQueueAndPlay([{ name: t.track_name, artist: t.track_artist, image: t.track_image ?? undefined, uri: t.track_uri }], 0)}
-                          className="flex flex-col items-center gap-2 shrink-0 group"
-                          style={{ width: 72 }}
-                        >
-                          <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-[var(--accent)] group-hover:ring-[var(--accent-bright)] transition-all">
-                            {t.track_image
-                              ? <Image src={t.track_image} alt={t.track_name} fill unoptimized sizes="64px" className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                              : <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}><Music size={14} className="text-white/20" /></div>
-                            }
-                          </div>
-                          <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">{t.track_name}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                );
               } else if (sectionId === "pinned") {
                 body = (
                   <section className="space-y-3">

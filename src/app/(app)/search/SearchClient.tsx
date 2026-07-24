@@ -126,6 +126,13 @@ export default function SearchClient() {
   const [identifying, setIdentifying] = useState(false);
   const [identifyError, setIdentifyError] = useState<string | null>(null);
   const [identifiedMatch, setIdentifiedMatch] = useState<IdentifiedMatch | null>(null);
+  const [recentlyPlayed, setRecentlyPlayed] = useState<{
+    id: number;
+    track_uri: string;
+    track_name: string;
+    track_artist: string;
+    track_image: string | null;
+  }[]>([]);
 
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -345,6 +352,15 @@ export default function SearchClient() {
         streamRef.current = null;
       }
     };
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/recently-played")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.data)) setRecentlyPlayed(d.data);
+      })
+      .catch(() => {});
   }, []);
 
   const handleIdentifySong = async () => {
@@ -656,6 +672,49 @@ export default function SearchClient() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Recently Played — idle search only */}
+      {!searched && recentlyPlayed.length > 0 && (
+        <section className="space-y-3">
+          <h3 className="text-white font-bold text-base">Recently Played</h3>
+          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            {recentlyPlayed.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() =>
+                  setQueueAndPlay(
+                    [{ name: t.track_name, artist: t.track_artist, image: t.track_image ?? undefined, uri: t.track_uri }],
+                    0
+                  )
+                }
+                className="flex flex-col items-center gap-2 shrink-0 group"
+                style={{ width: 72 }}
+              >
+                <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-[var(--accent)] group-hover:ring-[var(--accent-bright)] transition-all">
+                  {t.track_image ? (
+                    <Image
+                      src={t.track_image}
+                      alt={t.track_name}
+                      fill
+                      unoptimized
+                      sizes="64px"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: "var(--card)" }}>
+                      <Music size={14} className="text-white/20" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-white/45 group-hover:text-white transition-colors text-center truncate w-full leading-tight">
+                  {t.track_name}
+                </p>
+              </button>
+            ))}
+          </div>
+        </section>
       )}
 
       {searchError && (
