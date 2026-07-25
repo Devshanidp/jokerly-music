@@ -8,7 +8,7 @@ type Ripple = {
   y: number;
 };
 
-const RIPPLE_MS = 650;
+const RIPPLE_MS = 720;
 const MAX_RIPPLES = 8;
 
 export default function ClickRipple() {
@@ -30,7 +30,6 @@ export default function ClickRipple() {
       spawn(e.clientX, e.clientY);
     };
 
-    // Extra touch path for some Android WebViews / TWA
     const onTouchStart = (e: TouchEvent) => {
       const t = e.touches[0];
       if (!t) return;
@@ -38,7 +37,6 @@ export default function ClickRipple() {
     };
 
     document.addEventListener("pointerdown", onPointerDown, { passive: true });
-    // Fallback only when PointerEvent is missing (old WebViews)
     if (typeof window.PointerEvent === "undefined") {
       document.addEventListener("touchstart", onTouchStart, { passive: true });
     }
@@ -52,8 +50,10 @@ export default function ClickRipple() {
     <div className="click-ripple-layer" aria-hidden>
       {ripples.map((r) => (
         <span key={r.id} className="click-ripple" style={{ left: r.x, top: r.y }}>
-          <span className="click-ripple-core" />
-          <span className="click-ripple-ring" />
+          <span className="click-ripple-bloom" />
+          <span className="click-ripple-spark" />
+          <span className="click-ripple-wave click-ripple-wave-a" />
+          <span className="click-ripple-wave click-ripple-wave-b" />
         </span>
       ))}
     </div>
