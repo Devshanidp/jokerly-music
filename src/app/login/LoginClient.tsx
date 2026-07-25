@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useMemo } from "react";
-import { LogIn } from "lucide-react";
+import { LogIn, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { APP_LOGO, APP_NAME, APP_TAGLINE } from "@/lib/branding";
@@ -14,10 +14,10 @@ function loginErrorMessage(code: string | null): string | null {
     return "Login session expired or was blocked. Tap Continue again. If it keeps failing, open https://music.devshanidp.xyz/login/start in Chrome, sign in there, then reopen the app.";
   }
   if (code === "AccessDenied") {
-    return "Access denied. Add your email in Spotify Developer Dashboard → User Management (Development mode), then try again.";
+    return "Access denied. In Spotify Developer Dashboard → Users and access, add the exact email from Spotify Account → Edit profile, then try again.";
   }
   if (code === "OAuthCallback" || code === "Callback") {
-    return "Spotify rejected the login. Confirm your Spotify account is active, then try again.";
+    return "Spotify signed you in, but this app is still in Development mode. Add your Spotify email under Developer Dashboard → Users and access (exact email from Account → Edit profile). Premium is required. Spotify Premium alone is not enough without that allowlist entry.";
   }
   return `Sign-in failed (${code}). Tap Continue to try again.`;
 }
@@ -34,7 +34,10 @@ export default function LoginClient() {
   useEffect(() => {
     if (status !== "authenticated") return;
     const userId = (session as { userId?: string } | null)?.userId?.trim();
-    if (userId && session?.accessToken) router.replace("/");
+    // Only enter the app when the session is healthy — never auto-kick OAuth (causes blink loops)
+    if (userId && session?.accessToken && !session.error) {
+      router.replace("/");
+    }
   }, [status, session, router]);
 
   // Drop stale ?error= from the URL after showing it once.
@@ -44,6 +47,21 @@ export default function LoginClient() {
     url.searchParams.delete("error");
     window.history.replaceState({}, "", url.pathname + url.search);
   }, [searchParams]);
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#080406" }}>
+        <Loader2 size={28} className="animate-spin text-white/50" />
+        <p className="mt-4 text-sm text-white/45">Loading…</p>
+      </div>
+    );
+  }
+
+  const sessionNeedsReauth =
+    status === "authenticated" &&
+    (session?.error === "RefreshAccessTokenError" ||
+      !(session as { userId?: string } | null)?.userId?.trim() ||
+      !session?.accessToken);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#080406" }}>
@@ -75,14 +93,14 @@ export default function LoginClient() {
           ))}
         </div>
 
-        {authError ? (
+        {(authError || sessionNeedsReauth) && (
           <div
             className="rounded-xl px-4 py-3 text-left text-xs leading-relaxed border border-purple-500/30"
             style={{ background: "rgba(140, 80, 200,0.12)", color: "rgba(255,200,200,0.95)" }}
           >
-            {authError}
+            {authError || "Your session expired. Tap Continue to sign in again."}
           </div>
-        ) : null}
+        )}
 
         <Link
           href="/login/start"

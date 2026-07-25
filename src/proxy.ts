@@ -53,9 +53,8 @@ export function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  if (hasSession && isLoginPage) {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
+  // Do not bounce /login → / based on cookie alone (stale cookies caused blink loops).
+  // LoginClient sends healthy sessions home.
 
   return NextResponse.next();
 }

@@ -72,7 +72,7 @@ const musicProvider: NextAuthConfig["providers"][number] = {
   checks: ["state"],
   authorization: {
     url: CATALOG_ACCOUNTS_AUTHORIZE,
-    params: { scope: MUSIC_AUTH_SCOPES, show_dialog: "true" },
+    params: { scope: MUSIC_AUTH_SCOPES },
   },
   token: CATALOG_ACCOUNTS_TOKEN,
   userinfo: {
@@ -82,7 +82,14 @@ const musicProvider: NextAuthConfig["providers"][number] = {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
       });
       if (!res.ok) {
-        throw new Error(`Catalog profile request failed (${res.status})`);
+        const body = await res.text().catch(() => "");
+        // Development mode: user not on allowlist, or Premium required for the account.
+        if (res.status === 403) {
+          throw new Error(
+            "SPOTIFY_USER_NOT_ALLOWLISTED: Add this Spotify account under Developer Dashboard → Users and access (exact email from Spotify Account → Edit profile). Premium is required in Development mode."
+          );
+        }
+        throw new Error(`Catalog profile request failed (${res.status})${body ? `: ${body.slice(0, 180)}` : ""}`);
       }
       return res.json();
     },

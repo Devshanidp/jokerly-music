@@ -34,7 +34,6 @@ export async function GET(request: NextRequest) {
     <input type="hidden" name="csrfToken" value="${csrfToken}" />
     <input type="hidden" name="callbackUrl" value="${AUTH_SITE_URL}/" />
     <input type="hidden" name="scope" value="${MUSIC_AUTH_SCOPES}" />
-    <input type="hidden" name="show_dialog" value="true" />
   </form>
   <script>document.getElementById("oauth").submit();</script>
 </body>
