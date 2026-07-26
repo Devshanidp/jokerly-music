@@ -34,7 +34,10 @@ import ImportSpotifyPlaylistsSheet from "@/components/playlist/ImportSpotifyPlay
 import ImportYouTubeMusicSheet from "@/components/playlist/ImportYouTubeMusicSheet";
 import ExportPlaylistSheet from "@/components/playlist/ExportPlaylistSheet";
 import ExportToYouTubeMusicModal from "@/components/export/ExportToYouTubeMusicModal";
+import TransferResultDialog, { TransferResult } from "@/components/transfer/TransferResultDialog";
 import { useOfflineStore } from "@/store/offline";
+import { useSession } from "next-auth/react";
+import { goToMusicPermissionUpgrade } from "@/lib/music-auth-client";
 
 interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
@@ -189,6 +192,8 @@ export default function PlaylistsClient() {
     tracks: { name: string; artist: string }[];
   } | null>(null);
   const [exportLoadingId, setExportLoadingId] = useState<string | null>(null);
+  const [transferringSpotify, setTransferringSpotify] = useState(false);
+  const [transferResult, setTransferResult] = useState<TransferResult | null>(null);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [saving, setSaving] = useState(false);
@@ -208,6 +213,7 @@ export default function PlaylistsClient() {
   const [selectedArtist, setSelectedArtist] = useState<MusicArtist | null>(null);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToastStore();
+  const { data: session } = useSession();
   const { setQueueAndPlay, currentTrack, isPlayerExpanded, deviceId } = usePlayerStore();
   const downloadPlaylistOffline = useOfflineStore((s) => s.downloadPlaylist);
   const [downloadingPlaylistId, setDownloadingPlaylistId] = useState<string | null>(null);
@@ -329,6 +335,68 @@ export default function PlaylistsClient() {
     },
     [fetchTracks, tracksMap, toast]
   );
+
+  const transferPlaylistToSpotify = useCallback(async () => {
+    if (!exportTarget) return;
+    setTransferringSpotify(true);
+    try {
+      const accessToken = (session as { accessToken?: string } | null)?.accessToken;
+      const res = await fetch("/api/music/transfer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({
+          action: "playlist",
+          playlistId: exportTarget.id,
+          public: false,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        setExportTarget(null);
+        setTransferResult({
+          type: "error",
+          title: "Permission needed",
+          message: data.error || "Reconnect your account to allow creating Spotify playlists.",
+          details: data.error || "A one-time permission upgrade is needed before transfer can continue.",
+          needsReauth: true,
+        });
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || "Could not add playlist to Spotify");
+
+      const skipped =
+        typeof data.skippedCount === "number" && data.skippedCount > 0
+          ? ` · ${data.skippedCount} skipped`
+          : "";
+      setExportTarget(null);
+      setTransferResult({
+        type: "success",
+        title: "Added to Spotify",
+        message: `Created “${exportTarget.name}” with ${data.trackCount ?? 0} tracks${skipped}.`,
+        url: data.remotePlaylistUrl || null,
+      });
+      toast(`Added “${exportTarget.name}” to Spotify`, "success");
+    } catch (e) {
+      const message = (e as Error).message || "Could not add playlist to Spotify";
+      const needsReauth =
+        message.toLowerCase().includes("permission") ||
+        message.toLowerCase().includes("token") ||
+        message.toLowerCase().includes("unauthorized");
+      setExportTarget(null);
+      setTransferResult({
+        type: "error",
+        title: "Spotify export failed",
+        message,
+        details: message,
+        needsReauth,
+      });
+    } finally {
+      setTransferringSpotify(false);
+    }
+  }, [exportTarget, session, toast]);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -863,7 +931,11 @@ export default function PlaylistsClient() {
             open
             playlistName={exportTarget.name}
             trackCount={exportTarget.tracks.length}
-            onClose={() => setExportTarget(null)}
+            transferringSpotify={transferringSpotify}
+            onClose={() => {
+              if (!transferringSpotify) setExportTarget(null);
+            }}
+            onExportSpotify={() => void transferPlaylistToSpotify()}
             onExportYouTube={() => {
               const target = exportTarget;
               setExportTarget(null);
@@ -886,6 +958,16 @@ export default function PlaylistsClient() {
             title={youtubeExport.name}
             tracks={youtubeExport.tracks}
             onClose={() => setYoutubeExport(null)}
+          />
+        )}
+        {transferResult && (
+          <TransferResultDialog
+            result={transferResult}
+            onClose={() => setTransferResult(null)}
+            onReauthorize={() => {
+              setTransferResult(null);
+              goToMusicPermissionUpgrade("/playlists");
+            }}
           />
         )}
         {artistMixFab}
@@ -1196,7 +1278,11 @@ export default function PlaylistsClient() {
           open
           playlistName={exportTarget.name}
           trackCount={exportTarget.tracks.length}
-          onClose={() => setExportTarget(null)}
+          transferringSpotify={transferringSpotify}
+          onClose={() => {
+            if (!transferringSpotify) setExportTarget(null);
+          }}
+          onExportSpotify={() => void transferPlaylistToSpotify()}
           onExportYouTube={() => {
             const pl = exportTarget;
             setExportTarget(null);
@@ -1220,6 +1306,16 @@ export default function PlaylistsClient() {
           title={youtubeExport.name}
           tracks={youtubeExport.tracks}
           onClose={() => setYoutubeExport(null)}
+        />
+      )}
+      {transferResult && (
+        <TransferResultDialog
+          result={transferResult}
+          onClose={() => setTransferResult(null)}
+          onReauthorize={() => {
+            setTransferResult(null);
+            goToMusicPermissionUpgrade("/playlists");
+          }}
         />
       )}
       {showImportChooser && (

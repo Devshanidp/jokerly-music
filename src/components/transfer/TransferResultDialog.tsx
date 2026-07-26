@@ -94,7 +94,7 @@ export default function TransferResultDialog({ result, onClose, onReauthorize }:
               onClick={onReauthorize}
               className="flex-1 rounded-2xl btn-accent px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
-              Continue with your account
+              Approve Spotify access
             </button>
           )}
           <button

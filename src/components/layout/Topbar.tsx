@@ -7,7 +7,7 @@ import { X, Settings, Bell, Loader2, RefreshCw, Moon, Sun } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { APP_LOGO, APP_NAME, APP_TAGLINE } from "@/lib/branding";
-import { goToMusicLogin } from "@/lib/music-auth-client";
+import { goToMusicLogin, goToMusicPermissionUpgrade } from "@/lib/music-auth-client";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
@@ -26,12 +26,12 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   }, []);
 
   const reconnectAccount = () => {
-    goToMusicLogin();
+    goToMusicPermissionUpgrade("/");
   };
 
   const switchAccount = async () => {
     await signOut({ redirect: false });
-    goToMusicLogin();
+    goToMusicLogin({ upgrade: true });
   };
 
   useEffect(() => {

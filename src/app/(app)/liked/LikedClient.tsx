@@ -10,7 +10,7 @@ import { usePlayerStore, PlayableTrack } from "@/store/player";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import { MusicArtist } from "@/types/music-catalog";
 import TransferResultDialog, { TransferResult } from "@/components/transfer/TransferResultDialog";
-import { goToMusicLogin } from "@/lib/music-auth-client";
+import { goToMusicPermissionUpgrade } from "@/lib/music-auth-client";
 
 export default function LikedClient() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export default function LikedClient() {
   useEffect(() => { load(); }, [load]);
 
   const continueWithMusicAuth = useCallback(() => {
-    goToMusicLogin();
+    goToMusicPermissionUpgrade("/liked");
   }, []);
 
   const playSong = (song: LikedSong, index: number) => {
