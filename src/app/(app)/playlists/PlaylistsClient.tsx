@@ -34,6 +34,7 @@ import ImportSpotifyPlaylistsSheet from "@/components/playlist/ImportSpotifyPlay
 import ImportYouTubeMusicSheet from "@/components/playlist/ImportYouTubeMusicSheet";
 import ExportPlaylistSheet from "@/components/playlist/ExportPlaylistSheet";
 import ExportToYouTubeMusicModal from "@/components/export/ExportToYouTubeMusicModal";
+import ExportToSpotifyPickSheet from "@/components/playlist/ExportToSpotifyPickSheet";
 import TransferResultDialog, { TransferResult } from "@/components/transfer/TransferResultDialog";
 import { useOfflineStore } from "@/store/offline";
 import { useSession } from "next-auth/react";
@@ -181,6 +182,7 @@ export default function PlaylistsClient() {
   const [showImportChooser, setShowImportChooser] = useState(false);
   const [showImportSpotify, setShowImportSpotify] = useState(false);
   const [showImportYouTube, setShowImportYouTube] = useState(false);
+  const [showExportSpotifyPicker, setShowExportSpotifyPicker] = useState(false);
   const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
   const [exportTarget, setExportTarget] = useState<{
     id: string;
@@ -193,6 +195,7 @@ export default function PlaylistsClient() {
   } | null>(null);
   const [exportLoadingId, setExportLoadingId] = useState<string | null>(null);
   const [transferringSpotify, setTransferringSpotify] = useState(false);
+  const [exportingSpotifyId, setExportingSpotifyId] = useState<string | null>(null);
   const [transferResult, setTransferResult] = useState<TransferResult | null>(null);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
@@ -336,67 +339,76 @@ export default function PlaylistsClient() {
     [fetchTracks, tracksMap, toast]
   );
 
-  const transferPlaylistToSpotify = useCallback(async () => {
-    if (!exportTarget) return;
-    setTransferringSpotify(true);
-    try {
-      const accessToken = (session as { accessToken?: string } | null)?.accessToken;
-      const res = await fetch("/api/music/transfer", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({
-          action: "playlist",
-          playlistId: exportTarget.id,
-          public: false,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 401) {
+  const transferPlaylistToSpotify = useCallback(
+    async (playlist?: { id: string; name: string }) => {
+      const target = playlist ?? (exportTarget ? { id: exportTarget.id, name: exportTarget.name } : null);
+      if (!target) return;
+      setTransferringSpotify(true);
+      setExportingSpotifyId(target.id);
+      try {
+        const accessToken = (session as { accessToken?: string } | null)?.accessToken;
+        const res = await fetch("/api/music/transfer", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          },
+          body: JSON.stringify({
+            action: "playlist",
+            playlistId: target.id,
+            public: false,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          setExportTarget(null);
+          setShowExportSpotifyPicker(false);
+          setTransferResult({
+            type: "error",
+            title: "Permission needed",
+            message: data.error || "Reconnect your account to allow creating Spotify playlists.",
+            details: data.error || "A one-time permission upgrade is needed before transfer can continue.",
+            needsReauth: true,
+          });
+          return;
+        }
+        if (!res.ok) throw new Error(data.error || "Could not add playlist to Spotify");
+
+        const skipped =
+          typeof data.skippedCount === "number" && data.skippedCount > 0
+            ? ` · ${data.skippedCount} skipped`
+            : "";
         setExportTarget(null);
+        setShowExportSpotifyPicker(false);
+        setTransferResult({
+          type: "success",
+          title: "Playlist added to Spotify",
+          message: `“${target.name}” was created with ${data.trackCount ?? 0} tracks${skipped}.`,
+          url: data.remotePlaylistUrl || null,
+        });
+        toast(`Added “${target.name}” to Spotify`, "success");
+      } catch (e) {
+        const message = (e as Error).message || "Could not add playlist to Spotify";
+        const needsReauth =
+          message.toLowerCase().includes("permission") ||
+          message.toLowerCase().includes("token") ||
+          message.toLowerCase().includes("unauthorized");
+        setExportTarget(null);
+        setShowExportSpotifyPicker(false);
         setTransferResult({
           type: "error",
-          title: "Permission needed",
-          message: data.error || "Reconnect your account to allow creating Spotify playlists.",
-          details: data.error || "A one-time permission upgrade is needed before transfer can continue.",
-          needsReauth: true,
+          title: "Spotify export failed",
+          message,
+          details: message,
+          needsReauth,
         });
-        return;
+      } finally {
+        setTransferringSpotify(false);
+        setExportingSpotifyId(null);
       }
-      if (!res.ok) throw new Error(data.error || "Could not add playlist to Spotify");
-
-      const skipped =
-        typeof data.skippedCount === "number" && data.skippedCount > 0
-          ? ` · ${data.skippedCount} skipped`
-          : "";
-      setExportTarget(null);
-      setTransferResult({
-        type: "success",
-        title: "Added to Spotify",
-        message: `Created “${exportTarget.name}” with ${data.trackCount ?? 0} tracks${skipped}.`,
-        url: data.remotePlaylistUrl || null,
-      });
-      toast(`Added “${exportTarget.name}” to Spotify`, "success");
-    } catch (e) {
-      const message = (e as Error).message || "Could not add playlist to Spotify";
-      const needsReauth =
-        message.toLowerCase().includes("permission") ||
-        message.toLowerCase().includes("token") ||
-        message.toLowerCase().includes("unauthorized");
-      setExportTarget(null);
-      setTransferResult({
-        type: "error",
-        title: "Spotify export failed",
-        message,
-        details: message,
-        needsReauth,
-      });
-    } finally {
-      setTransferringSpotify(false);
-    }
-  }, [exportTarget, session, toast]);
+    },
+    [exportTarget, session, toast]
+  );
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -1331,7 +1343,7 @@ export default function PlaylistsClient() {
             style={{ background: "var(--surface)" }}
           >
             <div className="flex items-center justify-between mb-1">
-              <h3 className="text-base font-bold text-white">Import playlist</h3>
+              <h3 className="text-base font-bold text-white">Import / Export</h3>
               <button
                 type="button"
                 onClick={() => setShowImportChooser(false)}
@@ -1340,7 +1352,7 @@ export default function PlaylistsClient() {
                 <X size={16} />
               </button>
             </div>
-            <p className="text-xs text-white/40 pb-1">Choose a source</p>
+            <p className="text-xs text-white/40 pb-1">Choose an option</p>
             <button
               type="button"
               onClick={() => {
@@ -1353,8 +1365,24 @@ export default function PlaylistsClient() {
                 <FolderInput size={18} className="text-[var(--accent)]" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white">Spotify</p>
-                <p className="text-[11px] text-white/40">Copy from your linked Spotify account</p>
+                <p className="text-sm font-semibold text-white">Import from Spotify</p>
+                <p className="text-[11px] text-white/40">Copy playlists from your linked Spotify account</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowImportChooser(false);
+                setShowExportSpotifyPicker(true);
+              }}
+              className="w-full flex items-center gap-3 rounded-2xl border border-[var(--accent)]/35 bg-[var(--accent)]/10 px-4 py-3.5 text-left hover:bg-[var(--accent)]/15 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/20 flex items-center justify-center shrink-0">
+                <Upload size={18} className="text-[var(--accent)]" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">Export to Spotify</p>
+                <p className="text-[11px] text-white/40">Send one of your playlists to connected Spotify</p>
               </div>
             </button>
             <button
@@ -1369,13 +1397,22 @@ export default function PlaylistsClient() {
                 <Upload size={18} className="text-[var(--accent)]" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white">YouTube Music</p>
+                <p className="text-sm font-semibold text-white">Import from YouTube Music</p>
                 <p className="text-[11px] text-white/40">Paste cookies, then pick a playlist</p>
               </div>
             </button>
           </div>
         </div>
       )}
+      <ExportToSpotifyPickSheet
+        open={showExportSpotifyPicker}
+        playlists={playlists}
+        exportingId={exportingSpotifyId}
+        onClose={() => {
+          if (!transferringSpotify) setShowExportSpotifyPicker(false);
+        }}
+        onPick={(pl) => void transferPlaylistToSpotify({ id: pl.id, name: pl.name })}
+      />
       <ImportSpotifyPlaylistsSheet
         open={showImportSpotify}
         onClose={() => setShowImportSpotify(false)}
