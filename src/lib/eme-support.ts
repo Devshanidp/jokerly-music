@@ -16,7 +16,7 @@ export function formatPlaybackEnvironmentError(raw?: string): string {
     text.includes("platform does not support")
   ) {
     if (isWindowsDesktopApp()) {
-      return "Protected audio (DRM) failed in the Windows app. Reinstall the latest ShaN'sMusic installer, then Retry. Spotify Premium is required.";
+      return "Protected audio (DRM) failed. Install the latest VMP-signed ShaN'sMusic build, close other Spotify apps, then Retry.";
     }
     return "Protected audio (DRM) is blocked in this browser. Use HTTPS, allow protected content in site settings, and try Chrome, Edge, or Safari. Privacy extensions can also block playback.";
   }
@@ -26,7 +26,7 @@ export function formatPlaybackEnvironmentError(raw?: string): string {
   // Spotify often emits a bare "Playback error" with no useful detail.
   if (!trimmed || text === "playback error" || text === "playback failed") {
     if (isWindowsDesktopApp()) {
-      return "Spotify could not start playback. Close other Spotify apps on this PC, then tap Retry.";
+      return "Spotify blocked protected playback in this Windows build (DRM/VMP). Install the latest signed ShaN'sMusic setup, close other Spotify apps, then Retry.";
     }
     return "Spotify could not start playback. Close other Spotify players and try again.";
   }

@@ -6,7 +6,7 @@ import { useLikesStore } from "@/store/likes";
 import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal, Share2, Radio } from "lucide-react";
 import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import Image from "next/image";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import QueueSheet from "@/components/player/QueueSheet";
 import LyricsPanel from "@/components/player/LyricsPanel";
@@ -16,8 +16,6 @@ import { fetchRadioTracks } from "@/lib/radio";
 import { trackIdFromUri } from "@/lib/track-uri";
 import { useToastStore } from "@/store/toast";
 import { APP_NAME } from "@/lib/branding";
-import { isWindowsDesktopApp } from "@/lib/desktop-app";
-import { isPlayerAuthError } from "@/lib/eme-support";
 
 function formatTime(seconds: number) {
   if (!isFinite(seconds)) return "0:00";
@@ -49,7 +47,6 @@ export default function PlayerBar() {
     progressMs,
     durationMs,
     isPlayerReady,
-    sdkError,
     repeatMode,
     shuffleEnabled,
     crossfadeEnabled,
@@ -545,34 +542,6 @@ export default function PlayerBar() {
     return () => clearInterval(id);
   }, [sleepTimerEndsAt]);
 
-  if (sdkError && !currentTrack && !isWindowsDesktopApp()) {
-    return (
-      <div className="theme-dark fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 border-t border-white/10 px-4 py-3 flex items-center justify-between gap-3"
-        style={{ background: "#000000", backdropFilter: "blur(20px)" }}>
-        <p className="text-[var(--accent)] text-sm truncate">{sdkError}</p>
-        {isPlayerAuthError(sdkError) ? (
-          <button onClick={() => {
-              usePlayerStore.setState({ sdkError: null, player: null, deviceId: null, isPlayerReady: false });
-              void signOut({ callbackUrl: "/login" });
-            }}
-            className="shrink-0 text-xs btn-accent text-white px-3 py-1.5 rounded-xl font-medium">
-            Re-login
-          </button>
-        ) : session?.accessToken ? (
-          <button
-            onClick={() => {
-              usePlayerStore.setState({ player: null, deviceId: null, isPlayerReady: false, sdkError: null });
-              initializePlayer(session.accessToken as string);
-            }}
-            className="shrink-0 text-xs bg-white/10 text-white px-3 py-1.5 rounded-xl font-medium hover:bg-white/15"
-          >
-            Retry
-          </button>
-        ) : null}
-      </div>
-    );
-  }
-
   if (!currentTrack) return null;
 
   const prevIndex = getPrevIndex();
@@ -669,13 +638,6 @@ export default function PlayerBar() {
                         {fetching ? "Loading track…" : isTransitioning ? "Switching…" : "Connecting…"}
                       </span>
                     </div>
-                  </div>
-                )}
-
-                {sdkError && !isWindowsDesktopApp() && (
-                  <div className="rounded-2xl border border-[#EF4444]/35 bg-[#EF4444]/10 px-3 py-2.5">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-[#EF4444]/80">Playback error</p>
-                    <p className="mt-1 text-sm text-white/75 leading-relaxed">{sdkError}</p>
                   </div>
                 )}
 
