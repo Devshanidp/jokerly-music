@@ -9,6 +9,8 @@ import BackNavigationHandler from "@/components/layout/BackNavigationHandler";
 import OfflineBootstrap from "@/components/layout/OfflineBootstrap";
 import GlobalFloatingNav from "@/components/layout/GlobalFloatingNav";
 import ClickRipple from "@/components/layout/ClickRipple";
+import AndroidWidgetBridge from "@/components/android/AndroidWidgetBridge";
+import { Suspense } from "react";
 import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -63,6 +65,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <SessionWrapper>
             <BackNavigationHandler />
+            <Suspense fallback={null}>
+              <AndroidWidgetBridge />
+            </Suspense>
             <OfflineBootstrap />
             {children}
             <GlobalFloatingNav />

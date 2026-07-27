@@ -19,9 +19,6 @@ import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-
-
-
 public class LauncherActivity
         extends com.google.androidbrowserhelper.trusted.LauncherActivity {
     
@@ -44,11 +41,10 @@ public class LauncherActivity
 
     @Override
     protected Uri getLaunchingUrl() {
-        // Get the original launch Url.
         Uri uri = super.getLaunchingUrl();
-
-        
-
+        if (uri == null) {
+            return uri;
+        }
         return uri;
     }
 }
