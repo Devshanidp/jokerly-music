@@ -668,7 +668,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       set({
         isPlaying: false,
         isTransitioning: false,
-        sdkError: formatPlaybackEnvironmentError(message) || "Playback failed. Try another browser or device.",
+        sdkError: formatPlaybackEnvironmentError(message),
       });
     });
     player.addListener("authentication_error", async () => {

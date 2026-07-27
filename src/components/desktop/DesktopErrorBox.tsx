@@ -77,8 +77,8 @@ export default function DesktopErrorBox() {
               borderColor: "rgba(239,68,68,0.40)",
             }}
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">Error</p>
-            <p className="mt-1.5 max-h-28 overflow-auto whitespace-pre-wrap break-words text-sm text-white/80">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">Details</p>
+            <p className="mt-1.5 max-h-36 overflow-auto whitespace-pre-wrap break-words text-sm text-white/80">
               {errorText}
             </p>
           </div>
