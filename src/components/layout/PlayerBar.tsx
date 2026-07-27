@@ -16,6 +16,7 @@ import { fetchRadioTracks } from "@/lib/radio";
 import { trackIdFromUri } from "@/lib/track-uri";
 import { useToastStore } from "@/store/toast";
 import { APP_NAME } from "@/lib/branding";
+import { isWindowsDesktopApp } from "@/lib/desktop-app";
 
 function formatTime(seconds: number) {
   if (!isFinite(seconds)) return "0:00";
@@ -543,7 +544,7 @@ export default function PlayerBar() {
     return () => clearInterval(id);
   }, [sleepTimerEndsAt]);
 
-  if (sdkError && !currentTrack) {
+  if (sdkError && !currentTrack && !isWindowsDesktopApp()) {
     return (
       <div className="theme-dark fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 border-t border-white/10 px-4 py-3 flex items-center justify-between gap-3"
         style={{ background: "#000000", backdropFilter: "blur(20px)" }}>
@@ -669,7 +670,7 @@ export default function PlayerBar() {
                   </div>
                 )}
 
-                {sdkError && (
+                {sdkError && !isWindowsDesktopApp() && (
                   <div className="rounded-2xl border border-[#EF4444]/35 bg-[#EF4444]/10 px-3 py-2.5">
                     <p className="text-[11px] uppercase tracking-[0.16em] text-[#EF4444]/80">Playback error</p>
                     <p className="mt-1 text-sm text-white/75 leading-relaxed">{sdkError}</p>
