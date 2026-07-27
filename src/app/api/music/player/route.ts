@@ -47,25 +47,51 @@ function slicePlayUris(uris: string[], offsetPosition = 0) {
 }
 
 async function catalogPlayerRequest(path: string, accessToken: string, init: RequestInit) {
-  const res = await fetch(`${CATALOG_API_V1}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      ...(init.headers ?? {}),
-    },
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${CATALOG_API_V1}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+        ...(init.headers ?? {}),
+      },
+      cache: "no-store",
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Catalog service unreachable";
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    return NextResponse.json(
-      { error: text || `Catalog API ${res.status}` },
-      { status: res.status }
-    );
+    let message = text || `Catalog API ${res.status}`;
+    try {
+      const parsed = JSON.parse(text) as { error?: { message?: string } };
+      if (parsed?.error?.message) message = parsed.error.message;
+    } catch {
+      // keep raw text
+    }
+    return NextResponse.json({ error: message }, { status: res.status });
   }
 
   return NextResponse.json({ ok: true });
+}
+
+async function transferPlaybackToDevice(deviceId: string, accessToken: string) {
+  try {
+    await fetch(`${CATALOG_API_V1}/me/player`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ device_ids: [deviceId], play: false }),
+      cache: "no-store",
+    });
+  } catch {
+    // Non-fatal — play may still succeed if this device is already active.
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -88,6 +114,7 @@ export async function POST(req: NextRequest) {
       const offsetPosition =
         typeof playBody.offset?.position === "number" ? playBody.offset.position : 0;
       const sliced = slicePlayUris(playBody.uris, offsetPosition);
+      await transferPlaybackToDevice(playBody.deviceId, session.accessToken);
       return catalogPlayerRequest(
         `/me/player/play?device_id=${encodeURIComponent(playBody.deviceId)}`,
         session.accessToken,
@@ -95,7 +122,7 @@ export async function POST(req: NextRequest) {
           method: "PUT",
           body: JSON.stringify({
             uris: sliced.uris,
-            offset: sliced.offset,
+            ...(sliced.uris.length > 1 ? { offset: sliced.offset } : {}),
             position_ms: playBody.positionMs ?? 0,
           }),
         }

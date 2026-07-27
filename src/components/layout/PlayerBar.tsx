@@ -525,6 +525,13 @@ export default function PlayerBar() {
                   </div>
                 )}
 
+                {sdkError && (
+                  <div className="rounded-2xl border border-[#EF4444]/35 bg-[#EF4444]/10 px-3 py-2.5">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-[#EF4444]/80">Playback error</p>
+                    <p className="mt-1 text-sm text-white/75 leading-relaxed">{sdkError}</p>
+                  </div>
+                )}
+
                 {/* Progress */}
                 <div className="space-y-1.5">
                   <div className="group h-1.5 cursor-pointer rounded-full bg-white/10" onClick={handleSeek}>
