@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState, useRef } from "react";
 import { handleDocumentVisibilityChange, usePlayerStore } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
-import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal, Share2 } from "lucide-react";
 import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
@@ -11,6 +11,7 @@ import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import QueueSheet from "@/components/player/QueueSheet";
 import LyricsPanel from "@/components/player/LyricsPanel";
 import SimilarMusicSection from "@/components/player/SimilarMusicSection";
+import ShareNowPlayingSheet from "@/components/player/ShareNowPlayingSheet";
 import { useToastStore } from "@/store/toast";
 import { APP_NAME } from "@/lib/branding";
 
@@ -84,6 +85,7 @@ export default function PlayerBar() {
   const [showTimerPicker, setShowTimerPicker] = useState(false);
   const [timerRemaining, setTimerRemaining] = useState<string | null>(null);
   const [showLyrics, setShowLyrics] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [resolvingAdd, setResolvingAdd] = useState(false);
   const fetchingRef = useRef(false);
@@ -602,6 +604,10 @@ export default function PlayerBar() {
                       className={`shrink-0 p-2.5 rounded-2xl transition-colors ${showLyrics ? "text-[#EF4444] bg-[#EF4444]/10" : "text-[#EF4444] hover:bg-[#EF4444]/10"}`}>
                       <MicVocal size={14} />
                     </button>
+                    <button onClick={() => setShowShareSheet(true)} title="Share now playing"
+                      className="shrink-0 p-2.5 rounded-2xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
+                      <Share2 size={14} />
+                    </button>
                     <div className="relative">
                       <button
                         onClick={() => setShowTimerPicker((v) => !v)}
@@ -772,6 +778,10 @@ export default function PlayerBar() {
               className="p-2 rounded-xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
               <ListOrdered size={14} />
             </button>
+            <button onClick={() => setShowShareSheet(true)} title="Share now playing"
+              className="p-2 rounded-xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
+              <Share2 size={14} />
+            </button>
             <div className="hidden sm:flex items-center gap-1.5 shrink-0">
               <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="p-2 rounded-xl text-white/30 hover:text-white transition-colors">
                 <VolumeIcon size={14} />
@@ -794,6 +804,14 @@ export default function PlayerBar() {
 
       {modalTrack && (
         <AddToPlaylistModal track={modalTrack} onClose={() => setModalTrack(null)} />
+      )}
+
+      {showShareSheet && currentTrack && (
+        <ShareNowPlayingSheet
+          open={showShareSheet}
+          track={currentTrack}
+          onClose={() => setShowShareSheet(false)}
+        />
       )}
     </>
   );
