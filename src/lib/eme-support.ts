@@ -26,9 +26,9 @@ export function formatPlaybackEnvironmentError(raw?: string): string {
   // Spotify often emits a bare "Playback error" with no useful detail.
   if (!trimmed || text === "playback error" || text === "playback failed") {
     if (isWindowsDesktopApp()) {
-      return "Spotify could not start playback. Confirm Spotify Premium, close other Spotify players, then tap Retry.";
+      return "Spotify could not start playback. Close other Spotify apps on this PC, then tap Retry.";
     }
-    return "Spotify could not start playback. Confirm Premium, close other Spotify players, and try again.";
+    return "Spotify could not start playback. Close other Spotify players and try again.";
   }
   return trimmed;
 }
@@ -39,4 +39,15 @@ export function getInsecurePlaybackMessage(): string | null {
     return "Playback requires HTTPS. Open https://music.devshanidp.xyz (not http://).";
   }
   return null;
+}
+
+/** True only for session/auth failures — not generic Premium tips in error copy. */
+export function isPlayerAuthError(message: string): boolean {
+  const text = message.toLowerCase();
+  if (text.includes("premium subscription is required")) return true;
+  if (text.includes("session expired")) return true;
+  if (text.includes("sign in again")) return true;
+  if (text.includes("unauthorized")) return true;
+  if (text.includes("authentication")) return true;
+  return false;
 }

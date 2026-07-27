@@ -17,6 +17,7 @@ import { trackIdFromUri } from "@/lib/track-uri";
 import { useToastStore } from "@/store/toast";
 import { APP_NAME } from "@/lib/branding";
 import { isWindowsDesktopApp } from "@/lib/desktop-app";
+import { isPlayerAuthError } from "@/lib/eme-support";
 
 function formatTime(seconds: number) {
   if (!isFinite(seconds)) return "0:00";
@@ -549,10 +550,11 @@ export default function PlayerBar() {
       <div className="theme-dark fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 border-t border-white/10 px-4 py-3 flex items-center justify-between gap-3"
         style={{ background: "#000000", backdropFilter: "blur(20px)" }}>
         <p className="text-[var(--accent)] text-sm truncate">{sdkError}</p>
-        {sdkError.includes("Premium") ||
-        sdkError.includes("auth") ||
-        sdkError.includes("session expired") ? (
-          <button onClick={() => signOut({ callbackUrl: "/login" })}
+        {isPlayerAuthError(sdkError) ? (
+          <button onClick={() => {
+              usePlayerStore.setState({ sdkError: null, player: null, deviceId: null, isPlayerReady: false });
+              void signOut({ callbackUrl: "/login" });
+            }}
             className="shrink-0 text-xs btn-accent text-white px-3 py-1.5 rounded-xl font-medium">
             Re-login
           </button>

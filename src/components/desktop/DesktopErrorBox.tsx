@@ -5,6 +5,7 @@ import { AlertCircle, Copy } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { usePlayerStore } from "@/store/player";
 import { isWindowsDesktopApp } from "@/lib/desktop-app";
+import { isPlayerAuthError } from "@/lib/eme-support";
 import { useBackHandler } from "@/hooks/useBackHandler";
 
 export default function DesktopErrorBox() {
@@ -15,14 +16,14 @@ export default function DesktopErrorBox() {
 
   const visible = isWindowsDesktopApp() && Boolean(sdkError);
   const errorText = sdkError ?? "";
-  const needsReauth =
-    errorText.includes("Premium") ||
-    errorText.includes("auth") ||
-    errorText.includes("session expired") ||
-    errorText.includes("Sign in");
+  const needsReauth = isPlayerAuthError(errorText);
+
+  const clearError = () => {
+    usePlayerStore.setState({ sdkError: null });
+  };
 
   const dismiss = () => {
-    usePlayerStore.setState({ sdkError: null });
+    clearError();
   };
 
   useBackHandler(visible, dismiss);
@@ -36,10 +37,30 @@ export default function DesktopErrorBox() {
   };
 
   const retry = () => {
-    usePlayerStore.setState({ player: null, deviceId: null, isPlayerReady: false, sdkError: null });
+    usePlayerStore.setState({
+      player: null,
+      deviceId: null,
+      isPlayerReady: false,
+      sdkError: null,
+      isTransitioning: false,
+      pendingIndex: null,
+    });
     if (session?.accessToken) {
       initializePlayer(session.accessToken as string);
     }
+  };
+
+  const reLogin = () => {
+    usePlayerStore.setState({
+      sdkError: null,
+      player: null,
+      deviceId: null,
+      isPlayerReady: false,
+      isPlaying: false,
+      isTransitioning: false,
+      pendingIndex: null,
+    });
+    void signOut({ callbackUrl: "/login" });
   };
 
   return (
@@ -92,7 +113,7 @@ export default function DesktopErrorBox() {
           <div className="flex gap-2 pt-1">
             {needsReauth ? (
               <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={reLogin}
                 className="flex-1 rounded-2xl btn-accent px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Re-login
@@ -104,10 +125,17 @@ export default function DesktopErrorBox() {
               >
                 Retry
               </button>
-            ) : null}
+            ) : (
+              <button
+                onClick={reLogin}
+                className="flex-1 rounded-2xl btn-accent px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              >
+                Re-login
+              </button>
+            )}
             <button
               onClick={dismiss}
-              className={`${needsReauth || session?.accessToken ? "flex-1" : "w-full"} rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-white/[0.1]`}
+              className="flex-1 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-white/[0.1]"
             >
               Dismiss
             </button>
