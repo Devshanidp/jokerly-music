@@ -370,6 +370,7 @@ export default function PlaylistsClient() {
             details: data.error || "A one-time permission upgrade is needed before transfer can continue.",
             needsReauth: true,
           });
+          toast(data.error || "Permission needed to export to Spotify", "error");
           return;
         }
         if (!res.ok) throw new Error(data.error || "Could not add playlist to Spotify");
@@ -402,6 +403,7 @@ export default function PlaylistsClient() {
           details: message,
           needsReauth,
         });
+        toast(message, "error");
       } finally {
         setTransferringSpotify(false);
         setExportingSpotifyId(null);
