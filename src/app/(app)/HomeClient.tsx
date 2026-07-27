@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Pin, Search, Loader2, Music, Mic2, Play, ListPlus, RefreshCw, Sparkles, SlidersHorizontal, UserCircle2, X, GripVertical, Check } from "lucide-react";
 import PinnedPlaylistSection from "@/components/home/PinnedPlaylistSection";
 import JumpBackInCard from "@/components/home/JumpBackInCard";
+import DailyMixSection from "@/components/home/DailyMixSection";
 import PersonalizeSheet, { FavoriteArtist } from "@/components/home/PersonalizeSheet";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import AlbumSheet from "@/components/music/AlbumSheet";
@@ -861,6 +862,8 @@ export default function HomeClient() {
 
               if (sectionId === "jumpBack") {
                 body = <JumpBackInCard />;
+              } else if (sectionId === "dailyMix") {
+                body = <DailyMixSection />;
               } else if (sectionId === "pinned") {
                 body = (
                   <section className="space-y-3">
