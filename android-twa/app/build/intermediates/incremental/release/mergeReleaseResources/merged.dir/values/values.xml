@@ -352,6 +352,12 @@
     <string name="status_bar_notification_info_overflow">999+</string>
     <string name="update_chrome_toast">Please update to Chrome Stable 72 or later.</string>
     <string name="webManifestUrl" translatable="false">https://music.devshanidp.xyz/manifest.json</string>
+    <string name="widget_art_desc">Album art</string>
+    <string name="widget_description">See what is playing and control playback from your home screen.</string>
+    <string name="widget_empty_artist">Open the app and play a song</string>
+    <string name="widget_empty_title">ShaN\'sMusic</string>
+    <string name="widget_name">Now Playing</string>
+    <string name="widget_play_desc">Play or pause</string>
     <style name="AlertDialog.AppCompat" parent="Base.AlertDialog.AppCompat"/>
     <style name="AlertDialog.AppCompat.Light" parent="Base.AlertDialog.AppCompat.Light"/>
     <style name="Animation.AppCompat.Dialog" parent="Base.Animation.AppCompat.Dialog"/>

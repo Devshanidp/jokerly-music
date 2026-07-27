@@ -9,6 +9,9 @@
 -keep class com_shanmusic.com.Application { <init>(); }
 -keep class com_shanmusic.com.DelegationService { <init>(); }
 -keep class com_shanmusic.com.LauncherActivity { <init>(); }
+-keep class com_shanmusic.com.NowPlayingWidgetProvider { <init>(); }
+-keep class com_shanmusic.com.WidgetBridgeActivity { <init>(); }
+-keep class com_shanmusic.com.WidgetControlReceiver { <init>(); }
 -keep class android.widget.Space { <init>(android.content.Context, android.util.AttributeSet); }
 
 -keep class androidx.appcompat.app.AlertController$RecycleListView { <init>(android.content.Context, android.util.AttributeSet); }

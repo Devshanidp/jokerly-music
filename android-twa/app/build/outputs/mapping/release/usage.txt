@@ -10279,13 +10279,48 @@ com.google.thirdparty.publicsuffix.PublicSuffixType
 com.google.thirdparty.publicsuffix.TrieParser
 com_shanmusic.com.R$bool
 com_shanmusic.com.R$color
-com_shanmusic.com.R$drawable
+com_shanmusic.com.R$drawable:
+    public static int ic_notification_icon
+    public static int shortcut_legacy_background
+    public static int splash
+    public static int widget_background
+    public static int widget_play_button_bg
+    private void <init>()
+com_shanmusic.com.R$id:
+    private void <init>()
 com_shanmusic.com.R$integer
-com_shanmusic.com.R$mipmap
+com_shanmusic.com.R$layout:
+    private void <init>()
+com_shanmusic.com.R$mipmap:
+    public static int ic_maskable
+    private void <init>()
 com_shanmusic.com.R$raw
-com_shanmusic.com.R$string
+com_shanmusic.com.R$string:
+    public static int appName
+    public static int assetStatements
+    public static int fallbackType
+    public static int fullScopeUrl
+    public static int generatorApp
+    public static int hostName
+    public static int launchUrl
+    public static int launcherName
+    public static int orientation
+    public static int providerAuthority
+    public static int webManifestUrl
+    public static int widget_art_desc
+    public static int widget_description
+    public static int widget_name
+    public static int widget_play_desc
+    private void <init>()
 com_shanmusic.com.R$xml
 com_shanmusic.com.R
+com_shanmusic.com.WidgetControlReceiver:
+    public static final java.lang.String ACTION_TOGGLE
+com_shanmusic.com.WidgetRenderer:
+    private void <init>()
+com_shanmusic.com.WidgetStateStore:
+    private static final java.lang.String PREFS
+    private void <init>()
 kotlin.ArrayIntrinsicsKt
 kotlin.BuilderInference
 kotlin.CharCodeJVMKt

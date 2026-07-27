@@ -3,8 +3,8 @@
 # min_api: 21
 # common_typos_disable
 # {"id":"com.android.tools.r8.mapping","version":"2.2"}
-# pg_map_id: 35acc69
-# pg_map_hash: SHA-256 35acc69c0abd913e15212f658e7098732e7a3e2e55f0496426b2d0e81a3b0cc6
+# pg_map_id: fcec85e
+# pg_map_hash: SHA-256 fcec85eeacb71eb48f067c2937c002acf85266d3409838d0aa0dc5581ff89db4
 android.support.customtabs.ICustomTabsCallback -> a.a:
 # {"id":"sourceFile","fileName":"ICustomTabsCallback.java"}
     java.lang.String DESCRIPTOR -> a
@@ -307,7 +307,7 @@ androidx.activity.ComponentActivity$4 -> androidx.activity.ComponentActivity$4:
 androidx.activity.ComponentActivity$Companion -> androidx.activity.b$a:
 # {"id":"sourceFile","fileName":"ComponentActivity.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():1160:1160 -> <init>
 androidx.activity.ImmLeaksCleaner -> androidx.activity.ImmLeaksCleaner:
 # {"id":"sourceFile","fileName":"ImmLeaksCleaner.kt"}
@@ -315,10 +315,10 @@ androidx.activity.ImmLeaksCleaner -> androidx.activity.ImmLeaksCleaner:
     androidx.activity.ImmLeaksCleaner$Companion Companion -> b
       # {"id":"com.android.tools.r8.residualsignature","signature":"Landroidx/activity/ImmLeaksCleaner$c;"}
     kotlin.Lazy cleaner$delegate -> c
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LN/a;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LO/a;"}
     9:17:void <clinit>():113:113 -> <clinit>
     1:3:kotlin.Lazy access$getCleaner$delegate$cp():28:28 -> d
-      # {"id":"com.android.tools.r8.residualsignature","signature":"()LN/a;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"()LO/a;"}
     11:15:void onStateChanged(androidx.lifecycle.LifecycleOwner,androidx.lifecycle.Lifecycle$Event):30:30 -> h
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Landroidx/lifecycle/k;Landroidx/lifecycle/f$a;)V"}
     16:30:void onStateChanged(androidx.lifecycle.LifecycleOwner,androidx.lifecycle.Lifecycle$Event):34:34 -> h
@@ -335,7 +335,7 @@ androidx.activity.ImmLeaksCleaner -> androidx.activity.ImmLeaksCleaner:
 androidx.activity.ImmLeaksCleaner$Cleaner -> androidx.activity.ImmLeaksCleaner$a:
 # {"id":"sourceFile","fileName":"ImmLeaksCleaner.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():54:54 -> <init>
     boolean clearNextServedView(android.view.inputmethod.InputMethodManager) -> a
     java.lang.Object getLock(android.view.inputmethod.InputMethodManager) -> b
@@ -343,7 +343,7 @@ androidx.activity.ImmLeaksCleaner$Cleaner -> androidx.activity.ImmLeaksCleaner$a
 androidx.activity.ImmLeaksCleaner$Companion -> androidx.activity.ImmLeaksCleaner$c:
 # {"id":"sourceFile","fileName":"ImmLeaksCleaner.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():111:111 -> <init>
     1:11:androidx.activity.ImmLeaksCleaner$Cleaner getCleaner():113:113 -> a
       # {"id":"com.android.tools.r8.residualsignature","signature":"()Landroidx/activity/ImmLeaksCleaner$a;"}
@@ -10635,7 +10635,7 @@ androidx.collection.ArraySet -> q.b:
     3:4:void <init>(int):50:51 -> <init>
     5:5:void <init>(int):88:88 -> <init>
     6:6:void <init>(int,int,kotlin.jvm.internal.DefaultConstructorMarker):47:47 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(IILS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(IILT/b;)V"}
     1:4:void ensureCapacity(int):311:311 -> a
     5:11:void ensureCapacity(int):312:312 -> a
     12:15:void ensureCapacity(int):313:313 -> a
@@ -10810,7 +10810,7 @@ androidx.collection.LongSparseArray -> q.f:
     3:4:void <init>(int):73:74 -> <init>
     5:7:void <init>(int):76:78 -> <init>
     8:8:void <init>(int,int,kotlin.jvm.internal.DefaultConstructorMarker):52:52 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(IILS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(IILT/b;)V"}
     1:14:void append(long,java.lang.Object):545:545 -> a
     15:18:void append(long,java.lang.Object):546:546 -> a
     19:27:void append(long,java.lang.Object):549:549 -> a
@@ -11022,7 +11022,7 @@ androidx.collection.SimpleArrayMap -> q.i:
     6:7:void <init>(int):70:71 -> <init>
     8:8:void <init>(int):69:69 -> <init>
     9:9:void <init>(int,int,kotlin.jvm.internal.DefaultConstructorMarker):63:63 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(IILS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(IILT/b;)V"}
     1:4:int __restricted$indexOfValue(java.lang.Object):236:236 -> a
     5:12:int __restricted$indexOfValue(java.lang.Object):237:237 -> a
     13:24:int __restricted$indexOfValue(java.lang.Object):241:241 -> a
@@ -11178,7 +11178,7 @@ androidx.collection.SparseArrayCompat -> q.j:
     3:4:void <init>(int):82:83 -> <init>
     5:7:void <init>(int):85:87 -> <init>
     8:8:void <init>(int,int,kotlin.jvm.internal.DefaultConstructorMarker):61:61 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(IILS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(IILT/b;)V"}
     1:12:void append(int,java.lang.Object):497:497 -> a
     13:16:void append(int,java.lang.Object):498:498 -> a
     17:25:void append(int,java.lang.Object):501:501 -> a
@@ -19667,7 +19667,7 @@ androidx.lifecycle.Lifecycle$Event -> androidx.lifecycle.f$a:
 androidx.lifecycle.Lifecycle$Event$Companion -> androidx.lifecycle.f$a$a:
 # {"id":"sourceFile","fileName":"Lifecycle.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():151:151 -> <init>
     6:24:androidx.lifecycle.Lifecycle$Event downFrom(androidx.lifecycle.Lifecycle$State):162:162 -> a
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Landroidx/lifecycle/f$b;)Landroidx/lifecycle/f$a;"}
@@ -19716,7 +19716,7 @@ androidx.lifecycle.LifecycleCoroutineScopeImpl -> androidx.lifecycle.LifecycleCo
     androidx.lifecycle.Lifecycle lifecycle -> a
       # {"id":"com.android.tools.r8.residualsignature","signature":"Landroidx/lifecycle/f;"}
     1:2:kotlin.coroutines.CoroutineContext getCoroutineContext():381:381 -> d
-      # {"id":"com.android.tools.r8.residualsignature","signature":"()LP/a;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"()LQ/a;"}
     11:26:void onStateChanged(androidx.lifecycle.LifecycleOwner,androidx.lifecycle.Lifecycle$Event):403:403 -> h
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Landroidx/lifecycle/k;Landroidx/lifecycle/f$a;)V"}
     27:33:void onStateChanged(androidx.lifecycle.LifecycleOwner,androidx.lifecycle.Lifecycle$Event):404:404 -> h
@@ -19860,7 +19860,7 @@ androidx.lifecycle.LifecycleRegistry -> androidx.lifecycle.l:
 androidx.lifecycle.LifecycleRegistry$Companion -> androidx.lifecycle.l$a:
 # {"id":"sourceFile","fileName":"LifecycleRegistry.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():319:319 -> <init>
     8:15:androidx.lifecycle.Lifecycle$State min$lifecycle_runtime_release(androidx.lifecycle.Lifecycle$State,androidx.lifecycle.Lifecycle$State):336:336 -> a
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Landroidx/lifecycle/f$b;Landroidx/lifecycle/f$b;)Landroidx/lifecycle/f$b;"}
@@ -20065,7 +20065,7 @@ androidx.lifecycle.ProcessLifecycleOwner$Api29Impl -> androidx.lifecycle.r$a:
 androidx.lifecycle.ProcessLifecycleOwner$Companion -> androidx.lifecycle.r$b:
 # {"id":"sourceFile","fileName":"ProcessLifecycleOwner.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():72:72 -> <init>
     1:5:androidx.lifecycle.LifecycleOwner get():85:85 -> a
       # {"id":"com.android.tools.r8.residualsignature","signature":"()Landroidx/lifecycle/k;"}
@@ -20151,7 +20151,7 @@ androidx.lifecycle.ReportFragment$ActivityInitializationListener -> androidx.lif
 androidx.lifecycle.ReportFragment$Companion -> androidx.lifecycle.s$b:
 # {"id":"sourceFile","fileName":"ReportFragment.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():161:161 -> <init>
     11:14:void dispatch$lifecycle_runtime_release(android.app.Activity,androidx.lifecycle.Lifecycle$Event):189:189 -> a
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Landroid/app/Activity;Landroidx/lifecycle/f$a;)V"}
@@ -20182,7 +20182,7 @@ androidx.lifecycle.ReportFragment$LifecycleCallbacks -> androidx.lifecycle.s$c:
 androidx.lifecycle.ReportFragment$LifecycleCallbacks$Companion -> androidx.lifecycle.s$c$a:
 # {"id":"sourceFile","fileName":"ReportFragment.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():153:153 -> <init>
     6:14:void registerIn(android.app.Activity):156:156 -> a
 androidx.lifecycle.ReportFragment$LifecycleCallbacks$Companion$$ExternalSyntheticApiModelOutline0 -> androidx.lifecycle.t:
@@ -21199,7 +21199,7 @@ androidx.savedstate.Recreator -> androidx.savedstate.Recreator:
 androidx.savedstate.Recreator$Companion -> androidx.savedstate.Recreator$a:
 # {"id":"sourceFile","fileName":"Recreator.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():93:93 -> <init>
 androidx.startup.AppInitializer -> androidx.startup.a:
 # {"id":"sourceFile","fileName":"AppInitializer.java"}
@@ -24616,33 +24616,190 @@ com_shanmusic.com.DelegationService -> com_shanmusic.com.DelegationService:
     1:4:void onCreate():9:9 -> onCreate
 com_shanmusic.com.LauncherActivity -> com_shanmusic.com.LauncherActivity:
 # {"id":"sourceFile","fileName":"LauncherActivity.java"}
-    1:4:void <init>():25:25 -> <init>
-    1:5:android.net.Uri getLaunchingUrl():48:48 -> i
-    1:3:void onCreate(android.os.Bundle):33:33 -> onCreate
-    4:11:void onCreate(android.os.Bundle):38:38 -> onCreate
-    12:16:void onCreate(android.os.Bundle):39:39 -> onCreate
-    17:20:void onCreate(android.os.Bundle):41:41 -> onCreate
-kotlin.Lazy -> N.a:
+    1:4:void <init>():22:22 -> <init>
+    1:5:android.net.Uri getLaunchingUrl():44:44 -> i
+    1:3:void onCreate(android.os.Bundle):30:30 -> onCreate
+    4:11:void onCreate(android.os.Bundle):35:35 -> onCreate
+    12:16:void onCreate(android.os.Bundle):36:36 -> onCreate
+    17:20:void onCreate(android.os.Bundle):38:38 -> onCreate
+com_shanmusic.com.NowPlayingWidgetProvider -> com_shanmusic.com.NowPlayingWidgetProvider:
+# {"id":"sourceFile","fileName":"NowPlayingWidgetProvider.java"}
+    1:4:void <init>():7:7 -> <init>
+    1:4:void onEnabled(android.content.Context):17:17 -> onEnabled
+    1:6:void onUpdate(android.content.Context,android.appwidget.AppWidgetManager,int[]):10:10 -> onUpdate
+    7:13:void onUpdate(android.content.Context,android.appwidget.AppWidgetManager,int[]):11:11 -> onUpdate
+com_shanmusic.com.R$drawable -> N.a:
+    int ic_widget_pause -> a
+    int ic_widget_play -> b
+com_shanmusic.com.R$id -> N.b:
+    int widget_art -> a
+    int widget_artist -> b
+    int widget_play_pause -> c
+    int widget_root -> d
+    int widget_title -> e
+com_shanmusic.com.R$layout -> N.c:
+    int widget_now_playing -> a
+com_shanmusic.com.R$mipmap -> N.d:
+    int ic_launcher -> a
+com_shanmusic.com.R$string -> N.e:
+    int widget_empty_artist -> a
+    int widget_empty_title -> b
+com_shanmusic.com.WidgetBridgeActivity -> com_shanmusic.com.WidgetBridgeActivity:
+# {"id":"sourceFile","fileName":"WidgetBridgeActivity.java"}
+    1:4:void <init>():11:11 -> <init>
+    4:10:void handleIntent(android.content.Intent):30:30 -> a
+    11:20:void handleIntent(android.content.Intent):35:35 -> a
+    21:30:void handleIntent(android.content.Intent):36:36 -> a
+    31:40:void handleIntent(android.content.Intent):37:37 -> a
+    41:50:void handleIntent(android.content.Intent):38:38 -> a
+    51:70:void handleIntent(android.content.Intent):39:39 -> a
+    71:83:void handleIntent(android.content.Intent):41:41 -> a
+    84:86:void handleIntent(android.content.Intent):45:45 -> a
+    87:90:void handleIntent(android.content.Intent):46:46 -> a
+    3:10:java.lang.String safe(java.lang.String):50:50 -> b
+    1:3:void onCreate(android.os.Bundle):14:14 -> onCreate
+    4:10:void onCreate(android.os.Bundle):15:15 -> onCreate
+    11:14:void onCreate(android.os.Bundle):16:16 -> onCreate
+    1:3:void onNewIntent(android.content.Intent):21:21 -> onNewIntent
+    4:6:void onNewIntent(android.content.Intent):22:22 -> onNewIntent
+    7:10:void onNewIntent(android.content.Intent):23:23 -> onNewIntent
+com_shanmusic.com.WidgetControlReceiver -> com_shanmusic.com.WidgetControlReceiver:
+# {"id":"sourceFile","fileName":"WidgetControlReceiver.java"}
+    1:4:void <init>():8:8 -> <init>
+    3:9:void onReceive(android.content.Context,android.content.Intent):13:13 -> onReceive
+    10:22:void onReceive(android.content.Context,android.content.Intent):17:17 -> onReceive
+    23:29:void onReceive(android.content.Context,android.content.Intent):21:21 -> onReceive
+    30:40:void onReceive(android.content.Context,android.content.Intent):22:22 -> onReceive
+    41:43:void onReceive(android.content.Context,android.content.Intent):23:23 -> onReceive
+    44:47:void onReceive(android.content.Context,android.content.Intent):24:24 -> onReceive
+com_shanmusic.com.WidgetRenderer -> N.g:
+# {"id":"sourceFile","fileName":"WidgetRenderer.java"}
+    java.util.concurrent.ExecutorService IMAGE_EXECUTOR -> a
+    1:7:void <clinit>():21:21 -> <clinit>
+    1:7:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):102:102 -> a
+    8:18:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):106:106 -> a
+    19:23:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):107:107 -> a
+    24:28:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):108:108 -> a
+    29:33:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):109:109 -> a
+    34:37:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):110:110 -> a
+    38:42:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):112:112 -> a
+    43:45:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):110:110 -> a
+    46:49:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):113:113 -> a
+    50:53:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):115:115 -> a
+    54:56:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):113:113 -> a
+    57:65:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):116:116 -> a
+    66:74:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):117:117 -> a
+    75:78:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):118:118 -> a
+    1:7:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):38:38 -> b
+    8:10:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):39:39 -> b
+    11:21:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):41:41 -> b
+    22:30:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):44:44 -> b
+    2:14:android.graphics.Bitmap fetchBitmap(java.lang.String):125:125 -> c
+    15:17:android.graphics.Bitmap fetchBitmap(java.lang.String):126:126 -> c
+    18:21:android.graphics.Bitmap fetchBitmap(java.lang.String):127:127 -> c
+    22:24:android.graphics.Bitmap fetchBitmap(java.lang.String):128:128 -> c
+    25:27:android.graphics.Bitmap fetchBitmap(java.lang.String):129:129 -> c
+    28:35:android.graphics.Bitmap fetchBitmap(java.lang.String):130:130 -> c
+    36:39:android.graphics.Bitmap fetchBitmap(java.lang.String):143:143 -> c
+    40:49:android.graphics.Bitmap fetchBitmap(java.lang.String):133:133 -> c
+    50:55:android.graphics.Bitmap fetchBitmap(java.lang.String):143:143 -> c
+    56:59:android.graphics.Bitmap fetchBitmap(java.lang.String):138:138 -> c
+    60:80:android.graphics.Bitmap fetchBitmap(java.lang.String):143:143 -> c
+    81:83:android.graphics.Bitmap fetchBitmap(java.lang.String):145:145 -> c
+    84:87:android.graphics.Bitmap fetchBitmap(java.lang.String):143:143 -> c
+    1:18:void loadArtworkAsync(android.content.Context,android.appwidget.AppWidgetManager,int,java.lang.String,boolean,java.lang.String,java.lang.String):100:100 -> d
+    1:7:android.app.PendingIntent openAppIntent(android.content.Context):48:48 -> e
+    8:18:android.app.PendingIntent openAppIntent(android.content.Context):49:49 -> e
+    19:21:android.app.PendingIntent openAppIntent(android.content.Context):50:50 -> e
+    22:33:android.app.PendingIntent openAppIntent(android.content.Context):52:52 -> e
+    34:38:android.app.PendingIntent openAppIntent(android.content.Context):55:55 -> e
+    1:4:void updateAllWidgets(android.content.Context):26:26 -> f
+    5:11:void updateAllWidgets(android.content.Context):27:27 -> f
+    12:17:void updateAllWidgets(android.content.Context):28:28 -> f
+    18:21:void updateAllWidgets(android.content.Context):29:29 -> f
+    22:27:void updateAllWidgets(android.content.Context):32:32 -> f
+    28:34:void updateAllWidgets(android.content.Context):33:33 -> f
+    1:11:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):59:59 -> g
+    12:15:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):61:61 -> g
+    16:19:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):62:62 -> g
+    20:23:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):63:63 -> g
+    24:27:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):64:64 -> g
+    28:31:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):65:65 -> g
+    32:37:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):67:67 -> g
+    38:43:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):69:69 -> g
+    44:46:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):67:67 -> g
+    47:52:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):70:70 -> g
+    53:58:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):72:72 -> g
+    59:61:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):70:70 -> g
+    62:65:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):74:74 -> g
+    66:70:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):76:76 -> g
+    71:73:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):74:74 -> g
+    74:84:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):78:78 -> g
+    85:93:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):79:79 -> g
+    94:104:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):80:80 -> g
+    105:113:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):82:82 -> g
+    114:119:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):88:88 -> g
+    120:123:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):89:89 -> g
+    124:130:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):83:83 -> g
+    131:134:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):84:84 -> g
+com_shanmusic.com.WidgetRenderer$$ExternalSyntheticLambda0 -> N.f:
+# {"id":"sourceFile","fileName":"R8$$SyntheticClass"}
+# {"id":"com.android.tools.r8.synthesized"}
+    java.lang.String com_shanmusic.com.WidgetRenderer$$InternalSyntheticLambda$1$f77173b83c7057e77ccfc60eebfe809396432a75acd52054327d21ee8e25ba31$0.f$0 -> a
+      # {"id":"com.android.tools.r8.synthesized"}
+    android.content.Context com_shanmusic.com.WidgetRenderer$$InternalSyntheticLambda$1$f77173b83c7057e77ccfc60eebfe809396432a75acd52054327d21ee8e25ba31$0.f$1 -> b
+      # {"id":"com.android.tools.r8.synthesized"}
+    java.lang.String com_shanmusic.com.WidgetRenderer$$InternalSyntheticLambda$1$f77173b83c7057e77ccfc60eebfe809396432a75acd52054327d21ee8e25ba31$0.f$2 -> c
+      # {"id":"com.android.tools.r8.synthesized"}
+    java.lang.String com_shanmusic.com.WidgetRenderer$$InternalSyntheticLambda$1$f77173b83c7057e77ccfc60eebfe809396432a75acd52054327d21ee8e25ba31$0.f$3 -> d
+      # {"id":"com.android.tools.r8.synthesized"}
+    boolean com_shanmusic.com.WidgetRenderer$$InternalSyntheticLambda$1$f77173b83c7057e77ccfc60eebfe809396432a75acd52054327d21ee8e25ba31$0.f$4 -> e
+      # {"id":"com.android.tools.r8.synthesized"}
+    android.appwidget.AppWidgetManager com_shanmusic.com.WidgetRenderer$$InternalSyntheticLambda$1$f77173b83c7057e77ccfc60eebfe809396432a75acd52054327d21ee8e25ba31$0.f$5 -> f
+      # {"id":"com.android.tools.r8.synthesized"}
+    int com_shanmusic.com.WidgetRenderer$$InternalSyntheticLambda$1$f77173b83c7057e77ccfc60eebfe809396432a75acd52054327d21ee8e25ba31$0.f$6 -> g
+      # {"id":"com.android.tools.r8.synthesized"}
+    1:1:void N.WidgetRenderer$$ExternalSyntheticLambda0.<init>(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):0:0 -> <init>
+      # {"id":"com.android.tools.r8.synthesized"}
+    1:1:void N.WidgetRenderer$$ExternalSyntheticLambda0.run():0:0 -> run
+      # {"id":"com.android.tools.r8.synthesized"}
+com_shanmusic.com.WidgetStateStore -> N.h:
+# {"id":"sourceFile","fileName":"WidgetStateStore.java"}
+    1:13:java.lang.String getArtist(android.content.Context):36:36 -> a
+    1:13:java.lang.String getImage(android.content.Context):40:40 -> b
+    1:13:java.lang.String getTitle(android.content.Context):32:32 -> c
+    1:11:boolean hasTrack(android.content.Context):48:48 -> d
+    1:12:boolean isPlaying(android.content.Context):44:44 -> e
+    1:12:android.content.SharedPreferences prefs(android.content.Context):12:12 -> f
+    1:4:void save(android.content.Context,java.lang.String,java.lang.String,java.lang.String,boolean):21:21 -> g
+    5:8:void save(android.content.Context,java.lang.String,java.lang.String,java.lang.String,boolean):22:22 -> g
+    9:22:void save(android.content.Context,java.lang.String,java.lang.String,java.lang.String,boolean):23:23 -> g
+    23:31:void save(android.content.Context,java.lang.String,java.lang.String,java.lang.String,boolean):24:24 -> g
+    32:39:void save(android.content.Context,java.lang.String,java.lang.String,java.lang.String,boolean):25:25 -> g
+    40:45:void save(android.content.Context,java.lang.String,java.lang.String,java.lang.String,boolean):26:26 -> g
+    46:53:void save(android.content.Context,java.lang.String,java.lang.String,java.lang.String,boolean):27:27 -> g
+    54:57:void save(android.content.Context,java.lang.String,java.lang.String,java.lang.String,boolean):28:28 -> g
+kotlin.Lazy -> O.a:
 # {"id":"sourceFile","fileName":"Lazy.kt"}
     java.lang.Object getValue() -> getValue
-kotlin.LazyKt -> N.b:
-kotlin.LazyKt__LazyJVMKt -> N.c:
+kotlin.LazyKt -> O.b:
+kotlin.LazyKt__LazyJVMKt -> O.c:
 # {"id":"sourceFile","fileName":"LazyJVM.kt"}
     6:13:kotlin.Lazy lazy(kotlin.jvm.functions.Function0):21:21 -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LR/a;)LN/a;"}
-kotlin.LazyKt__LazyKt -> N.d:
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/a;)LO/a;"}
+kotlin.LazyKt__LazyKt -> O.d:
 # {"id":"sourceFile","fileName":"Lazy.kt"}
-kotlin.SynchronizedLazyImpl -> N.e:
+kotlin.SynchronizedLazyImpl -> O.e:
 # {"id":"sourceFile","fileName":"LazyJVM.kt"}
     kotlin.jvm.functions.Function0 initializer -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LR/a;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LS/a;"}
     java.lang.Object _value -> b
     java.lang.Object lock -> c
     1:3:void <init>(kotlin.jvm.functions.Function0,java.lang.Object):55:57 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LR/a;Ljava/lang/Object;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/a;Ljava/lang/Object;)V"}
     4:4:void <init>(kotlin.jvm.functions.Function0,java.lang.Object):59:59 -> <init>
     5:5:void <init>(kotlin.jvm.functions.Function0,java.lang.Object,int,kotlin.jvm.internal.DefaultConstructorMarker):55:55 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LR/a;Ljava/lang/Object;ILS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/a;Ljava/lang/Object;ILT/b;)V"}
     1:10:boolean isInitialized():82:82 -> a
     1:2:java.lang.Object getValue():63:63 -> getValue
     3:7:java.lang.Object getValue():64:64 -> getValue
@@ -24653,26 +24810,26 @@ kotlin.SynchronizedLazyImpl -> N.e:
     28:29:java.lang.Object getValue():76:76 -> getValue
     30:34:java.lang.Object getValue():69:69 -> getValue
     1:18:java.lang.String toString():84:84 -> toString
-kotlin.UNINITIALIZED_VALUE -> N.f:
+kotlin.UNINITIALIZED_VALUE -> O.f:
 # {"id":"sourceFile","fileName":"Lazy.kt"}
     kotlin.UNINITIALIZED_VALUE INSTANCE -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LN/f;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LO/f;"}
     1:8:void <clinit>():0:0 -> <clinit>
     1:4:void <init>():71:71 -> <init>
-kotlin.Unit -> N.g:
+kotlin.Unit -> O.g:
 # {"id":"sourceFile","fileName":"Unit.kt"}
     kotlin.Unit INSTANCE -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LN/g;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LO/g;"}
     1:8:void <clinit>():0:0 -> <clinit>
     1:4:void <init>():22:22 -> <init>
     1:3:java.lang.String toString():23:23 -> toString
-kotlin.collections.ArraysKt -> O.a:
-kotlin.collections.ArraysKt__ArraysJVMKt -> O.b:
+kotlin.collections.ArraysKt -> P.a:
+kotlin.collections.ArraysKt__ArraysJVMKt -> P.b:
 # {"id":"sourceFile","fileName":"ArraysJVM.kt"}
     4:39:void copyOfRangeToIndexCheck(int,int):49:49 -> a
-kotlin.collections.ArraysKt__ArraysKt -> O.c:
+kotlin.collections.ArraysKt__ArraysKt -> P.c:
 # {"id":"sourceFile","fileName":"Arrays.kt"}
-kotlin.collections.ArraysKt___ArraysJvmKt -> O.d:
+kotlin.collections.ArraysKt___ArraysJvmKt -> P.d:
 # {"id":"sourceFile","fileName":"_ArraysJvm.kt"}
     12:15:int[] copyInto(int[],int[],int,int,int):1316:1316 -> b
     12:15:long[] copyInto(long[],long[],int,int,int):1339:1339 -> c
@@ -24681,31 +24838,31 @@ kotlin.collections.ArraysKt___ArraysJvmKt -> O.d:
     16:21:java.lang.Object[] copyInto$default(java.lang.Object[],java.lang.Object[],int,int,int,int,java.lang.Object):1246:1246 -> f
     6:9:java.lang.Object[] copyOfRange(java.lang.Object[],int,int):1835:1835 -> g
     10:19:java.lang.Object[] copyOfRange(java.lang.Object[],int,int):1836:1836 -> g
-kotlin.collections.ArraysKt___ArraysKt -> O.e:
+kotlin.collections.ArraysKt___ArraysKt -> P.e:
 # {"id":"sourceFile","fileName":"_Arrays.kt"}
-kotlin.collections.CollectionsKt -> O.f:
-kotlin.collections.CollectionsKt__CollectionsJVMKt -> O.g:
+kotlin.collections.CollectionsKt -> P.f:
+kotlin.collections.CollectionsKt__CollectionsJVMKt -> P.g:
 # {"id":"sourceFile","fileName":"CollectionsJVM.kt"}
     1:10:java.util.List listOf(java.lang.Object):20:20 -> a
-kotlin.collections.CollectionsKt__CollectionsKt -> O.h:
+kotlin.collections.CollectionsKt__CollectionsKt -> P.h:
 # {"id":"sourceFile","fileName":"Collections.kt"}
     1:3:java.util.List emptyList():71:71 -> b
     1:8:void throwIndexOverflow():465:465 -> c
-kotlin.collections.CollectionsKt__IterablesKt -> O.i:
+kotlin.collections.CollectionsKt__IterablesKt -> P.i:
 # {"id":"sourceFile","fileName":"Iterables.kt"}
-kotlin.collections.CollectionsKt__IteratorsJVMKt -> O.j:
+kotlin.collections.CollectionsKt__IteratorsJVMKt -> P.j:
 # {"id":"sourceFile","fileName":"IteratorsJVM.kt"}
-kotlin.collections.CollectionsKt__IteratorsKt -> O.k:
+kotlin.collections.CollectionsKt__IteratorsKt -> P.k:
 # {"id":"sourceFile","fileName":"Iterators.kt"}
-kotlin.collections.CollectionsKt__MutableCollectionsJVMKt -> O.l:
+kotlin.collections.CollectionsKt__MutableCollectionsJVMKt -> P.l:
 # {"id":"sourceFile","fileName":"MutableCollectionsJVM.kt"}
-kotlin.collections.CollectionsKt__MutableCollectionsKt -> O.m:
+kotlin.collections.CollectionsKt__MutableCollectionsKt -> P.m:
 # {"id":"sourceFile","fileName":"MutableCollections.kt"}
-kotlin.collections.CollectionsKt__ReversedViewsKt -> O.n:
+kotlin.collections.CollectionsKt__ReversedViewsKt -> P.n:
 # {"id":"sourceFile","fileName":"ReversedViews.kt"}
-kotlin.collections.CollectionsKt___CollectionsJvmKt -> O.o:
+kotlin.collections.CollectionsKt___CollectionsJvmKt -> P.o:
 # {"id":"sourceFile","fileName":"_CollectionsJvm.kt"}
-kotlin.collections.CollectionsKt___CollectionsKt -> O.p:
+kotlin.collections.CollectionsKt___CollectionsKt -> P.p:
 # {"id":"sourceFile","fileName":"_Collections.kt"}
     6:9:boolean contains(java.lang.Iterable,java.lang.Object):74:74 -> d
     10:16:boolean contains(java.lang.Iterable,java.lang.Object):75:75 -> d
@@ -24720,10 +24877,10 @@ kotlin.collections.CollectionsKt___CollectionsKt -> O.p:
     17:33:int indexOf(java.lang.Iterable,java.lang.Object):315:315 -> f
     34:36:int indexOf(java.lang.Iterable,java.lang.Object):316:316 -> f
     37:48:int indexOf(java.lang.Iterable,java.lang.Object):317:317 -> f
-kotlin.collections.EmptyIterator -> O.q:
+kotlin.collections.EmptyIterator -> P.q:
 # {"id":"sourceFile","fileName":"Collections.kt"}
     kotlin.collections.EmptyIterator INSTANCE -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LO/q;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LP/q;"}
     1:8:void <clinit>():0:0 -> <clinit>
     1:4:void <init>():15:15 -> <init>
     1:6:java.lang.Void next():20:20 -> a
@@ -24737,13 +24894,13 @@ kotlin.collections.EmptyIterator -> O.q:
     1:2:int previousIndex():19:19 -> previousIndex
     1:8:void remove():0:0 -> remove
     1:8:void set(java.lang.Object):0:0 -> set
-kotlin.collections.EmptyList -> O.r:
+kotlin.collections.EmptyList -> P.r:
 # {"id":"sourceFile","fileName":"Collections.kt"}
     kotlin.collections.EmptyList INSTANCE -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LO/r;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LP/r;"}
     1:8:void <clinit>():0:0 -> <clinit>
     1:4:void <init>():24:24 -> <init>
-    1:1:boolean O.EmptyList.contains(java.lang.Void):0:0 -> a
+    1:1:boolean P.EmptyList.contains(java.lang.Void):0:0 -> a
       # {"id":"com.android.tools.r8.synthesized"}
     1:1:void add(int,java.lang.Object):0:0 -> add
     2:2:boolean add(java.lang.Object):0:0 -> add
@@ -24754,9 +24911,9 @@ kotlin.collections.EmptyList -> O.r:
     1:8:void clear():0:0 -> clear
     1:13:boolean contains(java.lang.Object):24:24 -> contains
     6:10:boolean containsAll(java.util.Collection):34:34 -> containsAll
-    1:1:int O.EmptyList.indexOf(java.lang.Void):0:0 -> d
+    1:1:int P.EmptyList.indexOf(java.lang.Void):0:0 -> d
       # {"id":"com.android.tools.r8.synthesized"}
-    1:1:int O.EmptyList.lastIndexOf(java.lang.Void):0:0 -> e
+    1:1:int P.EmptyList.lastIndexOf(java.lang.Void):0:0 -> e
       # {"id":"com.android.tools.r8.synthesized"}
     1:16:boolean equals(java.lang.Object):27:27 -> equals
     1:5:java.lang.Object get(int):24:24 -> get
@@ -24778,31 +24935,31 @@ kotlin.collections.EmptyList -> O.r:
     1:1:java.lang.Object[] toArray():0:0 -> toArray
     2:2:java.lang.Object[] toArray(java.lang.Object[]):0:0 -> toArray
     1:3:java.lang.String toString():29:29 -> toString
-kotlin.collections.IntIterator -> O.s:
+kotlin.collections.IntIterator -> P.s:
 # {"id":"sourceFile","fileName":"PrimitiveIterators.kt"}
     1:4:void <init>():35:35 -> <init>
     int nextInt() -> a
     1:9:java.lang.Object next():35:35 -> next
     1:8:void remove():0:0 -> remove
-kotlin.coroutines.CoroutineContext -> P.a:
+kotlin.coroutines.CoroutineContext -> Q.a:
 # {"id":"sourceFile","fileName":"CoroutineContext.kt"}
     kotlin.coroutines.CoroutineContext$Element get(kotlin.coroutines.CoroutineContext$Key) -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LP/a$b;)LP/a$a;"}
-kotlin.coroutines.CoroutineContext$Element -> P.a$a:
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LQ/a$b;)LQ/a$a;"}
+kotlin.coroutines.CoroutineContext$Element -> Q.a$a:
 # {"id":"sourceFile","fileName":"CoroutineContext.kt"}
-kotlin.coroutines.CoroutineContext$Key -> P.a$b:
+kotlin.coroutines.CoroutineContext$Key -> Q.a$b:
 # {"id":"sourceFile","fileName":"CoroutineContext.kt"}
-kotlin.internal.ProgressionUtilKt -> Q.a:
+kotlin.internal.ProgressionUtilKt -> R.a:
 # {"id":"sourceFile","fileName":"progressionUtil.kt"}
     1:14:int differenceModulo(int,int,int):21:21 -> a
     6:17:int getProgressionLastElement(int,int,int):46:46 -> b
     18:23:int getProgressionLastElement(int,int,int):47:47 -> b
     24:31:int getProgressionLastElement(int,int,int):48:48 -> b
     1:6:int mod(int,int):10:10 -> c
-kotlin.jvm.functions.Function0 -> R.a:
+kotlin.jvm.functions.Function0 -> S.a:
 # {"id":"sourceFile","fileName":"Functions.kt"}
     java.lang.Object invoke() -> a
-kotlin.jvm.internal.CollectionToArray -> S.a:
+kotlin.jvm.internal.CollectionToArray -> T.a:
 # {"id":"sourceFile","fileName":"CollectionToArray.kt"}
     java.lang.Object[] EMPTY -> a
     2:3:void <clinit>():127:127 -> <clinit>
@@ -24835,11 +24992,11 @@ kotlin.jvm.internal.CollectionToArray -> S.a:
     112:119:java.lang.Object[] toArray(java.util.Collection,java.lang.Object[]):126:126 -> b
     120:122:java.lang.Object[] toArray(java.util.Collection,java.lang.Object[]):43:43 -> b
     123:132:java.lang.Object[] toArray(java.util.Collection,java.lang.Object[]):46:46 -> b
-kotlin.jvm.internal.DefaultConstructorMarker -> S.b:
+kotlin.jvm.internal.DefaultConstructorMarker -> T.b:
 # {"id":"sourceFile","fileName":"DefaultConstructorMarker.java"}
-kotlin.jvm.internal.FunctionBase -> S.c:
+kotlin.jvm.internal.FunctionBase -> T.c:
 # {"id":"sourceFile","fileName":"FunctionBase.kt"}
-kotlin.jvm.internal.Intrinsics -> S.d:
+kotlin.jvm.internal.Intrinsics -> T.d:
 # {"id":"sourceFile","fileName":"Intrinsics.java"}
     9:13:boolean areEqual(java.lang.Object,java.lang.Object):169:169 -> a
     3:6:void checkNotNull(java.lang.Object):25:25 -> b
@@ -24863,38 +25020,38 @@ kotlin.jvm.internal.Intrinsics -> S.d:
     1:12:void throwJavaNpe():45:45 -> i
     1:12:void throwJavaNpe(java.lang.String):50:50 -> j
     1:16:void throwParameterIsNullNPE(java.lang.String):140:140 -> k
-kotlin.jvm.internal.Lambda -> S.e:
+kotlin.jvm.internal.Lambda -> T.e:
 # {"id":"sourceFile","fileName":"Lambda.kt"}
     int arity -> a
     1:6:void <init>(int):10:10 -> <init>
     1:10:java.lang.String toString():11:11 -> toString
-kotlin.jvm.internal.Reflection -> S.f:
+kotlin.jvm.internal.Reflection -> T.f:
 # {"id":"sourceFile","fileName":"Reflection.java"}
     kotlin.jvm.internal.ReflectionFactory factory -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LS/g;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LT/g;"}
     kotlin.reflect.KClass[] EMPTY_K_CLASS_ARRAY -> b
-      # {"id":"com.android.tools.r8.residualsignature","signature":"[LU/a;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"[LV/a;"}
     2:7:void <clinit>():26:26 -> <clinit>
     8:19:void <clinit>():27:27 -> <clinit>
     20:27:void <clinit>():34:34 -> <clinit>
     28:32:void <clinit>():39:39 -> <clinit>
     1:7:java.lang.String renderLambdaToString(kotlin.jvm.internal.Lambda):79:79 -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/e;)Ljava/lang/String;"}
-kotlin.jvm.internal.ReflectionFactory -> S.g:
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/e;)Ljava/lang/String;"}
+kotlin.jvm.internal.ReflectionFactory -> T.g:
 # {"id":"sourceFile","fileName":"ReflectionFactory.java"}
     1:4:void <init>():14:14 -> <init>
     1:15:java.lang.String renderLambdaToString(kotlin.jvm.internal.FunctionBase):44:44 -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/c;)Ljava/lang/String;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/c;)Ljava/lang/String;"}
     16:30:java.lang.String renderLambdaToString(kotlin.jvm.internal.FunctionBase):45:45 -> a
     1:5:java.lang.String renderLambdaToString(kotlin.jvm.internal.Lambda):39:39 -> b
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/e;)Ljava/lang/String;"}
-kotlin.ranges.IntProgression -> T.a:
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/e;)Ljava/lang/String;"}
+kotlin.ranges.IntProgression -> U.a:
 # {"id":"sourceFile","fileName":"Progressions.kt"}
     int first -> a
     int last -> b
     int step -> c
     kotlin.ranges.IntProgression$Companion Companion -> d
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LT/a$a;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LU/a$a;"}
     1:9:void <clinit>():0:0 -> <clinit>
     1:9:void <init>(int,int,int):77:77 -> <init>
     10:11:void <init>(int,int,int):92:92 -> <init>
@@ -24906,21 +25063,21 @@ kotlin.ranges.IntProgression -> T.a:
     1:3:int getLast():97:97 -> b
     1:3:int getStep():102:102 -> c
     1:12:kotlin.collections.IntIterator iterator():104:104 -> d
-      # {"id":"com.android.tools.r8.residualsignature","signature":"()LO/s;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"()LP/s;"}
     1:19:boolean equals(java.lang.Object):115:115 -> equals
     20:43:boolean equals(java.lang.Object):116:116 -> equals
     1:21:int hashCode():119:119 -> hashCode
     1:22:boolean isEmpty():112:112 -> isEmpty
     1:5:java.util.Iterator iterator():77:77 -> iterator
     1:66:java.lang.String toString():121:121 -> toString
-kotlin.ranges.IntProgression$Companion -> T.a$a:
+kotlin.ranges.IntProgression$Companion -> U.a$a:
 # {"id":"sourceFile","fileName":"Progressions.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():123:123 -> <init>
     1:6:kotlin.ranges.IntProgression fromClosedRange(int,int,int):132:132 -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(III)LT/a;"}
-kotlin.ranges.IntProgressionIterator -> T.b:
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(III)LU/a;"}
+kotlin.ranges.IntProgressionIterator -> U.b:
 # {"id":"sourceFile","fileName":"ProgressionIterators.kt"}
     int step -> a
     int finalElement -> b
@@ -24937,12 +25094,12 @@ kotlin.ranges.IntProgressionIterator -> T.b:
     15:20:int nextInt():48:48 -> a
     21:26:int nextInt():52:52 -> a
     1:3:boolean hasNext():43:43 -> hasNext
-kotlin.ranges.IntRange -> T.c:
+kotlin.ranges.IntRange -> U.c:
 # {"id":"sourceFile","fileName":"PrimitiveRanges.kt"}
     kotlin.ranges.IntRange$Companion Companion -> e
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LT/c$a;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LU/c$a;"}
     kotlin.ranges.IntRange EMPTY -> f
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LT/c;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LU/c;"}
     9:18:void <clinit>():86:86 -> <clinit>
     2:5:void <init>(int,int):54:54 -> <init>
     1:19:boolean equals(java.lang.Object):76:76 -> equals
@@ -24950,47 +25107,47 @@ kotlin.ranges.IntRange -> T.c:
     1:20:int hashCode():80:80 -> hashCode
     1:14:boolean isEmpty():73:73 -> isEmpty
     1:29:java.lang.String toString():82:82 -> toString
-kotlin.ranges.IntRange$Companion -> T.c$a:
+kotlin.ranges.IntRange$Companion -> U.c$a:
 # {"id":"sourceFile","fileName":"PrimitiveRanges.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LS/b;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LT/b;)V"}
     2:2:void <init>():84:84 -> <init>
-kotlin.ranges.RangesKt -> T.d:
-kotlin.ranges.RangesKt__RangesKt -> T.e:
+kotlin.ranges.RangesKt -> U.d:
+kotlin.ranges.RangesKt__RangesKt -> U.e:
 # {"id":"sourceFile","fileName":"Ranges.kt"}
-kotlin.ranges.RangesKt___RangesKt -> T.f:
+kotlin.ranges.RangesKt___RangesKt -> U.f:
 # {"id":"sourceFile","fileName":"_Ranges.kt"}
     1:4:int coerceAtLeast(int,int):1244:1244 -> a
     1:4:int coerceAtMost(int,int):1321:1321 -> b
     1:8:kotlin.ranges.IntProgression downTo(int,int):828:828 -> c
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(II)LT/a;"}
-kotlin.reflect.KClass -> U.a:
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(II)LU/a;"}
+kotlin.reflect.KClass -> V.a:
 # {"id":"sourceFile","fileName":"KClass.kt"}
-kotlin.text.CharsKt__CharJVMKt -> V.a:
+kotlin.text.CharsKt__CharJVMKt -> W.a:
 # {"id":"sourceFile","fileName":"CharJVM.kt"}
-kotlin.text.CharsKt__CharKt -> V.b:
+kotlin.text.CharsKt__CharKt -> W.b:
 # {"id":"sourceFile","fileName":"Char.kt"}
     9:12:boolean equals(char,char,boolean):237:237 -> a
     13:18:boolean equals(char,char,boolean):238:238 -> a
     19:31:boolean equals(char,char,boolean):240:240 -> a
-kotlin.text.StringsKt -> V.c:
-kotlin.text.StringsKt__AppendableKt -> V.d:
+kotlin.text.StringsKt -> W.c:
+kotlin.text.StringsKt__AppendableKt -> W.d:
 # {"id":"sourceFile","fileName":"Appendable.kt"}
-kotlin.text.StringsKt__IndentKt -> V.e:
+kotlin.text.StringsKt__IndentKt -> W.e:
 # {"id":"sourceFile","fileName":"Indent.kt"}
-kotlin.text.StringsKt__RegexExtensionsJVMKt -> V.f:
+kotlin.text.StringsKt__RegexExtensionsJVMKt -> W.f:
 # {"id":"sourceFile","fileName":"RegexExtensionsJVM.kt"}
-kotlin.text.StringsKt__RegexExtensionsKt -> V.g:
+kotlin.text.StringsKt__RegexExtensionsKt -> W.g:
 # {"id":"sourceFile","fileName":"RegexExtensions.kt"}
-kotlin.text.StringsKt__StringBuilderJVMKt -> V.h:
+kotlin.text.StringsKt__StringBuilderJVMKt -> W.h:
 # {"id":"sourceFile","fileName":"StringBuilderJVM.kt"}
-kotlin.text.StringsKt__StringBuilderKt -> V.i:
+kotlin.text.StringsKt__StringBuilderKt -> W.i:
 # {"id":"sourceFile","fileName":"StringBuilder.kt"}
-kotlin.text.StringsKt__StringNumberConversionsJVMKt -> V.j:
+kotlin.text.StringsKt__StringNumberConversionsJVMKt -> W.j:
 # {"id":"sourceFile","fileName":"StringNumberConversionsJVM.kt"}
-kotlin.text.StringsKt__StringNumberConversionsKt -> V.k:
+kotlin.text.StringsKt__StringNumberConversionsKt -> W.k:
 # {"id":"sourceFile","fileName":"StringNumberConversions.kt"}
-kotlin.text.StringsKt__StringsJVMKt -> V.l:
+kotlin.text.StringsKt__StringsJVMKt -> W.l:
 # {"id":"sourceFile","fileName":"StringsJVM.kt"}
     13:23:boolean regionMatches(java.lang.String,int,java.lang.String,int,int,boolean):654:654 -> a
     24:28:boolean regionMatches(java.lang.String,int,java.lang.String,int,int,boolean):656:656 -> a
@@ -25005,7 +25162,7 @@ kotlin.text.StringsKt__StringsJVMKt -> V.l:
     71:87:java.lang.String replace(java.lang.String,java.lang.String,java.lang.String,boolean):105:105 -> b
     88:93:java.lang.String replace(java.lang.String,java.lang.String,java.lang.String,boolean):95:95 -> b
     6:10:java.lang.String replace$default(java.lang.String,java.lang.String,java.lang.String,boolean,int,java.lang.Object):86:86 -> c
-kotlin.text.StringsKt__StringsKt -> V.m:
+kotlin.text.StringsKt__StringsKt -> W.m:
 # {"id":"sourceFile","fileName":"Strings.kt"}
     6:12:int getLastIndex(java.lang.CharSequence):379:379 -> d
     13:17:int indexOf(java.lang.CharSequence,java.lang.String,int,boolean):1102:1102 -> e
@@ -25021,29 +25178,29 @@ kotlin.text.StringsKt__StringsKt -> V.m:
     15:19:int indexOf$StringsKt__StringsKt$default(java.lang.CharSequence,java.lang.CharSequence,int,int,boolean,boolean,int,java.lang.Object):972:972 -> g
     16:35:boolean regionMatchesImpl(java.lang.CharSequence,int,java.lang.CharSequence,int,int,boolean):821:821 -> h
     36:58:boolean regionMatchesImpl(java.lang.CharSequence,int,java.lang.CharSequence,int,int,boolean):826:826 -> h
-kotlin.text.StringsKt___StringsJvmKt -> V.n:
+kotlin.text.StringsKt___StringsJvmKt -> W.n:
 # {"id":"sourceFile","fileName":"_StringsJvm.kt"}
-kotlin.text.StringsKt___StringsKt -> V.o:
+kotlin.text.StringsKt___StringsKt -> W.o:
 # {"id":"sourceFile","fileName":"_Strings.kt"}
-kotlinx.coroutines.Job -> W.a:
+kotlinx.coroutines.Job -> X.a:
 # {"id":"sourceFile","fileName":"Job.kt"}
     kotlinx.coroutines.Job$Key Key -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LW/a$a;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LX/a$a;"}
     1:5:void <clinit>():0:0 -> <clinit>
-kotlinx.coroutines.Job$Key -> W.a$a:
+kotlinx.coroutines.Job$Key -> X.a$a:
 # {"id":"sourceFile","fileName":"Job.kt"}
     kotlinx.coroutines.Job$Key $$INSTANCE -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"LW/a$a;"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"LX/a$a;"}
     1:8:void <clinit>():0:0 -> <clinit>
     1:4:void <init>():116:116 -> <init>
-kotlinx.coroutines.JobKt -> W.b:
+kotlinx.coroutines.JobKt -> X.b:
     1:4:void cancel(kotlin.coroutines.CoroutineContext,java.util.concurrent.CancellationException):1:1 -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LP/a;Ljava/util/concurrent/CancellationException;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LQ/a;Ljava/util/concurrent/CancellationException;)V"}
     1:4:void cancel$default(kotlin.coroutines.CoroutineContext,java.util.concurrent.CancellationException,int,java.lang.Object):1:1 -> b
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LP/a;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V"}
-kotlinx.coroutines.JobKt__JobKt -> W.c:
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LQ/a;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V"}
+kotlinx.coroutines.JobKt__JobKt -> X.c:
 # {"id":"sourceFile","fileName":"Job.kt"}
     1:6:void cancel(kotlin.coroutines.CoroutineContext,java.util.concurrent.CancellationException):564:564 -> a
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LP/a;Ljava/util/concurrent/CancellationException;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LQ/a;Ljava/util/concurrent/CancellationException;)V"}
     6:9:void cancel$default(kotlin.coroutines.CoroutineContext,java.util.concurrent.CancellationException,int,java.lang.Object):563:563 -> b
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(LP/a;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(LQ/a;Ljava/util/concurrent/CancellationException;ILjava/lang/Object;)V"}

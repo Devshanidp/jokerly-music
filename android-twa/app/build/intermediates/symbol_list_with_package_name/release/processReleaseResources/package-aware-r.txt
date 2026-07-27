@@ -641,6 +641,8 @@ drawable ic_call_decline
 drawable ic_call_decline_low
 drawable ic_notification_icon
 drawable ic_site_settings
+drawable ic_widget_pause
+drawable ic_widget_play
 drawable notification_action_background
 drawable notification_bg
 drawable notification_bg_low
@@ -659,6 +661,8 @@ drawable splash
 drawable test_level_drawable
 drawable tooltip_frame_dark
 drawable tooltip_frame_light
+drawable widget_background
+drawable widget_play_button_bg
 id ALT
 id CTRL
 id FUNCTION
@@ -842,6 +846,11 @@ id view_tree_on_back_pressed_dispatcher_owner
 id view_tree_saved_state_registry_owner
 id view_tree_view_model_store_owner
 id visible_removing_fragment_view_tag
+id widget_art
+id widget_artist
+id widget_play_pause
+id widget_root
+id widget_title
 id withText
 id wrap_content
 integer abc_config_activityDefaultDur
@@ -900,6 +909,7 @@ layout select_dialog_item_material
 layout select_dialog_multichoice_material
 layout select_dialog_singlechoice_material
 layout support_simple_spinner_dropdown_item
+layout widget_now_playing
 mipmap ic_launcher
 mipmap ic_maskable
 raw web_app_manifest
@@ -960,6 +970,12 @@ string search_menu_title
 string status_bar_notification_info_overflow
 string update_chrome_toast
 string webManifestUrl
+string widget_art_desc
+string widget_description
+string widget_empty_artist
+string widget_empty_title
+string widget_name
+string widget_play_desc
 style AlertDialog_AppCompat
 style AlertDialog_AppCompat_Light
 style Animation_AppCompat_Dialog
@@ -1359,4 +1375,5 @@ styleable ViewBackgroundHelper android_background backgroundTint backgroundTintM
 styleable ViewStubCompat android_id android_layout android_inflatedId
 xml filepaths
 xml image_share_filepaths
+xml now_playing_widget_info
 xml shortcuts
