@@ -28,6 +28,24 @@ interface ShuffleBody {
 
 type PlayerBody = PlayBody | RepeatBody | ShuffleBody;
 
+const MAX_PLAY_URIS = 100;
+
+function slicePlayUris(uris: string[], offsetPosition = 0) {
+  if (uris.length <= MAX_PLAY_URIS) {
+    return { uris, offset: { position: Math.max(0, offsetPosition) } };
+  }
+
+  let start = Math.max(0, offsetPosition - Math.floor(MAX_PLAY_URIS / 2));
+  if (start + MAX_PLAY_URIS > uris.length) {
+    start = Math.max(0, uris.length - MAX_PLAY_URIS);
+  }
+
+  return {
+    uris: uris.slice(start, start + MAX_PLAY_URIS),
+    offset: { position: Math.max(0, offsetPosition - start) },
+  };
+}
+
 async function catalogPlayerRequest(path: string, accessToken: string, init: RequestInit) {
   const res = await fetch(`${CATALOG_API_V1}${path}`, {
     ...init,
@@ -67,14 +85,17 @@ export async function POST(req: NextRequest) {
       if (!Array.isArray(playBody.uris) || playBody.uris.length === 0) {
         return NextResponse.json({ error: "Track uris required" }, { status: 400 });
       }
+      const offsetPosition =
+        typeof playBody.offset?.position === "number" ? playBody.offset.position : 0;
+      const sliced = slicePlayUris(playBody.uris, offsetPosition);
       return catalogPlayerRequest(
         `/me/player/play?device_id=${encodeURIComponent(playBody.deviceId)}`,
         session.accessToken,
         {
           method: "PUT",
           body: JSON.stringify({
-            uris: playBody.uris,
-            offset: playBody.offset,
+            uris: sliced.uris,
+            offset: sliced.offset,
             position_ms: playBody.positionMs ?? 0,
           }),
         }

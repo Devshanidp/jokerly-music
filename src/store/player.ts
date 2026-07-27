@@ -426,6 +426,32 @@ async function playerApi(action: "play" | "repeat" | "shuffle", body: Record<str
   }
 }
 
+/** Catalog play endpoint accepts at most 100 track URIs per request. */
+const MAX_CATALOG_PLAY_URIS = 100;
+
+function buildCatalogPlayRequest(queue: PlayableTrack[], index: number) {
+  const uriEntries = queue
+    .map((track, queueIndex) => ({ uri: track.uri, queueIndex }))
+    .filter((item): item is { uri: string; queueIndex: number } => Boolean(item.uri));
+
+  const targetPosition = uriEntries.findIndex((item) => item.queueIndex === index);
+  if (targetPosition === -1) return null;
+
+  let uris = uriEntries.map((item) => item.uri);
+  let offsetPosition = targetPosition;
+
+  if (uris.length > MAX_CATALOG_PLAY_URIS) {
+    let start = Math.max(0, targetPosition - Math.floor(MAX_CATALOG_PLAY_URIS / 2));
+    if (start + MAX_CATALOG_PLAY_URIS > uris.length) {
+      start = Math.max(0, uris.length - MAX_CATALOG_PLAY_URIS);
+    }
+    uris = uris.slice(start, start + MAX_CATALOG_PLAY_URIS);
+    offsetPosition = targetPosition - start;
+  }
+
+  return { uris, offset: { position: offsetPosition } };
+}
+
 export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   currentTrack: null,
   queue: [],
@@ -785,12 +811,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       nextTrack.uri === currentTrack?.uri;
     const startPositionMs = resumeSameTrack ? Math.max(0, get().progressMs || 0) : 0;
 
-    const uriEntries = queue
-      .map((track, queueIndex) => ({ uri: track.uri, queueIndex }))
-      .filter((item): item is { uri: string; queueIndex: number } => Boolean(item.uri));
-
-    const targetPosition = uriEntries.findIndex((item) => item.queueIndex === index);
-    if (targetPosition === -1) {
+    const playRequest = buildCatalogPlayRequest(queue, index);
+    if (!playRequest) {
       set({
         pendingIndex: null,
         isTransitioning: false,
@@ -842,8 +864,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     try {
       await playerApi("play", {
         deviceId,
-        uris: uriEntries.map((item) => item.uri),
-        offset: { position: targetPosition },
+        uris: playRequest.uris,
+        offset: playRequest.offset,
         positionMs: startPositionMs,
       });
     } catch (e) {
@@ -1074,15 +1096,11 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     // togglePlay often no-ops with null SDK context — force Web API play
     try {
-      const uriEntries = queue
-        .map((t, i) => ({ uri: t.uri, queueIndex: i }))
-        .filter((item): item is { uri: string; queueIndex: number } => Boolean(item.uri));
-      const targetPosition = uriEntries.findIndex((item) => item.queueIndex === queueIndex);
-
+      const playRequest = buildCatalogPlayRequest(queue, queueIndex);
       await playerApi("play", {
         deviceId,
-        uris: uriEntries.length > 0 ? uriEntries.map((item) => item.uri) : [track.uri],
-        ...(targetPosition >= 0 ? { offset: { position: targetPosition } } : {}),
+        uris: playRequest?.uris ?? [track.uri],
+        ...(playRequest ? { offset: playRequest.offset } : {}),
         positionMs,
       });
 
