@@ -56,6 +56,7 @@ interface PlayerState {
   queueSheetTab: "queue" | "similar";
   sleepTimerEndsAt: number | null;
   isOfflinePlayback: boolean;
+  radioMode: boolean;
 
   initializePlayer: (accessToken: string) => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
@@ -64,6 +65,8 @@ interface PlayerState {
   moveToNext: (index: number) => void;
   setSleepTimer: (minutes: number | null) => void;
   setQueueAndPlay: (tracks: PlayableTrack[], index: number) => Promise<void>;
+  appendToQueue: (tracks: PlayableTrack[]) => number;
+  setRadioMode: (enabled: boolean) => void;
   updateTrackUri: (index: number, uri: string | null, imageUrl?: string | null, durationMs?: number) => void;
   playIndex: (index: number) => void;
   pausePlayback: () => Promise<void>;
@@ -474,6 +477,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   queueSheetTab: "queue",
   sleepTimerEndsAt: null,
   isOfflinePlayback: false,
+  radioMode: false,
 
   initializePlayer: async (accessToken) => {
     set({ accessToken, sdkError: null });
@@ -712,7 +716,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
   setQueueAndPlay: async (tracks, index) => {
     requestAudioFocus(); // steal iOS audio focus synchronously within the user gesture
-    set({ queue: tracks, isPlayerExpanded: true, isQueueOpen: false });
+    set({ queue: tracks, isPlayerExpanded: true, isQueueOpen: false, radioMode: false });
     saveListeningContext({
       queue: tracks,
       queueIndex: index,
@@ -720,6 +724,26 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       durationMs: tracks[index]?.durationMs ?? 0,
     });
     get().playIndex(index);
+  },
+
+  appendToQueue: (tracks) => {
+    const { queue } = get();
+    const seen = new Set(
+      queue.map((track) => track.uri || `${track.name}::${track.artist}`).filter(Boolean)
+    );
+    const next = tracks.filter((track) => {
+      const key = track.uri || `${track.name}::${track.artist}`;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (next.length === 0) return 0;
+    set({ queue: [...queue, ...next] });
+    return next.length;
+  },
+
+  setRadioMode: (enabled) => {
+    set({ radioMode: enabled });
   },
 
   updateTrackUri: (index, uri, imageUrl, durationMs) => {
@@ -1158,6 +1182,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       isPlaying: false,
       isTransitioning: false,
       isOfflinePlayback: false,
+      radioMode: false,
       pendingIndex: null,
       queue: [],
       queueIndex: -1,
@@ -1307,7 +1332,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     isQueueOpen: false,
     queueSheetTab: "queue",
     sleepTimerEndsAt: null,
-  isOfflinePlayback: false,
+    isOfflinePlayback: false,
+    radioMode: false,
     endedToken: 0,
     isPlayerReady: false,
     sdkError: null,
@@ -1316,6 +1342,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     accessToken: null,
     initializePlayer: state.initializePlayer,
     setQueueAndPlay: state.setQueueAndPlay,
+    appendToQueue: state.appendToQueue,
+    setRadioMode: state.setRadioMode,
     updateTrackUri: state.updateTrackUri,
     playIndex: state.playIndex,
     pausePlayback: state.pausePlayback,

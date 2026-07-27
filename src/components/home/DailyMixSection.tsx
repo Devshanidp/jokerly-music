@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { CalendarDays, Loader2, Music, Play } from "lucide-react";
+import { CalendarDays, BookmarkPlus, Check, Loader2, Music, Play } from "lucide-react";
 import type { SimilarTrack } from "@/lib/similar-tracks";
 import { PlayableTrack, usePlayerStore } from "@/store/player";
+import { useToastStore } from "@/store/toast";
 
 type DailyMix = {
   id: string;
@@ -33,9 +34,12 @@ function toPlayable(track: SimilarTrack): PlayableTrack {
 
 export default function DailyMixSection() {
   const { setQueueAndPlay } = usePlayerStore();
+  const { toast } = useToastStore();
   const [mixes, setMixes] = useState<DailyMix[]>([]);
   const [loading, setLoading] = useState(true);
   const [dayKey, setDayKey] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -57,6 +61,46 @@ export default function DailyMixSection() {
       cancelled = true;
     };
   }, []);
+
+  const saveMix = async (mix: DailyMix) => {
+    if (savingId || savedIds.has(mix.id)) return;
+    setSavingId(mix.id);
+    try {
+      const tracks = mix.tracks
+        .filter((track) => track.uri && track.name)
+        .map((track) => ({
+          uri: track.uri,
+          name: track.name,
+          artist: track.artists.map((artist) => artist.name).filter(Boolean).join(", ") || null,
+          image: track.album?.images?.[0]?.url ?? null,
+        }));
+
+      if (tracks.length === 0) {
+        toast("This mix has no tracks to save", "error");
+        return;
+      }
+
+      const name = dayKey ? `${mix.name} · ${dayKey}` : mix.name;
+      const res = await fetch("/api/music/playlists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          description: `Saved from Daily Mix · ${mix.subtitle}`,
+          tracks,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not save mix");
+
+      setSavedIds((prev) => new Set(prev).add(mix.id));
+      toast(`Saved “${name}” · ${data.addedCount ?? tracks.length} tracks`, "success");
+    } catch (e) {
+      toast((e as Error).message || "Could not save mix", "error");
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -92,51 +136,76 @@ export default function DailyMixSection() {
       </div>
 
       <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-        {mixes.map((mix, index) => (
-          <button
-            key={mix.id}
-            type="button"
-            onClick={() => {
-              const playables = mix.tracks.map(toPlayable).filter((track) => track.uri);
-              if (playables.length === 0) return;
-              void setQueueAndPlay(playables, 0);
-            }}
-            className={`relative h-36 w-44 shrink-0 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br ${CARD_THEMES[index % CARD_THEMES.length]} p-4 text-left shadow-xl shadow-black/25 transition-transform active:scale-[0.98]`}
-          >
-            <div className="absolute inset-0 bg-black/20" />
-            <div className="absolute -right-4 -bottom-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+        {mixes.map((mix, index) => {
+          const saved = savedIds.has(mix.id);
+          const saving = savingId === mix.id;
+          return (
+            <div
+              key={mix.id}
+              className={`relative h-40 w-44 shrink-0 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br ${CARD_THEMES[index % CARD_THEMES.length]} shadow-xl shadow-black/25`}
+            >
+              <div className="absolute inset-0 bg-black/20" />
+              <div className="absolute -right-4 -bottom-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
 
-            <div className="relative z-10 flex h-full flex-col">
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/75">
-                Daily Mix
-              </p>
-              <p className="mt-1 text-lg font-bold leading-tight text-white">{mix.name}</p>
-              <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-white/80">
-                {mix.subtitle}
-              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const playables = mix.tracks.map(toPlayable).filter((track) => track.uri);
+                  if (playables.length === 0) return;
+                  void setQueueAndPlay(playables, 0);
+                }}
+                className="relative z-10 flex h-full w-full flex-col p-4 text-left transition-transform active:scale-[0.98]"
+              >
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/75">
+                  Daily Mix
+                </p>
+                <p className="mt-1 text-lg font-bold leading-tight text-white">{mix.name}</p>
+                <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-white/80">
+                  {mix.subtitle}
+                </p>
 
-              <div className="mt-auto flex items-center justify-between gap-2">
-                <div className="relative h-11 w-11 overflow-hidden rounded-xl border border-white/20 bg-black/20 shrink-0">
-                  {mix.image ? (
-                    <Image src={mix.image} alt="" fill unoptimized className="object-cover" sizes="44px" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <Music size={16} className="text-white/50" />
-                    </div>
-                  )}
+                <div className="mt-auto flex items-center justify-between gap-2 pr-10">
+                  <div className="relative h-11 w-11 overflow-hidden rounded-xl border border-white/20 bg-black/20 shrink-0">
+                    {mix.image ? (
+                      <Image src={mix.image} alt="" fill unoptimized className="object-cover" sizes="44px" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Music size={16} className="text-white/50" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold text-white/75">
+                      {mix.trackCount} tracks
+                    </span>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black shadow-lg">
+                      <Play size={14} fill="currentColor" className="ml-0.5" />
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold text-white/75">
-                    {mix.trackCount} tracks
-                  </span>
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black shadow-lg">
-                    <Play size={14} fill="currentColor" className="ml-0.5" />
-                  </span>
-                </div>
-              </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void saveMix(mix);
+                }}
+                disabled={saving || saved}
+                title={saved ? "Saved to your playlists" : "Save as playlist"}
+                className="absolute bottom-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60 disabled:opacity-80"
+              >
+                {saving ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : saved ? (
+                  <Check size={14} className="text-green-400" />
+                ) : (
+                  <BookmarkPlus size={14} />
+                )}
+              </button>
             </div>
-          </button>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState, useRef } from "react";
 import { handleDocumentVisibilityChange, usePlayerStore } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
-import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal, Share2 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal, Share2, Radio } from "lucide-react";
 import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
@@ -12,6 +12,8 @@ import QueueSheet from "@/components/player/QueueSheet";
 import LyricsPanel from "@/components/player/LyricsPanel";
 import SimilarMusicSection from "@/components/player/SimilarMusicSection";
 import ShareNowPlayingSheet from "@/components/player/ShareNowPlayingSheet";
+import { fetchRadioTracks } from "@/lib/radio";
+import { trackIdFromUri } from "@/lib/track-uri";
 import { useToastStore } from "@/store/toast";
 import { APP_NAME } from "@/lib/branding";
 
@@ -70,6 +72,10 @@ export default function PlayerBar() {
     setSleepTimer,
     getNextIndex,
     getPrevIndex,
+    radioMode,
+    appendToQueue,
+    setRadioMode,
+    setQueueAndPlay,
   } = usePlayerStore();
 
   const { load: loadLikes, songUris, toggleSong } = useLikesStore();
@@ -86,6 +92,9 @@ export default function PlayerBar() {
   const [timerRemaining, setTimerRemaining] = useState<string | null>(null);
   const [showLyrics, setShowLyrics] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
+  const [startingRadio, setStartingRadio] = useState(false);
+  const radioExtendingRef = useRef(false);
+  const radioRefreshRef = useRef(0);
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [resolvingAdd, setResolvingAdd] = useState(false);
   const fetchingRef = useRef(false);
@@ -244,6 +253,88 @@ export default function PlayerBar() {
     fetchAndPlay(prev);
   }, [ensurePlayingForAction, fetchAndPlay]);
 
+  /** Lock-screen / notification controls — work even when paused. */
+  const mediaNextTrack = useCallback(() => {
+    const state = usePlayerStore.getState();
+    const next = state.getNextIndex();
+    if (next === null || next === state.queueIndex) return;
+    fetchAndPlay(next);
+  }, [fetchAndPlay]);
+
+  const mediaPrevTrack = useCallback(() => {
+    const state = usePlayerStore.getState();
+    if (state.progressMs > 3000) {
+      seek(0);
+      return;
+    }
+    const prev = state.getPrevIndex();
+    if (prev === null || prev === state.queueIndex) {
+      seek(0);
+      return;
+    }
+    fetchAndPlay(prev);
+  }, [fetchAndPlay, seek]);
+
+  const mediaSeekBy = useCallback(
+    (deltaSeconds: number) => {
+      const { durationMs: dur, progressMs: pos } = usePlayerStore.getState();
+      if (!dur || dur <= 0) return;
+      const nextMs = Math.max(0, Math.min(dur, pos + deltaSeconds * 1000));
+      seek(nextMs / dur);
+    },
+    [seek]
+  );
+
+  const startRadioFromCurrent = useCallback(async () => {
+    if (!currentTrack || startingRadio) return;
+    setStartingRadio(true);
+    try {
+      const similar = await fetchRadioTracks(currentTrack, { limit: 25, refresh: 0 });
+      if (similar.length === 0) {
+        toast("No radio tracks found for this song", "error");
+        return;
+      }
+      radioRefreshRef.current = 0;
+      await setQueueAndPlay([currentTrack, ...similar], 0);
+      setRadioMode(true);
+      toast(`Radio started · ${similar.length + 1} tracks`, "success");
+    } catch (e) {
+      toast((e as Error).message || "Could not start radio", "error");
+    } finally {
+      setStartingRadio(false);
+    }
+  }, [currentTrack, setQueueAndPlay, setRadioMode, startingRadio, toast]);
+
+  useEffect(() => {
+    if (!radioMode || !isPlaying) return;
+    const remaining = queue.length - queueIndex - 1;
+    if (remaining > 4) return;
+    if (radioExtendingRef.current) return;
+
+    const seed = currentTrack ?? queue[queueIndex];
+    if (!seed) return;
+
+    radioExtendingRef.current = true;
+    const excludeIds = queue
+      .map((track) => trackIdFromUri(track.uri))
+      .filter((id): id is string => Boolean(id));
+
+    void fetchRadioTracks(seed, {
+      excludeIds,
+      limit: 15,
+      refresh: ++radioRefreshRef.current,
+    })
+      .then((more) => {
+        appendToQueue(more);
+      })
+      .catch(() => {
+        /* keep playing current queue */
+      })
+      .finally(() => {
+        radioExtendingRef.current = false;
+      });
+  }, [appendToQueue, currentTrack, isPlaying, queue, queueIndex, radioMode]);
+
   const handlePlayPause = useCallback(async () => {
     const state = usePlayerStore.getState();
     if (state.isTransitioning && !state.isPlaying) {
@@ -344,10 +435,10 @@ export default function PlayerBar() {
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentTrack.name || "Now Playing",
       artist: currentTrack.artist || APP_NAME,
-      album: APP_NAME,
+      album: radioMode ? `${APP_NAME} Radio` : APP_NAME,
       artwork,
     });
-  }, [currentTrack]);
+  }, [currentTrack, radioMode]);
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
@@ -356,28 +447,75 @@ export default function PlayerBar() {
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
-    navigator.mediaSession.setActionHandler("play", () => {
+    if (!("setPositionState" in navigator.mediaSession) || durationMs <= 0) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: durationMs / 1000,
+        playbackRate: 1,
+        position: Math.min(progressMs, durationMs) / 1000,
+      });
+    } catch {
+      /* some platforms reject intermediate position updates */
+    }
+  }, [durationMs, progressMs, isPlaying, currentTrack?.uri]);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+
+    const setHandler = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch {
+        /* unsupported on this platform */
+      }
+    };
+
+    setHandler("play", () => {
       void resumePlayback();
     });
-    navigator.mediaSession.setActionHandler("pause", () => {
+    setHandler("pause", () => {
       void pausePlayback();
     });
-    navigator.mediaSession.setActionHandler("previoustrack", () => {
-      handlePrevTrack();
+    setHandler("previoustrack", () => {
+      mediaPrevTrack();
     });
-    navigator.mediaSession.setActionHandler("nexttrack", handleNextTrack);
-    navigator.mediaSession.setActionHandler("seekto", (details) => {
-      if (details.seekTime != null) {
-        const { durationMs: dur } = usePlayerStore.getState();
-        if (dur > 0) usePlayerStore.getState().seek(details.seekTime / (dur / 1000));
-      }
+    setHandler("nexttrack", () => {
+      mediaNextTrack();
     });
+    setHandler("seekto", (details) => {
+      if (details.seekTime == null) return;
+      const { durationMs: dur } = usePlayerStore.getState();
+      if (dur <= 0) return;
+      seek(Math.max(0, Math.min(1, details.seekTime / (dur / 1000))));
+    });
+    setHandler("seekforward", (details) => {
+      mediaSeekBy(details.seekOffset ?? 10);
+    });
+    setHandler("seekbackward", (details) => {
+      mediaSeekBy(-(details.seekOffset ?? 10));
+    });
+
     return () => {
-      (["play", "pause", "previoustrack", "nexttrack", "seekto"] as MediaSessionAction[]).forEach((a) => {
-        try { navigator.mediaSession.setActionHandler(a, null); } catch {}
-      });
+      (
+        [
+          "play",
+          "pause",
+          "previoustrack",
+          "nexttrack",
+          "seekto",
+          "seekforward",
+          "seekbackward",
+        ] as MediaSessionAction[]
+      ).forEach((action) => setHandler(action, null));
     };
-  }, [pausePlayback, resumePlayback, fetchAndPlay, ensurePlayingForAction, handleNextTrack, handlePrevTrack]);
+  }, [
+    pausePlayback,
+    resumePlayback,
+    mediaNextTrack,
+    mediaPrevTrack,
+    mediaSeekBy,
+    seek,
+  ]);
 
   // Sleep timer countdown
   useEffect(() => {
@@ -615,6 +753,18 @@ export default function PlayerBar() {
                       className="shrink-0 p-2.5 rounded-2xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
                       <Share2 size={14} />
                     </button>
+                    <button
+                      onClick={() => void startRadioFromCurrent()}
+                      disabled={startingRadio || !currentTrack}
+                      title={radioMode ? "Radio is on — more tracks load automatically" : "Start radio from this track"}
+                      className={`shrink-0 p-2.5 rounded-2xl transition-colors disabled:opacity-40 ${
+                        radioMode
+                          ? "text-[#EF4444] bg-[#EF4444]/10"
+                          : "text-[#EF4444] hover:bg-[#EF4444]/10"
+                      }`}
+                    >
+                      {startingRadio ? <Loader2 size={14} className="animate-spin" /> : <Radio size={14} />}
+                    </button>
                     <div className="relative">
                       <button
                         onClick={() => setShowTimerPicker((v) => !v)}
@@ -695,7 +845,10 @@ export default function PlayerBar() {
                   )}
                 </div>
 
-                <p className="text-center text-xs text-white/35 shrink-0">{Math.max(queueIndex + 1, 1)} / {queue.length} in queue</p>
+                <p className="text-center text-xs text-white/35 shrink-0">
+                  {radioMode ? "Radio · " : ""}
+                  {Math.max(queueIndex + 1, 1)} / {queue.length} in queue
+                </p>
 
                 <SimilarMusicSection
                   key={`${currentTrack.uri ?? ""}::${currentTrack.name}::${currentTrack.artist}`}
