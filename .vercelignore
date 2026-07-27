@@ -1,0 +1,8 @@
+# Never upload Electron desktop build artifacts to Vercel
+desktop/node_modules
+desktop/dist
+desktop/build/*.ico
+desktop/build/*.png
+android-twa
+**/*.apk
+**/*.aab

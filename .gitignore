@@ -43,6 +43,12 @@ android-twa/.gradle/
 android-twa/app/build/
 android-twa/build/
 
+# Electron desktop (local builds only)
+desktop/node_modules/
+desktop/dist/
+desktop/build/*.ico
+desktop/build/*.png
+
 # Claude Code worktrees (contain nested .git dirs that confuse Vercel)
 .claude/worktrees/
 

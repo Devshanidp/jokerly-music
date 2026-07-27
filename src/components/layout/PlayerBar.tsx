@@ -222,18 +222,24 @@ export default function PlayerBar() {
   }, [playWithTransition, queue, updateTrackUri]);
 
   const ensurePlayingForAction = useCallback((action: "pause" | "next" | "prev" | "switch") => {
-    const currentlyPlaying = usePlayerStore.getState().isPlaying;
-    if (currentlyPlaying) return true;
+    const { isPlaying, queue, queueIndex, currentTrack } = usePlayerStore.getState();
+    if (isPlaying) return true;
 
-    const actionLabel = action === "pause"
-      ? "pause"
-      : action === "next"
-        ? "next"
-        : action === "prev"
-          ? "go to previous"
-        : "switch songs";
+    // Next/prev/switch can start playback from a paused or loaded queue.
+    if (
+      (action === "next" || action === "prev" || action === "switch") &&
+      (queue.length > 0 || currentTrack)
+    ) {
+      return true;
+    }
 
-    toast(`Cannot ${actionLabel} because music is not playing.`, "error");
+    if (action === "pause") {
+      return false;
+    }
+
+    const actionLabel =
+      action === "next" ? "next" : action === "prev" ? "go to previous" : "switch songs";
+    toast(`Cannot ${actionLabel} — nothing is loaded to play.`, "error");
     return false;
   }, [toast]);
 
