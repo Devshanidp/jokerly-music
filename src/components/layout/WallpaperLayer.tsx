@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   getWallpaper,
   onWallpaperChange,
@@ -9,8 +10,10 @@ import {
 
 export default function WallpaperLayer() {
   const [wallpaper, setWallpaper] = useState<WallpaperRecord | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     let cancelled = false;
     void getWallpaper().then((rec) => {
       if (!cancelled) setWallpaper(rec);
@@ -26,37 +29,38 @@ export default function WallpaperLayer() {
     const root = document.documentElement;
     if (wallpaper?.dataUrl) {
       root.classList.add("has-wallpaper");
-      root.style.setProperty("--wallpaper-dim", String(Math.min(0.85, Math.max(0.15, wallpaper.dim ?? 0.45))));
+      root.style.setProperty(
+        "--wallpaper-dim",
+        String(Math.min(0.85, Math.max(0.15, wallpaper.dim ?? 0.45)))
+      );
+      root.style.setProperty("--wallpaper-image", `url("${wallpaper.dataUrl}")`);
     } else {
       root.classList.remove("has-wallpaper");
       root.style.removeProperty("--wallpaper-dim");
+      root.style.removeProperty("--wallpaper-image");
     }
     return () => {
       root.classList.remove("has-wallpaper");
       root.style.removeProperty("--wallpaper-dim");
+      root.style.removeProperty("--wallpaper-image");
     };
   }, [wallpaper]);
 
-  if (!wallpaper?.dataUrl) return null;
+  if (!mounted || !wallpaper?.dataUrl) return null;
 
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
-    >
+  // Portal to body so no parent transform/filter breaks `position: fixed` while scrolling.
+  return createPortal(
+    <div aria-hidden className="app-wallpaper">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={wallpaper.dataUrl}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover"
+        className="app-wallpaper__img"
         decoding="async"
+        draggable={false}
       />
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `rgba(0,0,0,var(--wallpaper-dim, 0.45))`,
-        }}
-      />
-    </div>
+      <div className="app-wallpaper__dim" />
+    </div>,
+    document.body
   );
 }
