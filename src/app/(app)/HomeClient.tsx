@@ -22,8 +22,9 @@ import {
   HOME_SECTION_IDS,
   HOME_SECTION_LABELS,
   HomeSectionId,
+  loadHomeSectionOrder,
+  persistHomeSectionOrder,
   readHomeSectionOrder,
-  saveHomeSectionOrder,
 } from "@/lib/home-order";
 import {
   DndContext,
@@ -255,6 +256,13 @@ export default function HomeClient() {
 
   useEffect(() => {
     setSectionOrder(readHomeSectionOrder());
+    let cancelled = false;
+    void loadHomeSectionOrder().then((order) => {
+      if (!cancelled) setSectionOrder(order);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const sectionSensors = useSensors(
@@ -270,7 +278,7 @@ export default function HomeClient() {
       const newIndex = prev.indexOf(over.id as HomeSectionId);
       if (oldIndex < 0 || newIndex < 0) return prev;
       const next = arrayMove(prev, oldIndex, newIndex);
-      saveHomeSectionOrder(next);
+      void persistHomeSectionOrder(next);
       return next;
     });
   };
@@ -821,7 +829,12 @@ export default function HomeClient() {
         <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           <button
             type="button"
-            onClick={() => setReorderMode((v) => !v)}
+            onClick={() => {
+              setReorderMode((v) => {
+                if (v) void persistHomeSectionOrder(sectionOrder);
+                return !v;
+              });
+            }}
             className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
               reorderMode
                 ? "border-[var(--accent)]/50 text-white bg-[var(--accent)]/15"
@@ -851,7 +864,7 @@ export default function HomeClient() {
       </div>
 
       {reorderMode && (
-        <p className="text-[11px] text-white/35 -mt-4">Drag sections to change your home layout. Saved on this device.</p>
+        <p className="text-[11px] text-white/35 -mt-4">Drag sections to change your home layout. Saved to your account.</p>
       )}
 
       <DndContext sensors={sectionSensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
