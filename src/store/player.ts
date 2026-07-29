@@ -70,6 +70,8 @@ interface PlayerState {
   updateTrackUri: (index: number, uri: string | null, imageUrl?: string | null, durationMs?: number) => void;
   playIndex: (index: number) => void;
   pausePlayback: () => Promise<void>;
+  /** Pause without blocking auto-resume (MediaSession / transient OS pauses). */
+  softPausePlayback: () => Promise<void>;
   resumePlayback: () => Promise<void>;
   maintainPlayback: (resumeIfWasPlaying?: boolean) => Promise<void>;
   togglePlay: () => void;
@@ -166,7 +168,7 @@ let playIntentIndex: number | null = null;
 let notReadyTimer: ReturnType<typeof setTimeout> | null = null;
 let autoResumeTimer: ReturnType<typeof setTimeout> | null = null;
 const MAX_PLAY_RETRIES = 4;
-const UNEXPECTED_PAUSE_RECOVERY_MS = 900;
+const UNEXPECTED_PAUSE_RECOVERY_MS = 350;
 const RECENTLY_PLAYING_MS = 45_000;
 
 function clearAutoResumeTimer() {
@@ -953,7 +955,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
-    const { player, isPlaying } = get();
+    const { player } = get();
     if (!player) return;
 
     userPausedIntent = true;
@@ -962,6 +964,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     clearAutoResumeTimer();
     clearPlayRetry(true);
     ignorePausedUntil = 0;
+    wasPlayingBeforeDocumentHidden = false;
 
     try {
       await player.pause();
@@ -980,6 +983,31 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         durationMs: after.durationMs,
       });
     }
+  },
+
+  softPausePlayback: async () => {
+    // Used by MediaSession — do not lock out maintainPlayback (nav/OS glitches).
+    wasPlayingBeforeDocumentHidden = false;
+
+    if (get().isOfflinePlayback) {
+      if (!isOfflinePlaying()) return;
+      pauseOfflinePlayback();
+      set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+      updateMediaSessionState(false);
+      return;
+    }
+
+    const { player } = get();
+    if (!player) return;
+
+    try {
+      await player.pause();
+    } catch {
+      /* ignore */
+    }
+
+    set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+    updateMediaSessionState(false);
   },
 
   maintainPlayback: async (resumeIfWasPlaying = false) => {
@@ -1347,6 +1375,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     updateTrackUri: state.updateTrackUri,
     playIndex: state.playIndex,
     pausePlayback: state.pausePlayback,
+    softPausePlayback: state.softPausePlayback,
     resumePlayback: state.resumePlayback,
     maintainPlayback: state.maintainPlayback,
     togglePlay: state.togglePlay,

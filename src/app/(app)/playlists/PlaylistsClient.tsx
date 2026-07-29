@@ -49,6 +49,13 @@ const playlistCardBorder = "box-double border border-[var(--accent)]";
 interface PlaylistTrack { id: string; track_uri: string; track_name: string; track_image?: string | null; track_artist?: string | null; added_at: string; position: number; }
 interface PinnedArtist { id: string; artist_id: string; artist_name: string; artist_image: string; }
 
+/** Instant paint on revisit so nav doesn't wait on a blank loading state. */
+let playlistsListCache: {
+  playlists: MusicPlaylist[];
+  pinnedIds: string[];
+  at: number;
+} | null = null;
+
 // ── Sortable track row ──────────────────────────────────────────────────────
 function SortableTrackRow({
   track, index, playlistId, onPlay, onRemove, onAddToPlaylist, removingKey,
@@ -285,7 +292,14 @@ export default function PlaylistsClient() {
   };
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const cached = playlistsListCache;
+    if (cached) {
+      setPlaylists(cached.playlists);
+      setPinned(new Set(cached.pinnedIds));
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     try {
       const [plRes, pinRes] = await Promise.all([
         fetch("/api/music/playlists", { cache: "no-store" }),
@@ -294,10 +308,13 @@ export default function PlaylistsClient() {
       if (!plRes.ok) throw new Error("Failed to load playlists");
       const plData = await plRes.json();
       const pinData = (await pinRes.json()) as PinnedRow[];
-      setPlaylists(plData.items ?? []);
-      setPinned(new Set(pinData.map((p) => p.playlist_id)));
+      const items = (plData.items ?? []) as MusicPlaylist[];
+      const pinnedIds = pinData.map((p) => p.playlist_id);
+      playlistsListCache = { playlists: items, pinnedIds, at: Date.now() };
+      setPlaylists(items);
+      setPinned(new Set(pinnedIds));
     } catch (e) {
-      toast((e as Error).message ?? "Could not load playlists");
+      if (!cached) toast((e as Error).message ?? "Could not load playlists");
     } finally {
       setLoading(false);
     }

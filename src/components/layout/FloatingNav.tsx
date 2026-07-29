@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
+import { startTransition, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Home, ListMusic, Heart, Wand2 } from "lucide-react";
 import { usePlayerStore } from "@/store/player";
 
 type NavTarget = "/" | "/playlists" | "/liked" | "/magic-mix";
+
+function keepPlaybackAlive() {
+  void usePlayerStore.getState().maintainPlayback(true);
+}
 
 export default function FloatingNav() {
   const pathname = usePathname();
@@ -26,14 +30,21 @@ export default function FloatingNav() {
   const go = (e: React.PointerEvent<HTMLButtonElement> | React.MouseEvent<HTMLButtonElement>, target: NavTarget) => {
     e.preventDefault();
     e.stopPropagation();
+    keepPlaybackAlive();
     // Always reset to the playlist list (clears Magic Mix ?id= deep link)
     if (target === "/playlists") {
-      router.push("/playlists", { scroll: false });
+      startTransition(() => {
+        router.push("/playlists", { scroll: false });
+      });
       window.dispatchEvent(new Event("playlists-show-list"));
+      queueMicrotask(keepPlaybackAlive);
       return;
     }
     if (pathname === target) return;
-    router.push(target, { scroll: false });
+    startTransition(() => {
+      router.push(target, { scroll: false });
+    });
+    queueMicrotask(keepPlaybackAlive);
   };
 
   const bottomClass = hasPlayer ? "bottom-[104px]" : "bottom-[5.5rem]";

@@ -6,6 +6,7 @@ import ThemeProvider from "@/components/layout/ThemeProvider";
 import ServiceWorkerRegister from "@/components/layout/ServiceWorkerRegister";
 import InstallPrompt from "@/components/layout/InstallPrompt";
 import BackNavigationHandler from "@/components/layout/BackNavigationHandler";
+import PlaybackRouteKeepAlive from "@/components/layout/PlaybackRouteKeepAlive";
 import OfflineBootstrap from "@/components/layout/OfflineBootstrap";
 import GlobalFloatingNav from "@/components/layout/GlobalFloatingNav";
 import ClickRipple from "@/components/layout/ClickRipple";
@@ -68,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <WallpaperLayer />
           <SessionWrapper>
             <BackNavigationHandler />
+            <PlaybackRouteKeepAlive />
             <Suspense fallback={null}>
               <AndroidWidgetBridge />
               <DesktopErrorBox />

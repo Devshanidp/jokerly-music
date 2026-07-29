@@ -479,7 +479,8 @@ export default function PlayerBar() {
       void resumePlayback();
     });
     setHandler("pause", () => {
-      void pausePlayback();
+      // Soft pause: OS/MediaSession often fires during SPA nav; don't lock out auto-resume.
+      void usePlayerStore.getState().softPausePlayback();
     });
     setHandler("previoustrack", () => {
       mediaPrevTrack();
@@ -514,7 +515,6 @@ export default function PlayerBar() {
       ).forEach((action) => setHandler(action, null));
     };
   }, [
-    pausePlayback,
     resumePlayback,
     mediaNextTrack,
     mediaPrevTrack,
