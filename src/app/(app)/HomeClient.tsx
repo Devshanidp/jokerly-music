@@ -410,14 +410,21 @@ export default function HomeClient() {
   // For You — recommendations based on favorite artists
   const fetchForYou = useCallback((artists: FavoriteArtist[], bust = false) => {
     if (!isSessionHealthy) return;
-    if (!artists.length) return;
+    if (!artists.length) {
+      setForYouTracks([]);
+      return;
+    }
     setForYouLoading(true);
     if (bust) setForYouTracks([]);
-    const ids = artists.map((a) => a.id).join(",");
-    fetch(`/api/music/for-you?artists=${ids}`, bust ? { cache: "no-store" } : {})
+    const ids = artists.map((a) => a.id).filter(Boolean).join(",");
+    if (!ids) {
+      setForYouLoading(false);
+      return;
+    }
+    fetch(`/api/music/for-you?artists=${encodeURIComponent(ids)}`, bust ? { cache: "no-store" } : {})
       .then((r) => r.json())
       .then((data) => {
-        const tracks: MusicTrack[] = data.tracks ?? [];
+        const tracks: MusicTrack[] = Array.isArray(data.tracks) ? data.tracks : [];
         setForYouTracks(tracks);
         if (homeCache) homeCache.forYouTracks = tracks;
       })
@@ -426,7 +433,11 @@ export default function HomeClient() {
   }, [isSessionHealthy]);
 
   useEffect(() => {
-    if (favoriteArtists.length > 0 && !hasFreshCache) fetchForYou(favoriteArtists);
+    if (!favoriteArtists.length) return;
+    // Always fetch when cache has no For You tracks — don't skip just because the feed cache is fresh.
+    const cacheHasForYou = hasFreshCache && (homeCache?.forYouTracks?.length ?? 0) > 0;
+    if (cacheHasForYou) return;
+    fetchForYou(favoriteArtists);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [favoriteArtists, fetchForYou]);
 
@@ -977,7 +988,10 @@ export default function HomeClient() {
                     </div>
                   </section>
                 );
-              } else if (sectionId === "forYou" && (forYouTracks.length > 0 || forYouLoading)) {
+              } else if (
+                sectionId === "forYou" &&
+                (forYouTracks.length > 0 || forYouLoading || favoriteArtists.length > 0)
+              ) {
                 body = (
                   <section className="space-y-3">
                     <h3 className="text-white font-bold text-base flex items-center gap-2">
@@ -986,6 +1000,17 @@ export default function HomeClient() {
                     {forYouLoading ? (
                       <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>
                         {[0,1,2,3,4].map((j) => <TrackRowSkeleton key={j} />)}
+                      </div>
+                    ) : forYouTracks.length === 0 ? (
+                      <div className="rounded-2xl border border-white/[0.06] px-4 py-5 text-center" style={{ background: "var(--card)" }}>
+                        <p className="text-white/50 text-sm">Couldn&apos;t load recommendations right now.</p>
+                        <button
+                          type="button"
+                          onClick={() => fetchForYou(favoriteArtists, true)}
+                          className="mt-3 text-xs px-3 py-1.5 rounded-full border border-white/15 text-white/70 hover:text-white"
+                        >
+                          Try again
+                        </button>
                       </div>
                     ) : (
                       <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>

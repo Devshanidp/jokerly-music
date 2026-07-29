@@ -41,19 +41,23 @@ export async function GET() {
 
     const languages = data?.languages;
     let favoriteArtists: FavoriteArtist[] = [];
-    if (typeof data?.favorite_artists === "string") {
+    const rawFavs = data?.favorite_artists;
+    if (typeof rawFavs === "string") {
       try {
-        favoriteArtists = JSON.parse(data.favorite_artists);
+        let parsed: unknown = JSON.parse(rawFavs);
+        // Handle legacy double-encoded JSON string
+        if (typeof parsed === "string") parsed = JSON.parse(parsed);
+        if (Array.isArray(parsed)) favoriteArtists = parsed as FavoriteArtist[];
       } catch {
         /* ignore */
       }
-    } else if (Array.isArray(data?.favorite_artists)) {
-      favoriteArtists = data.favorite_artists;
+    } else if (Array.isArray(rawFavs)) {
+      favoriteArtists = rawFavs as FavoriteArtist[];
     }
 
     return NextResponse.json({
       languages: Array.isArray(languages) ? languages : [],
-      favoriteArtists,
+      favoriteArtists: favoriteArtists.filter((a) => a && typeof a.id === "string" && a.id.length > 0),
       homeOrder: parseHomeOrder(data?.home_order),
     });
   } catch (e) {
@@ -82,7 +86,8 @@ export async function POST(req: NextRequest) {
 
   if (Array.isArray(body.languages)) updateData.languages = body.languages;
   if (Array.isArray(body.favoriteArtists)) {
-    updateData.favorite_artists = JSON.stringify(body.favoriteArtists);
+    // Store as real jsonb array (not a double-encoded string)
+    updateData.favorite_artists = body.favoriteArtists;
   }
   if (Array.isArray(body.homeOrder)) {
     updateData.home_order = body.homeOrder.filter((id: unknown) => typeof id === "string");
