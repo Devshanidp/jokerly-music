@@ -78,8 +78,16 @@ async function catalogPlayerRequest(path: string, accessToken: string, init: Req
   return NextResponse.json({ ok: true });
 }
 
-async function transferPlaybackToDevice(deviceId: string, accessToken: string) {
+async function transferPlaybackIfNeeded(deviceId: string, accessToken: string) {
   try {
+    const res = await fetch(`${CATALOG_API_V1}/me/player`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { device?: { id?: string } };
+      if (data?.device?.id === deviceId) return;
+    }
     await fetch(`${CATALOG_API_V1}/me/player`, {
       method: "PUT",
       headers: {
@@ -90,7 +98,7 @@ async function transferPlaybackToDevice(deviceId: string, accessToken: string) {
       cache: "no-store",
     });
   } catch {
-    // Non-fatal — play may still succeed if this device is already active.
+    // Non-fatal — play request targets device_id directly anyway.
   }
 }
 
@@ -114,7 +122,7 @@ export async function POST(req: NextRequest) {
       const offsetPosition =
         typeof playBody.offset?.position === "number" ? playBody.offset.position : 0;
       const sliced = slicePlayUris(playBody.uris, offsetPosition);
-      await transferPlaybackToDevice(playBody.deviceId, session.accessToken);
+      await transferPlaybackIfNeeded(playBody.deviceId, session.accessToken);
       return catalogPlayerRequest(
         `/me/player/play?device_id=${encodeURIComponent(playBody.deviceId)}`,
         session.accessToken,
