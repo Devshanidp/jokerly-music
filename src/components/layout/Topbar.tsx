@@ -3,12 +3,19 @@
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { X, Settings, Bell, Loader2, RefreshCw, Moon, Sun } from "lucide-react";
+import { X, Settings, Bell, Loader2, RefreshCw, Moon, Sun, ImagePlus, Trash2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { APP_LOGO, APP_NAME, APP_TAGLINE } from "@/lib/branding";
 import { goToMusicLogin, goToMusicPermissionUpgrade } from "@/lib/music-auth-client";
 import { useBackHandler } from "@/hooks/useBackHandler";
+import {
+  clearWallpaper,
+  fileToWallpaperDataUrl,
+  getWallpaper,
+  saveWallpaper,
+  type WallpaperRecord,
+} from "@/lib/wallpaper";
 
 function SettingsModal({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession();
@@ -17,12 +24,19 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifMessage, setNotifMessage] = useState<string | null>(null);
   const [themeReady, setThemeReady] = useState(false);
+  const [wallpaper, setWallpaper] = useState<WallpaperRecord | null>(null);
+  const [wallpaperBusy, setWallpaperBusy] = useState(false);
+  const [wallpaperError, setWallpaperError] = useState<string | null>(null);
 
   const isDark = (resolvedTheme ?? theme) === "dark";
 
   useEffect(() => {
     const t = window.setTimeout(() => setThemeReady(true), 0);
     return () => window.clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    void getWallpaper().then(setWallpaper);
   }, []);
 
   const reconnectAccount = () => {
@@ -127,12 +141,53 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const onPickWallpaper = async (file: File | null) => {
+    if (!file) return;
+    setWallpaperBusy(true);
+    setWallpaperError(null);
+    try {
+      const dataUrl = await fileToWallpaperDataUrl(file);
+      const next: WallpaperRecord = {
+        dataUrl,
+        updatedAt: Date.now(),
+        dim: wallpaper?.dim ?? 0.45,
+      };
+      await saveWallpaper(next);
+      setWallpaper(next);
+    } catch (e) {
+      setWallpaperError((e as Error).message || "Could not set wallpaper");
+    } finally {
+      setWallpaperBusy(false);
+    }
+  };
+
+  const onDimChange = async (dim: number) => {
+    if (!wallpaper?.dataUrl) return;
+    const next = { ...wallpaper, dim, updatedAt: Date.now() };
+    setWallpaper(next);
+    await saveWallpaper(next).catch(() => {});
+  };
+
+  const onRemoveWallpaper = async () => {
+    setWallpaperBusy(true);
+    setWallpaperError(null);
+    try {
+      await clearWallpaper();
+      setWallpaper(null);
+    } catch {
+      setWallpaperError("Could not remove wallpaper");
+    } finally {
+      setWallpaperBusy(false);
+    }
+  };
+
   return (
     <div className="theme-dark fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="rounded-3xl w-full max-w-sm border border-white/10 shadow-2xl shadow-black/40 overflow-hidden"
-        style={{ background: "#000000" }}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
-          <h2 className="text-white font-semibold">Account</h2>
+      <div className="rounded-3xl w-full max-w-sm border border-white/10 shadow-2xl shadow-black/40 overflow-hidden max-h-[90vh] overflow-y-auto"
+        style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(24px)" }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] sticky top-0 z-10"
+          style={{ background: "rgba(0,0,0,0.9)", backdropFilter: "blur(12px)" }}>
+          <h2 className="text-white font-semibold">Settings</h2>
           <button onClick={onClose} className="p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.07] transition-colors">
             <X size={14} />
           </button>
@@ -176,6 +231,79 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
                 />
               </button>
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 p-3 space-y-3" style={{ background: "rgba(249,250,251,0.06)" }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-white text-sm font-medium flex items-center gap-1.5">
+                  <ImagePlus size={14} className="text-[var(--accent)]" />
+                  Wallpaper
+                </p>
+                <p className="text-white/40 text-xs mt-0.5">
+                  Glass UI sits above your custom background.
+                </p>
+              </div>
+              <label className={`shrink-0 text-xs px-3 py-1.5 rounded-xl border border-white/[0.12] text-white/80 hover:text-white hover:border-[var(--accent)]/50 transition-colors cursor-pointer ${wallpaperBusy ? "opacity-50 pointer-events-none" : ""}`}>
+                {wallpaperBusy ? <Loader2 size={13} className="animate-spin inline" /> : wallpaper ? "Change" : "Upload"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={wallpaperBusy}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    e.target.value = "";
+                    void onPickWallpaper(file);
+                  }}
+                />
+              </label>
+            </div>
+
+            {wallpaper?.dataUrl ? (
+              <>
+                <div className="relative h-28 w-full overflow-hidden rounded-xl border border-white/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={wallpaper.dataUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: `rgba(0,0,0,${wallpaper.dim ?? 0.45})` }}
+                  />
+                  <div className="absolute inset-x-3 bottom-3 rounded-lg border border-white/20 bg-white/10 px-2 py-1.5 text-[10px] text-white/80 backdrop-blur-md">
+                    Glass preview
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs text-white/50">
+                    <span>Dim</span>
+                    <span>{Math.round((wallpaper.dim ?? 0.45) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0.15}
+                    max={0.85}
+                    step={0.05}
+                    value={wallpaper.dim ?? 0.45}
+                    onChange={(e) => void onDimChange(parseFloat(e.target.value))}
+                    className="w-full accent-[var(--accent)]"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void onRemoveWallpaper()}
+                  disabled={wallpaperBusy}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/10 px-3 py-2 text-xs font-medium text-white/70 hover:text-white hover:bg-white/[0.06] disabled:opacity-50"
+                >
+                  <Trash2 size={13} />
+                  Remove wallpaper
+                </button>
+              </>
+            ) : (
+              <p className="text-[11px] text-white/35">
+                Upload a photo — it stays on this device and shows under the glass theme.
+              </p>
+            )}
+            {wallpaperError && <p className="text-xs text-[var(--accent)]">{wallpaperError}</p>}
           </div>
 
           <div className="rounded-2xl border border-white/10 p-3" style={{ background: "rgba(249,250,251,0.06)" }}>
@@ -299,7 +427,7 @@ export default function Topbar() {
         className={`sticky z-30 shrink-0 border-b-2 ${sessionError ? "top-10" : "top-0"} ${
           isDark ? "border-white" : "border-[var(--accent)]"
         }`}
-        style={{ background: isDark ? "rgba(0,0,0,0.94)" : "rgba(249,250,251,0.92)", backdropFilter: "blur(24px)" }}
+        style={{ background: isDark ? "rgba(6,6,10,0.55)" : "rgba(255,255,255,0.55)", backdropFilter: "blur(24px) saturate(1.4)", WebkitBackdropFilter: "blur(24px) saturate(1.4)" }}
       >
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
 

@@ -11,6 +11,7 @@ import GlobalFloatingNav from "@/components/layout/GlobalFloatingNav";
 import ClickRipple from "@/components/layout/ClickRipple";
 import AndroidWidgetBridge from "@/components/android/AndroidWidgetBridge";
 import DesktopErrorBox from "@/components/desktop/DesktopErrorBox";
+import WallpaperLayer from "@/components/layout/WallpaperLayer";
 import { Suspense } from "react";
 import { APP_NAME, APP_TAGLINE } from "@/lib/branding";
 
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${inter.className} antialiased h-full`}>
         <ThemeProvider>
+          <WallpaperLayer />
           <SessionWrapper>
             <BackNavigationHandler />
             <Suspense fallback={null}>

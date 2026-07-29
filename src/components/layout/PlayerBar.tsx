@@ -834,7 +834,7 @@ export default function PlayerBar() {
 
       {/* ── Compact bar ── */}
       <div className="theme-dark fixed bottom-0 left-0 right-0 z-40"
-        style={{ background: "#000000", backdropFilter: "blur(28px)" }}>
+        style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(28px) saturate(1.4)", WebkitBackdropFilter: "blur(28px) saturate(1.4)", borderTop: "1px solid rgba(239,68,68,0.35)" }}>
 
         {/* Progress bar */}
         <div className="h-[3px] cursor-pointer group relative" style={{ background: "rgba(249,250,251,0.15)" }} onClick={handleSeek}>

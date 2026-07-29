@@ -65,9 +65,10 @@ export default function FloatingNav() {
           isDark ? "border-white" : "border-[var(--accent)]"
         }`}
         style={{
-          background: "#000000",
-          backdropFilter: "blur(20px)",
-          boxShadow: "0 6px 24px rgba(0,0,0,0.45)",
+          background: "rgba(0,0,0,0.45)",
+          backdropFilter: "blur(22px) saturate(1.4)",
+          WebkitBackdropFilter: "blur(22px) saturate(1.4)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12)",
         }}
         aria-label="Main navigation"
       >
