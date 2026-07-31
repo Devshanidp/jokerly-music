@@ -641,8 +641,10 @@ drawable ic_call_decline
 drawable ic_call_decline_low
 drawable ic_notification_icon
 drawable ic_site_settings
+drawable ic_widget_next
 drawable ic_widget_pause
 drawable ic_widget_play
+drawable ic_widget_prev
 drawable notification_action_background
 drawable notification_bg
 drawable notification_bg_low
@@ -848,7 +850,9 @@ id view_tree_view_model_store_owner
 id visible_removing_fragment_view_tag
 id widget_art
 id widget_artist
+id widget_next
 id widget_play_pause
+id widget_prev
 id widget_root
 id widget_title
 id withText
@@ -975,7 +979,9 @@ string widget_description
 string widget_empty_artist
 string widget_empty_title
 string widget_name
+string widget_next_desc
 string widget_play_desc
+string widget_prev_desc
 style AlertDialog_AppCompat
 style AlertDialog_AppCompat_Light
 style Animation_AppCompat_Dialog

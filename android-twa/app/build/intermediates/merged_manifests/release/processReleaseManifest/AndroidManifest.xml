@@ -23,8 +23,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com_shanmusic.com"
-    android:versionCode="15"
-    android:versionName="15" >
+    android:versionCode="16"
+    android:versionName="16" >
 
     <uses-sdk
         android:minSdkVersion="21"
@@ -222,6 +222,8 @@
             android:exported="false" >
             <intent-filter>
                 <action android:name="com_shanmusic.com.WIDGET_TOGGLE" />
+                <action android:name="com_shanmusic.com.WIDGET_NEXT" />
+                <action android:name="com_shanmusic.com.WIDGET_PREV" />
             </intent-filter>
         </receiver>
 

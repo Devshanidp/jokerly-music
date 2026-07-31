@@ -3,8 +3,8 @@
 # min_api: 21
 # common_typos_disable
 # {"id":"com.android.tools.r8.mapping","version":"2.2"}
-# pg_map_id: fcec85e
-# pg_map_hash: SHA-256 fcec85eeacb71eb48f067c2937c002acf85266d3409838d0aa0dc5581ff89db4
+# pg_map_id: 72030a5
+# pg_map_hash: SHA-256 72030a5a4b95784c526e3f6e5d581044ee0f3f6a5bf397d2be7b16b20aaae9fa
 android.support.customtabs.ICustomTabsCallback -> a.a:
 # {"id":"sourceFile","fileName":"ICustomTabsCallback.java"}
     java.lang.String DESCRIPTOR -> a
@@ -24629,14 +24629,18 @@ com_shanmusic.com.NowPlayingWidgetProvider -> com_shanmusic.com.NowPlayingWidget
     1:6:void onUpdate(android.content.Context,android.appwidget.AppWidgetManager,int[]):10:10 -> onUpdate
     7:13:void onUpdate(android.content.Context,android.appwidget.AppWidgetManager,int[]):11:11 -> onUpdate
 com_shanmusic.com.R$drawable -> N.a:
-    int ic_widget_pause -> a
-    int ic_widget_play -> b
+    int ic_widget_next -> a
+    int ic_widget_pause -> b
+    int ic_widget_play -> c
+    int ic_widget_prev -> d
 com_shanmusic.com.R$id -> N.b:
     int widget_art -> a
     int widget_artist -> b
-    int widget_play_pause -> c
-    int widget_root -> d
-    int widget_title -> e
+    int widget_next -> c
+    int widget_play_pause -> d
+    int widget_prev -> e
+    int widget_root -> f
+    int widget_title -> g
 com_shanmusic.com.R$layout -> N.c:
     int widget_now_playing -> a
 com_shanmusic.com.R$mipmap -> N.d:
@@ -24666,82 +24670,96 @@ com_shanmusic.com.WidgetBridgeActivity -> com_shanmusic.com.WidgetBridgeActivity
 com_shanmusic.com.WidgetControlReceiver -> com_shanmusic.com.WidgetControlReceiver:
 # {"id":"sourceFile","fileName":"WidgetControlReceiver.java"}
     1:4:void <init>():8:8 -> <init>
-    3:9:void onReceive(android.content.Context,android.content.Intent):13:13 -> onReceive
-    10:22:void onReceive(android.content.Context,android.content.Intent):17:17 -> onReceive
-    23:29:void onReceive(android.content.Context,android.content.Intent):21:21 -> onReceive
-    30:40:void onReceive(android.content.Context,android.content.Intent):22:22 -> onReceive
-    41:43:void onReceive(android.content.Context,android.content.Intent):23:23 -> onReceive
-    44:47:void onReceive(android.content.Context,android.content.Intent):24:24 -> onReceive
+    3:9:void onReceive(android.content.Context,android.content.Intent):15:15 -> onReceive
+    10:21:void onReceive(android.content.Context,android.content.Intent):20:20 -> onReceive
+    22:24:void onReceive(android.content.Context,android.content.Intent):21:21 -> onReceive
+    25:36:void onReceive(android.content.Context,android.content.Intent):22:22 -> onReceive
+    37:39:void onReceive(android.content.Context,android.content.Intent):23:23 -> onReceive
+    40:51:void onReceive(android.content.Context,android.content.Intent):24:24 -> onReceive
+    52:53:void onReceive(android.content.Context,android.content.Intent):25:25 -> onReceive
+    54:60:void onReceive(android.content.Context,android.content.Intent):30:30 -> onReceive
+    61:86:void onReceive(android.content.Context,android.content.Intent):31:31 -> onReceive
+    87:89:void onReceive(android.content.Context,android.content.Intent):32:32 -> onReceive
+    90:93:void onReceive(android.content.Context,android.content.Intent):33:33 -> onReceive
 com_shanmusic.com.WidgetRenderer -> N.g:
 # {"id":"sourceFile","fileName":"WidgetRenderer.java"}
     java.util.concurrent.ExecutorService IMAGE_EXECUTOR -> a
-    1:7:void <clinit>():21:21 -> <clinit>
-    1:7:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):102:102 -> a
-    8:18:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):106:106 -> a
-    19:23:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):107:107 -> a
-    24:28:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):108:108 -> a
-    29:33:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):109:109 -> a
-    34:37:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):110:110 -> a
-    38:42:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):112:112 -> a
-    43:45:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):110:110 -> a
-    46:49:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):113:113 -> a
-    50:53:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):115:115 -> a
-    54:56:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):113:113 -> a
-    57:65:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):116:116 -> a
-    66:74:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):117:117 -> a
-    75:78:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):118:118 -> a
-    1:7:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):38:38 -> b
-    8:10:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):39:39 -> b
-    11:21:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):41:41 -> b
-    22:30:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):44:44 -> b
-    2:14:android.graphics.Bitmap fetchBitmap(java.lang.String):125:125 -> c
-    15:17:android.graphics.Bitmap fetchBitmap(java.lang.String):126:126 -> c
-    18:21:android.graphics.Bitmap fetchBitmap(java.lang.String):127:127 -> c
-    22:24:android.graphics.Bitmap fetchBitmap(java.lang.String):128:128 -> c
-    25:27:android.graphics.Bitmap fetchBitmap(java.lang.String):129:129 -> c
-    28:35:android.graphics.Bitmap fetchBitmap(java.lang.String):130:130 -> c
-    36:39:android.graphics.Bitmap fetchBitmap(java.lang.String):143:143 -> c
-    40:49:android.graphics.Bitmap fetchBitmap(java.lang.String):133:133 -> c
-    50:55:android.graphics.Bitmap fetchBitmap(java.lang.String):143:143 -> c
-    56:59:android.graphics.Bitmap fetchBitmap(java.lang.String):138:138 -> c
-    60:80:android.graphics.Bitmap fetchBitmap(java.lang.String):143:143 -> c
-    81:83:android.graphics.Bitmap fetchBitmap(java.lang.String):145:145 -> c
-    84:87:android.graphics.Bitmap fetchBitmap(java.lang.String):143:143 -> c
-    1:18:void loadArtworkAsync(android.content.Context,android.appwidget.AppWidgetManager,int,java.lang.String,boolean,java.lang.String,java.lang.String):100:100 -> d
-    1:7:android.app.PendingIntent openAppIntent(android.content.Context):48:48 -> e
-    8:18:android.app.PendingIntent openAppIntent(android.content.Context):49:49 -> e
-    19:21:android.app.PendingIntent openAppIntent(android.content.Context):50:50 -> e
-    22:33:android.app.PendingIntent openAppIntent(android.content.Context):52:52 -> e
-    34:38:android.app.PendingIntent openAppIntent(android.content.Context):55:55 -> e
-    1:4:void updateAllWidgets(android.content.Context):26:26 -> f
-    5:11:void updateAllWidgets(android.content.Context):27:27 -> f
-    12:17:void updateAllWidgets(android.content.Context):28:28 -> f
-    18:21:void updateAllWidgets(android.content.Context):29:29 -> f
-    22:27:void updateAllWidgets(android.content.Context):32:32 -> f
-    28:34:void updateAllWidgets(android.content.Context):33:33 -> f
-    1:11:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):59:59 -> g
-    12:15:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):61:61 -> g
-    16:19:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):62:62 -> g
-    20:23:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):63:63 -> g
-    24:27:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):64:64 -> g
-    28:31:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):65:65 -> g
-    32:37:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):67:67 -> g
-    38:43:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):69:69 -> g
-    44:46:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):67:67 -> g
-    47:52:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):70:70 -> g
-    53:58:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):72:72 -> g
-    59:61:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):70:70 -> g
-    62:65:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):74:74 -> g
-    66:70:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):76:76 -> g
-    71:73:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):74:74 -> g
-    74:84:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):78:78 -> g
-    85:93:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):79:79 -> g
-    94:104:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):80:80 -> g
-    105:113:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):82:82 -> g
-    114:119:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):88:88 -> g
-    120:123:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):89:89 -> g
-    124:130:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):83:83 -> g
-    131:134:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):84:84 -> g
+    1:7:void <clinit>():20:20 -> <clinit>
+    1:7:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):112:112 -> a
+    8:18:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):116:116 -> a
+    19:23:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):117:117 -> a
+    24:28:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):118:118 -> a
+    29:33:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):119:119 -> a
+    34:37:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):120:120 -> a
+    38:42:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):122:122 -> a
+    43:45:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):120:120 -> a
+    46:52:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):123:123 -> a
+    53:59:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):124:124 -> a
+    60:62:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):125:125 -> a
+    63:66:void lambda$loadArtworkAsync$0(java.lang.String,android.content.Context,java.lang.String,java.lang.String,boolean,android.appwidget.AppWidgetManager,int):126:126 -> a
+    1:4:void bindControlClicks(android.content.Context,android.widget.RemoteViews):58:58 -> b
+    5:8:void bindControlClicks(android.content.Context,android.widget.RemoteViews):59:59 -> b
+    9:11:void bindControlClicks(android.content.Context,android.widget.RemoteViews):58:58 -> b
+    12:15:void bindControlClicks(android.content.Context,android.widget.RemoteViews):60:60 -> b
+    16:19:void bindControlClicks(android.content.Context,android.widget.RemoteViews):61:61 -> b
+    20:22:void bindControlClicks(android.content.Context,android.widget.RemoteViews):60:60 -> b
+    23:26:void bindControlClicks(android.content.Context,android.widget.RemoteViews):62:62 -> b
+    27:30:void bindControlClicks(android.content.Context,android.widget.RemoteViews):63:63 -> b
+    31:33:void bindControlClicks(android.content.Context,android.widget.RemoteViews):62:62 -> b
+    34:42:void bindControlClicks(android.content.Context,android.widget.RemoteViews):64:64 -> b
+    43:52:void bindControlClicks(android.content.Context,android.widget.RemoteViews):65:65 -> b
+    1:7:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):37:37 -> c
+    8:10:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):38:38 -> c
+    11:21:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):40:40 -> c
+    22:30:android.app.PendingIntent controlIntent(android.content.Context,java.lang.String):43:43 -> c
+    2:14:android.graphics.Bitmap fetchBitmap(java.lang.String):133:133 -> d
+    15:17:android.graphics.Bitmap fetchBitmap(java.lang.String):134:134 -> d
+    18:21:android.graphics.Bitmap fetchBitmap(java.lang.String):135:135 -> d
+    22:24:android.graphics.Bitmap fetchBitmap(java.lang.String):136:136 -> d
+    25:27:android.graphics.Bitmap fetchBitmap(java.lang.String):137:137 -> d
+    28:35:android.graphics.Bitmap fetchBitmap(java.lang.String):138:138 -> d
+    36:39:android.graphics.Bitmap fetchBitmap(java.lang.String):151:151 -> d
+    40:49:android.graphics.Bitmap fetchBitmap(java.lang.String):141:141 -> d
+    50:55:android.graphics.Bitmap fetchBitmap(java.lang.String):151:151 -> d
+    56:59:android.graphics.Bitmap fetchBitmap(java.lang.String):146:146 -> d
+    60:80:android.graphics.Bitmap fetchBitmap(java.lang.String):151:151 -> d
+    81:83:android.graphics.Bitmap fetchBitmap(java.lang.String):153:153 -> d
+    84:87:android.graphics.Bitmap fetchBitmap(java.lang.String):151:151 -> d
+    1:18:void loadArtworkAsync(android.content.Context,android.appwidget.AppWidgetManager,int,java.lang.String,boolean,java.lang.String,java.lang.String):110:110 -> e
+    1:7:android.app.PendingIntent openAppIntent(android.content.Context):47:47 -> f
+    8:18:android.app.PendingIntent openAppIntent(android.content.Context):48:48 -> f
+    19:21:android.app.PendingIntent openAppIntent(android.content.Context):49:49 -> f
+    22:33:android.app.PendingIntent openAppIntent(android.content.Context):51:51 -> f
+    34:38:android.app.PendingIntent openAppIntent(android.content.Context):54:54 -> f
+    1:4:void updateAllWidgets(android.content.Context):25:25 -> g
+    5:11:void updateAllWidgets(android.content.Context):26:26 -> g
+    12:17:void updateAllWidgets(android.content.Context):27:27 -> g
+    18:21:void updateAllWidgets(android.content.Context):28:28 -> g
+    22:27:void updateAllWidgets(android.content.Context):31:31 -> g
+    28:34:void updateAllWidgets(android.content.Context):32:32 -> g
+    1:11:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):69:69 -> h
+    12:15:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):71:71 -> h
+    16:19:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):72:72 -> h
+    20:23:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):73:73 -> h
+    24:27:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):74:74 -> h
+    28:31:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):75:75 -> h
+    32:37:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):77:77 -> h
+    38:43:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):79:79 -> h
+    44:46:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):77:77 -> h
+    47:52:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):80:80 -> h
+    53:58:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):82:82 -> h
+    59:61:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):80:80 -> h
+    62:65:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):84:84 -> h
+    66:70:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):86:86 -> h
+    71:73:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):84:84 -> h
+    74:80:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):87:87 -> h
+    81:87:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):88:88 -> h
+    88:92:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):90:90 -> h
+    93:101:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):92:92 -> h
+    102:107:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):98:98 -> h
+    108:111:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):99:99 -> h
+    112:118:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):93:93 -> h
+    119:122:void updateWidget(android.content.Context,android.appwidget.AppWidgetManager,int):94:94 -> h
 com_shanmusic.com.WidgetRenderer$$ExternalSyntheticLambda0 -> N.f:
 # {"id":"sourceFile","fileName":"R8$$SyntheticClass"}
 # {"id":"com.android.tools.r8.synthesized"}

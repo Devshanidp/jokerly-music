@@ -23,8 +23,8 @@
 23-->
 24<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 25    package="com_shanmusic.com"
-26    android:versionCode="15"
-27    android:versionName="15" >
+26    android:versionCode="16"
+27    android:versionName="16" >
 28
 29    <uses-sdk
 30        android:minSdkVersion="21"
@@ -77,7 +77,7 @@
 55-->[androidx.core:core:1.13.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\a5429f7b20c607b890f08b5283ad4ec0\transformed\core-1.13.0\AndroidManifest.xml:26:22-94
 56
 57    <application
-57-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:42:5-243:19
+57-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:42:5-245:19
 58        android:name="com_shanmusic.com.Application"
 58-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:43:9-35
 59        android:allowBackup="true"
@@ -390,84 +390,90 @@
 218-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:231:17-64
 219        </receiver>
 220        <receiver
-220-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:234:9-240:20
+220-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:234:9-242:20
 221            android:name="com_shanmusic.com.WidgetControlReceiver"
 221-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:235:13-50
 222            android:exported="false" >
 222-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:236:13-37
 223            <intent-filter>
-223-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:237:13-239:29
+223-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:237:13-241:29
 224                <action android:name="com_shanmusic.com.WIDGET_TOGGLE" />
 224-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:238:17-74
 224-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:238:25-71
-225            </intent-filter>
-226        </receiver>
-227
-228        <provider
-228-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
-229            android:name="androidx.startup.InitializationProvider"
-229-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
-230            android:authorities="com_shanmusic.com.androidx-startup"
-230-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
-231            android:exported="false" >
-231-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
-232            <meta-data
-232-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
-233                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-233-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
-234                android:value="androidx.startup" />
-234-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
-235            <meta-data
-235-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\4bc52031417e9743197e36b704fe409f\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
-236                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-236-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\4bc52031417e9743197e36b704fe409f\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
-237                android:value="androidx.startup" />
-237-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\4bc52031417e9743197e36b704fe409f\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
-238            <meta-data
-238-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
-239                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-239-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
-240                android:value="androidx.startup" />
-240-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
-241        </provider>
-242
-243        <receiver
-243-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
-244            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-244-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
-245            android:directBootAware="false"
-245-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
-246            android:enabled="true"
-246-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
-247            android:exported="true"
-247-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
-248            android:permission="android.permission.DUMP" >
-248-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
-249            <intent-filter>
-249-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
-250                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-250-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
-250-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
-251            </intent-filter>
-252            <intent-filter>
-252-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
-253                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-253-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
-253-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
-254            </intent-filter>
-255            <intent-filter>
-255-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
-256                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-256-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
-256-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
-257            </intent-filter>
-258            <intent-filter>
-258-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
-259                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-259-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
-259-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
-260            </intent-filter>
-261        </receiver>
-262    </application>
-263
-264</manifest>
+225                <action android:name="com_shanmusic.com.WIDGET_NEXT" />
+225-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:239:17-72
+225-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:239:25-69
+226                <action android:name="com_shanmusic.com.WIDGET_PREV" />
+226-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:240:17-72
+226-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:240:25-69
+227            </intent-filter>
+228        </receiver>
+229
+230        <provider
+230-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+231            android:name="androidx.startup.InitializationProvider"
+231-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+232            android:authorities="com_shanmusic.com.androidx-startup"
+232-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+233            android:exported="false" >
+233-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+234            <meta-data
+234-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+235                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+235-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+236                android:value="androidx.startup" />
+236-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\5cb7738f5242d8c4e38c8ffa2b265b31\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+237            <meta-data
+237-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\4bc52031417e9743197e36b704fe409f\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+238                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+238-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\4bc52031417e9743197e36b704fe409f\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+239                android:value="androidx.startup" />
+239-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\4bc52031417e9743197e36b704fe409f\transformed\lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+240            <meta-data
+240-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+241                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+241-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+242                android:value="androidx.startup" />
+242-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+243        </provider>
+244
+245        <receiver
+245-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+246            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+246-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+247            android:directBootAware="false"
+247-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+248            android:enabled="true"
+248-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+249            android:exported="true"
+249-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+250            android:permission="android.permission.DUMP" >
+250-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+251            <intent-filter>
+251-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+252                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+252-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+252-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+253            </intent-filter>
+254            <intent-filter>
+254-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+255                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+255-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+255-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+256            </intent-filter>
+257            <intent-filter>
+257-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+258                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+258-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+258-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+259            </intent-filter>
+260            <intent-filter>
+260-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+261                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+261-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+261-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\bb4a0d32d1b17a1dcea0cf71d2bde5e0\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+262            </intent-filter>
+263        </receiver>
+264    </application>
+265
+266</manifest>

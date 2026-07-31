@@ -10310,11 +10310,15 @@ com_shanmusic.com.R$string:
     public static int widget_art_desc
     public static int widget_description
     public static int widget_name
+    public static int widget_next_desc
     public static int widget_play_desc
+    public static int widget_prev_desc
     private void <init>()
 com_shanmusic.com.R$xml
 com_shanmusic.com.R
 com_shanmusic.com.WidgetControlReceiver:
+    public static final java.lang.String ACTION_NEXT
+    public static final java.lang.String ACTION_PREV
     public static final java.lang.String ACTION_TOGGLE
 com_shanmusic.com.WidgetRenderer:
     private void <init>()
