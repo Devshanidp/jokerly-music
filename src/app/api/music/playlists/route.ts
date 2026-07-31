@@ -1,5 +1,6 @@
 import { getApiSession, unauthorized } from "@/lib/api-auth";
 import { compilePlaylist, parseSelectedArtists } from "@/lib/compile-playlist";
+import { isAutoCreatedPlaylist } from "@/lib/playlist-meta";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -20,15 +21,17 @@ export async function GET() {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const items = (playlists ?? []).map((pl: any) => ({
-    id: pl.id,
-    name: pl.name,
-    description: pl.description ?? "",
-    images: pl.image ? [{ url: pl.image }] : [],
-    tracks: { total: (pl.playlist_tracks as unknown as { count: number }[])?.[0]?.count ?? 0 },
-    owner: { display_name: "You" },
-    external_urls: { web: "" },
-  }));
+  const items = (playlists ?? [])
+    .map((pl: any) => ({
+      id: pl.id,
+      name: pl.name,
+      description: pl.description ?? "",
+      images: pl.image ? [{ url: pl.image }] : [],
+      tracks: { total: (pl.playlist_tracks as unknown as { count: number }[])?.[0]?.count ?? 0 },
+      owner: { display_name: "You" },
+      external_urls: { web: "" },
+    }))
+    .filter((pl) => !isAutoCreatedPlaylist(pl));
 
   return NextResponse.json({ items }, {
     headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" },

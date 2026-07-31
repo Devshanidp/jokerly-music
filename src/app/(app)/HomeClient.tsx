@@ -5,10 +5,9 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { PinnedAlbum, PinnedPlaylist } from "@/types";
 import Link from "next/link";
-import { Pin, Search, Loader2, Music, Mic2, Play, ListPlus, RefreshCw, Sparkles, SlidersHorizontal, UserCircle2, X, GripVertical, Check } from "lucide-react";
+import { Pin, Search, Loader2, Music, Mic2, Play, ListPlus, RefreshCw, SlidersHorizontal, UserCircle2, X, GripVertical, Check } from "lucide-react";
 import PinnedPlaylistSection from "@/components/home/PinnedPlaylistSection";
 import JumpBackInCard from "@/components/home/JumpBackInCard";
-import DailyMixSection from "@/components/home/DailyMixSection";
 import PersonalizeSheet, { FavoriteArtist } from "@/components/home/PersonalizeSheet";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import AlbumSheet from "@/components/music/AlbumSheet";
@@ -90,7 +89,6 @@ interface HomeCache {
   pinnedArtists: PinnedArtist[];
   pinnedAlbums: PinnedAlbum[];
   feedSections: FeedSection[];
-  forYouTracks: MusicTrack[];
   ts: number;
 }
 let homeCache: HomeCache | null = null;
@@ -103,7 +101,6 @@ const EMPTY_HOME_CACHE: HomeCache = {
   pinnedArtists: [],
   pinnedAlbums: [],
   feedSections: [],
-  forYouTracks: [],
   ts: 0,
 };
 
@@ -243,8 +240,6 @@ export default function HomeClient() {
   const [feedLoading, setFeedLoading] = useState(!hasStaleCache);
   const [pinned, setPinned] = useState<PinnedPlaylist[]>(cachedHome?.pinned ?? []);
   const [pinnedLoading, setPinnedLoading] = useState(!cachedHome?.pinned?.length);
-  const [forYouTracks, setForYouTracks] = useState<MusicTrack[]>(cachedHome?.forYouTracks ?? []);
-  const [forYouLoading, setForYouLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showPersonalize, setShowPersonalize] = useState(false);
 
@@ -426,46 +421,6 @@ export default function HomeClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [langs, fetchFeed]);
 
-  // For You — recommendations based on favorite artists
-  const fetchForYou = useCallback((artists: FavoriteArtist[], bust = false) => {
-    if (!isSessionHealthy) return;
-    if (!artists.length) {
-      setForYouTracks([]);
-      return;
-    }
-    const hasContent = !bust && (homeCache?.forYouTracks.length ?? 0) > 0;
-    if (!hasContent) setForYouLoading(true);
-    if (bust) setForYouTracks([]);
-    const ids = artists.map((a) => a.id).filter(Boolean).join(",");
-    if (!ids) {
-      setForYouLoading(false);
-      return;
-    }
-    fetch(`/api/music/for-you?artists=${encodeURIComponent(ids)}`, bust ? { cache: "no-store" } : {})
-      .then((r) => r.json())
-      .then((data) => {
-        const tracks: MusicTrack[] = Array.isArray(data.tracks) ? data.tracks : [];
-        if (!tracks.length && hasContent) return;
-        setForYouTracks(tracks);
-        writeHomeCache({ forYouTracks: tracks });
-      })
-      .catch(() => {})
-      .finally(() => setForYouLoading(false));
-  }, [isSessionHealthy]);
-
-  const lastForYouKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!favoriteArtists.length) return;
-    // Always fetch when cache has no For You tracks — don't skip just because the feed cache is fresh.
-    const cacheHasForYou = hasFreshCache && (homeCache?.forYouTracks?.length ?? 0) > 0;
-    if (cacheHasForYou) return;
-    const key = favoriteArtists.map((a) => a.id).join(",");
-    if (lastForYouKeyRef.current === key) return;
-    lastForYouKeyRef.current = key;
-    fetchForYou(favoriteArtists);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [favoriteArtists, fetchForYou]);
-
   // Sync pinned artists when ArtistSheet fires the event
   useEffect(() => {
     if (!isSessionHealthy) return;
@@ -569,10 +524,7 @@ export default function HomeClient() {
     homeCache = null;
     clearPreferencesCache();
     lastFeedKeyRef.current = newLangs.join(",");
-    lastForYouKeyRef.current = newArtists.map((a) => a.id).join(",");
     fetchFeed(newLangs, true);
-    if (newArtists.length) fetchForYou(newArtists, true);
-    else setForYouTracks([]);
   };
 
   // Suggestions
@@ -920,8 +872,6 @@ export default function HomeClient() {
 
               if (sectionId === "jumpBack") {
                 body = <JumpBackInCard />;
-              } else if (sectionId === "dailyMix") {
-                body = <DailyMixSection />;
               } else if (sectionId === "pinned") {
                 body = (
                   <section className="space-y-3">
@@ -1022,59 +972,6 @@ export default function HomeClient() {
                     </div>
                   </section>
                 );
-              } else if (
-                sectionId === "forYou" &&
-                (forYouTracks.length > 0 || forYouLoading || favoriteArtists.length > 0)
-              ) {
-                body = (
-                  <section className="space-y-3">
-                    <h3 className="text-white font-bold text-base flex items-center gap-2">
-                      <Sparkles size={14} className="text-[var(--accent)]" /> For You
-                    </h3>
-                    {forYouLoading ? (
-                      <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>
-                        {[0,1,2,3,4].map((j) => <TrackRowSkeleton key={j} />)}
-                      </div>
-                    ) : forYouTracks.length === 0 ? (
-                      <div className="rounded-2xl border border-white/[0.06] px-4 py-5 text-center" style={{ background: "var(--card)" }}>
-                        <p className="text-white/50 text-sm">Couldn&apos;t load recommendations right now.</p>
-                        <button
-                          type="button"
-                          onClick={() => fetchForYou(favoriteArtists, true)}
-                          className="mt-3 text-xs px-3 py-1.5 rounded-full border border-white/15 text-white/70 hover:text-white"
-                        >
-                          Try again
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "var(--card)" }}>
-                        {forYouTracks.slice(0, 8).map((track, i) => (
-                          <div key={track.id}
-                            className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/[0.05] transition-colors group border-b border-white/[0.04] last:border-0 cursor-pointer"
-                            onClick={() => setQueueAndPlay(forYouTracks.map(toPlayableFromTrack), i)}>
-                            <span className="text-white/20 text-xs w-5 text-right shrink-0 tabular-nums">{i + 1}</span>
-                            <div className="relative w-10 h-10 shrink-0">
-                              {trackImage(track)
-                                ? <Image src={trackImage(track)!} alt={track.name} fill unoptimized sizes="40px" className="rounded-xl object-cover" />
-                                : <div className="w-10 h-10 bg-white/[0.06] rounded-xl flex items-center justify-center"><Music size={14} className="text-white/20" /></div>}
-                              <div className="absolute inset-0 rounded-xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Play size={13} fill="white" className="text-white" />
-                              </div>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-white text-sm font-medium truncate">{track.name}</p>
-                              <p className="text-white/35 text-xs truncate">{artistNames(track)}</p>
-                            </div>
-                            <button onClick={(e) => { e.stopPropagation(); track.uri && setModalTrack({ name: track.name, uri: track.uri, image: trackImage(track), artist: artistNames(track) }); }}
-                              className="p-1.5 rounded-lg text-[var(--accent)]/60 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0">
-                              <ListPlus size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                );
               }
 
               if (!body && !reorderMode) return null;
@@ -1092,22 +989,6 @@ export default function HomeClient() {
           </div>
         </SortableContext>
       </DndContext>
-
-      {/* No favourite artists CTA */}
-      {!forYouLoading && forYouTracks.length === 0 && favoriteArtists.length === 0 && feedSections.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.07] p-4 flex items-center gap-3"
-          style={{ background: "var(--card)" }}>
-          <Sparkles size={22} className="text-[var(--accent)]/60 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-semibold">Personalise your feed</p>
-            <p className="text-white/35 text-xs mt-0.5">Add favourite artists for a &ldquo;For You&rdquo; section</p>
-          </div>
-          <button onClick={() => setShowPersonalize(true)}
-            className="btn-accent shrink-0 px-3 py-1.5 rounded-xl text-white text-xs font-semibold">
-            Add
-          </button>
-        </div>
-      )}
 
       {modalTrack && <AddToPlaylistModal track={modalTrack} onClose={() => setModalTrack(null)} />}
       {selectedArtist && <ArtistSheet artist={selectedArtist} onClose={() => setSelectedArtist(null)} />}

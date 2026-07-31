@@ -2,25 +2,21 @@ import { clearPreferencesCache, fetchPreferences } from "@/lib/preferences-clien
 
 export const HOME_SECTION_IDS = [
   "jumpBack",
-  "dailyMix",
   "pinned",
   "pinnedArtists",
   "pinnedAlbums",
-  "forYou",
 ] as const;
 
 export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
 
 export const HOME_SECTION_LABELS: Record<HomeSectionId, string> = {
   jumpBack: "Jump back in",
-  dailyMix: "Daily Mix",
   pinned: "Pinned",
   pinnedArtists: "Pinned Artists",
   pinnedAlbums: "Pinned Albums",
-  forYou: "For You",
 };
 
-const ORDER_KEY = "jokerly-home-order-v1";
+const ORDER_KEY = "jokerly-home-order-v2";
 
 export function normalizeHomeSectionOrder(raw: unknown): HomeSectionId[] {
   if (!Array.isArray(raw)) return [...HOME_SECTION_IDS];

@@ -57,6 +57,18 @@ export function isMixPlaylist(description?: string | null): boolean {
   return !!description?.startsWith(MIX_DESCRIPTION_PREFIX);
 }
 
+/** Daily Mix / system auto-saves — hide from My Playlists (user-created + uploads only). */
+export function isAutoCreatedPlaylist(pl: {
+  name?: string | null;
+  description?: string | null;
+}): boolean {
+  const name = (pl.name ?? "").trim();
+  const desc = (pl.description ?? "").trim();
+  if (/^Daily Mix(\s+\d+)?$/i.test(name)) return true;
+  if (/^Saved from Daily Mix\b/i.test(desc)) return true;
+  return false;
+}
+
 export function trackMatchesArtist(trackArtist: string | null | undefined, artistName: string): boolean {
   if (!trackArtist || !artistName) return false;
   const target = artistName.toLowerCase();

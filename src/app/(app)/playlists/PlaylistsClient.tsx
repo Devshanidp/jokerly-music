@@ -25,7 +25,7 @@ import EditMixArtistsSheet from "@/components/playlist/EditMixArtistsSheet";
 import ArtistSheet from "@/components/music/ArtistSheet";
 import { MusicArtist } from "@/types/music-catalog";
 import { useLikesStore } from "@/store/likes";
-import { isMixPlaylist, parseMixArtistRecords, parseMixArtists } from "@/lib/playlist-meta";
+import { isMixPlaylist, isAutoCreatedPlaylist, parseMixArtistRecords, parseMixArtists } from "@/lib/playlist-meta";
 import { shuffleArray } from "@/lib/shuffle";
 import PlaylistActionsMenu from "@/components/playlist/PlaylistActionsMenu";
 import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
@@ -63,6 +63,10 @@ let playlistsListCache: {
   pinnedIds: string[];
   at: number;
 } | null = null;
+
+function userPlaylistsOnly(items: MusicPlaylist[]) {
+  return items.filter((pl) => !isAutoCreatedPlaylist(pl));
+}
 
 // ── Sortable track row ──────────────────────────────────────────────────────
 function SortableTrackRow({
@@ -187,7 +191,9 @@ export default function PlaylistsClient() {
   const searchParams = useSearchParams();
   const openPlaylistId = searchParams.get("id");
   const deepLinkHandled = useRef<string | null>(null);
-  const [playlists, setPlaylists] = useState<MusicPlaylist[]>(() => playlistsListCache?.playlists ?? []);
+  const [playlists, setPlaylists] = useState<MusicPlaylist[]>(() =>
+    userPlaylistsOnly(playlistsListCache?.playlists ?? [])
+  );
   const [viewMode, setViewMode] = useState<PlaylistViewMode>("grid");
   const [loading, setLoading] = useState(() => !playlistsListCache);
   const [creating, setCreating] = useState(false);
@@ -315,7 +321,7 @@ export default function PlaylistsClient() {
   const load = useCallback(async () => {
     const cached = playlistsListCache;
     if (cached) {
-      setPlaylists(cached.playlists);
+      setPlaylists(userPlaylistsOnly(cached.playlists));
       setPinned(new Set(cached.pinnedIds));
       setLoading(false);
     } else {
@@ -329,7 +335,7 @@ export default function PlaylistsClient() {
       if (!plRes.ok) throw new Error("Failed to load playlists");
       const plData = await plRes.json();
       const pinData = (await pinRes.json()) as PinnedRow[];
-      const items = (plData.items ?? []) as MusicPlaylist[];
+      const items = userPlaylistsOnly((plData.items ?? []) as MusicPlaylist[]);
       const pinnedIds = pinData.map((p) => p.playlist_id);
       playlistsListCache = { playlists: items, pinnedIds, at: Date.now() };
       setPlaylists(items);
