@@ -22,6 +22,12 @@ import { usePlayerStore, PlayableTrack } from "@/store/player";
 import { useToastStore } from "@/store/toast";
 import AddToPlaylistModal from "@/components/playlist/AddToPlaylistModal";
 import AddFromPlaylistModal from "@/components/playlist/AddFromPlaylistModal";
+import {
+  clearCachedPlaylistTracks,
+  getCachedPlaylistTracks,
+  rememberPlaylistTracks,
+  seedPlaylistTracksMap,
+} from "@/lib/playlist-tracks-cache";
 
 interface PlaylistTrack {
   id: string;
@@ -154,7 +160,9 @@ function SortableTrackRow({
 export default function PinnedPlaylistSection({ pinned }: Props) {
   const [viewMode, setViewMode] = useState<PlaylistViewMode>("grid");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [tracksMap, setTracksMap] = useState<Record<string, PlaylistTrack[]>>({});
+  const [tracksMap, setTracksMap] = useState<Record<string, PlaylistTrack[]>>(
+    () => seedPlaylistTracksMap() as Record<string, PlaylistTrack[]>
+  );
   const [loading, setLoading] = useState<string | null>(null);
   const [removingTrack, setRemovingTrack] = useState<string | null>(null);
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
@@ -217,52 +225,75 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
   useBackHandler(!!addModal, () => setAddModal(null));
   useBackHandler(addFromPlaylist, () => setAddFromPlaylist(false));
 
-  // Prefetch all pinned playlist tracks for cover art
+  // Prefetch pinned playlist tracks for cover art + instant open
   useEffect(() => {
     if (!pinned.length) return;
     const controller = new AbortController();
     const prefetch = async () => {
       for (const pl of pinned) {
         if (controller.signal.aborted) break;
+        const cached = getCachedPlaylistTracks(pl.playlist_id);
+        if (cached) {
+          setTracksMap((prev) => (prev[pl.playlist_id] ? prev : { ...prev, [pl.playlist_id]: cached as PlaylistTrack[] }));
+          continue;
+        }
         try {
           const res = await fetch(`/api/music/playlists/${encodeURIComponent(pl.playlist_id)}`, { signal: controller.signal });
           if (!res.ok) continue;
           const data = await res.json();
-          setTracksMap((prev) => prev[pl.playlist_id] ? prev : { ...prev, [pl.playlist_id]: data.items ?? [] });
+          const items = (data.items ?? []) as PlaylistTrack[];
+          rememberPlaylistTracks(pl.playlist_id, items);
+          setTracksMap((prev) => (prev[pl.playlist_id] ? prev : { ...prev, [pl.playlist_id]: items }));
         } catch { /* ignore */ }
       }
     };
-    prefetch();
+    void prefetch();
     return () => controller.abort();
   }, [pinned]);
 
   useEffect(() => {
     const handler = (e: Event) => {
       const { playlistId } = (e as CustomEvent<{ playlistId: string }>).detail;
-      if (selectedId === playlistId) fetchTracks(playlistId);
-      else setTracksMap((prev) => { const n = { ...prev }; delete n[playlistId]; return n; });
+      if (selectedId === playlistId) void fetchTracks(playlistId, { silent: true, bust: true });
+      else {
+        clearCachedPlaylistTracks(playlistId);
+        setTracksMap((prev) => { const n = { ...prev }; delete n[playlistId]; return n; });
+      }
     };
     window.addEventListener("playlist-updated", handler);
     return () => window.removeEventListener("playlist-updated", handler);
   }, [selectedId]);
 
-  const fetchTracks = useCallback(async (id: string) => {
-    setLoading(id);
+  const fetchTracks = useCallback(async (id: string, opts?: { silent?: boolean; bust?: boolean }) => {
+    const cached = getCachedPlaylistTracks(id);
+    if (cached) {
+      setTracksMap((prev) => (prev[id] ? prev : { ...prev, [id]: cached as PlaylistTrack[] }));
+    }
+    if (!opts?.silent && !cached) setLoading(id);
     try {
-      const res = await fetch(`/api/music/playlists/${encodeURIComponent(id)}?_t=${Date.now()}`);
+      const url = opts?.bust
+        ? `/api/music/playlists/${encodeURIComponent(id)}?_t=${Date.now()}`
+        : `/api/music/playlists/${encodeURIComponent(id)}`;
+      const res = await fetch(url, { cache: opts?.bust ? "no-store" : "default" });
       if (!res.ok) throw new Error("Failed to load tracks");
       const data = await res.json();
-      setTracksMap((prev) => ({ ...prev, [id]: data.items ?? [] }));
+      const items = (data.items ?? []) as PlaylistTrack[];
+      rememberPlaylistTracks(id, items);
+      setTracksMap((prev) => ({ ...prev, [id]: items }));
     } catch (e) {
-      toast((e as Error).message ?? "Could not load playlist tracks");
+      if (!cached) toast((e as Error).message ?? "Could not load playlist tracks");
     } finally {
-      setLoading(null);
+      setLoading((cur) => (cur === id ? null : cur));
     }
   }, [toast]);
 
   const openPlaylist = (id: string) => {
+    const cached = getCachedPlaylistTracks(id) ?? tracksMap[id];
+    if (cached) {
+      setTracksMap((prev) => (prev[id] ? prev : { ...prev, [id]: cached as PlaylistTrack[] }));
+    }
     setSelectedId(id);
-    fetchTracks(id);
+    void fetchTracks(id, { silent: !!cached });
   };
 
   const toPlayable = useCallback(
@@ -424,7 +455,7 @@ export default function PinnedPlaylistSection({ pinned }: Props) {
         )}
 
         <div className="rounded-2xl overflow-hidden border" style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.06)" }}>
-          {isLoadingTracks ? (
+          {isLoadingTracks && tracks.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 size={14} className="animate-spin" style={{ color: "rgba(255,255,255,0.2)" }} />
             </div>

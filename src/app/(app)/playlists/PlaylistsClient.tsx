@@ -39,6 +39,14 @@ import TransferResultDialog, { TransferResult } from "@/components/transfer/Tran
 import { useOfflineStore } from "@/store/offline";
 import { useSession } from "next-auth/react";
 import { goToMusicPermissionUpgrade } from "@/lib/music-auth-client";
+import {
+  beginTracksPrefetch,
+  clearCachedPlaylistTracks,
+  endTracksPrefetch,
+  getCachedPlaylistTracks,
+  rememberPlaylistTracks,
+  seedPlaylistTracksMap,
+} from "@/lib/playlist-tracks-cache";
 
 interface EditState { id: string; name: string; description: string; }
 interface PinnedRow { playlist_id: string; }
@@ -58,19 +66,17 @@ let playlistsListCache: {
 
 // ── Sortable track row ──────────────────────────────────────────────────────
 function SortableTrackRow({
-  track, index, playlistId, onPlay, onRemove, onAddToPlaylist, removingKey,
+  track, index, playlistId, onPlay, onRemove, onAddToPlaylist, removingKey, isLiked, onToggleLike,
 }: {
   track: PlaylistTrack; index: number; playlistId: string;
   onPlay: () => void; onRemove: () => void; onAddToPlaylist: () => void; removingKey: string | null;
+  isLiked: boolean; onToggleLike: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: track.id });
-  const currentTrack = usePlayerStore((s) => s.currentTrack);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
-  const isCurrentlyPlaying = isPlaying && !!currentTrack?.uri && currentTrack.uri === track.track_uri;
-  const { load: loadLikes, songUris, toggleSong } = useLikesStore();
-  const isLiked = songUris.has(track.track_uri);
-  useEffect(() => { loadLikes(); }, [loadLikes]);
+  const isCurrentlyPlaying = usePlayerStore(
+    (s) => s.isPlaying && !!s.currentTrack?.uri && s.currentTrack.uri === track.track_uri
+  );
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -105,7 +111,7 @@ function SortableTrackRow({
       </div>
       <div className="relative w-9 h-9 rounded-lg shrink-0 overflow-hidden" style={{ background: "var(--card)" }}>
         {track.track_image ? (
-          <Image src={track.track_image} alt={track.track_name} fill unoptimized sizes="36px" className="object-cover" />
+          <Image src={track.track_image} alt={track.track_name} fill unoptimized sizes="36px" className="object-cover" loading="lazy" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Music size={12} style={{ color: "var(--text-muted)" }} />
@@ -123,7 +129,7 @@ function SortableTrackRow({
         <ListPlus size={13} />
       </button>
       <button
-        onClick={(e) => { e.stopPropagation(); toggleSong({ uri: track.track_uri, name: track.track_name, image: track.track_image ?? null, artist: track.track_artist ?? null }); }}
+        onClick={(e) => { e.stopPropagation(); onToggleLike(); }}
         title={isLiked ? "Unlike" : "Like"}
         className={`shrink-0 p-1.5 rounded-lg transition-all ${isLiked ? "text-[var(--accent)]" : "text-white/25 hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 sm:opacity-0 sm:group-hover:opacity-100"}`}
       >
@@ -181,9 +187,9 @@ export default function PlaylistsClient() {
   const searchParams = useSearchParams();
   const openPlaylistId = searchParams.get("id");
   const deepLinkHandled = useRef<string | null>(null);
-  const [playlists, setPlaylists] = useState<MusicPlaylist[]>([]);
+  const [playlists, setPlaylists] = useState<MusicPlaylist[]>(() => playlistsListCache?.playlists ?? []);
   const [viewMode, setViewMode] = useState<PlaylistViewMode>("grid");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !playlistsListCache);
   const [creating, setCreating] = useState(false);
   const [showArtistMixSheet, setShowArtistMixSheet] = useState(false);
   const [showImportChooser, setShowImportChooser] = useState(false);
@@ -212,7 +218,7 @@ export default function PlaylistsClient() {
   const [pinning, setPinning] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [tracksMap, setTracksMap] = useState<Record<string, PlaylistTrack[]>>({});
+  const [tracksMap, setTracksMap] = useState<Record<string, PlaylistTrack[]>>(() => seedPlaylistTracksMap() as Record<string, PlaylistTrack[]>);
   const [loadingTracks, setLoadingTracks] = useState<string | null>(null);
   const [removingTrack, setRemovingTrack] = useState<string | null>(null);
   const [addModal, setAddModal] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
@@ -224,13 +230,27 @@ export default function PlaylistsClient() {
   const [mounted, setMounted] = useState(false);
   const { toast } = useToastStore();
   const { data: session } = useSession();
-  const { setQueueAndPlay, currentTrack, isPlayerExpanded, deviceId } = usePlayerStore();
+  const setQueueAndPlay = usePlayerStore((s) => s.setQueueAndPlay);
+  const currentTrack = usePlayerStore((s) => s.currentTrack);
+  const isPlayerExpanded = usePlayerStore((s) => s.isPlayerExpanded);
+  const deviceId = usePlayerStore((s) => s.deviceId);
+  const { load: loadLikes, songUris, toggleSong } = useLikesStore();
   const downloadPlaylistOffline = useOfflineStore((s) => s.downloadPlaylist);
   const [downloadingPlaylistId, setDownloadingPlaylistId] = useState<string | null>(null);
   const hasPlayer = currentTrack !== null;
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    void loadLikes();
+  }, [loadLikes]);
+
+  useEffect(() => {
+    if (playlistsListCache?.pinnedIds) {
+      setPinned(new Set(playlistsListCache.pinnedIds));
+    }
   }, []);
 
   useEffect(() => {
@@ -283,6 +303,7 @@ export default function PlaylistsClient() {
     const newIdx = tracks.findIndex((t) => t.id === over.id);
     if (oldIdx === -1 || newIdx === -1) return;
     const reordered = arrayMove(tracks, oldIdx, newIdx);
+    rememberPlaylistTracks(playlistId, reordered);
     setTracksMap((prev) => ({ ...prev, [playlistId]: reordered }));
     fetch(`/api/music/playlists/${playlistId}`, {
       method: "PATCH",
@@ -320,19 +341,33 @@ export default function PlaylistsClient() {
     }
   }, [toast]);
 
-  const fetchTracks = useCallback(async (id: string) => {
-    setLoadingTracks(id);
+  const fetchTracks = useCallback(async (id: string, opts?: { silent?: boolean; bust?: boolean }) => {
+    const cached = getCachedPlaylistTracks(id);
+    const hasCache = cached !== undefined;
+    if (hasCache) {
+      setTracksMap((prev) => (prev[id] === cached ? prev : { ...prev, [id]: cached }));
+    }
+    if (!opts?.silent && !hasCache) {
+      setLoadingTracks(id);
+    }
     try {
-      const res = await fetch(`/api/music/playlists/${id}?_t=${Date.now()}`);
+      const url = opts?.bust
+        ? `/api/music/playlists/${id}?_t=${Date.now()}`
+        : `/api/music/playlists/${id}`;
+      const res = await fetch(url, { cache: opts?.bust ? "no-store" : "default" });
       const data = await res.json();
       const items = (data.items ?? []) as PlaylistTrack[];
+      rememberPlaylistTracks(id, items);
       setTracksMap((prev) => ({ ...prev, [id]: items }));
       return items;
     } catch {
-      setTracksMap((prev) => ({ ...prev, [id]: [] }));
-      return [] as PlaylistTrack[];
+      if (!hasCache) {
+        rememberPlaylistTracks(id, []);
+        setTracksMap((prev) => ({ ...prev, [id]: [] }));
+      }
+      return (getCachedPlaylistTracks(id) ?? []) as PlaylistTrack[];
     } finally {
-      setLoadingTracks(null);
+      setLoadingTracks((cur) => (cur === id ? null : cur));
     }
   }, []);
 
@@ -340,9 +375,9 @@ export default function PlaylistsClient() {
     async (pl: MusicPlaylist) => {
       setExportLoadingId(pl.id);
       try {
-        let list = tracksMap[pl.id];
+        let list = tracksMap[pl.id] ?? getCachedPlaylistTracks(pl.id);
         if (!list) {
-          list = await fetchTracks(pl.id);
+          list = await fetchTracks(pl.id, { silent: true });
         }
         if (!list.length) {
           toast("No tracks to export — open the playlist and add songs first");
@@ -443,7 +478,8 @@ export default function PlaylistsClient() {
     if (!playlists.some((p) => p.id === openPlaylistId)) return;
     deepLinkHandled.current = openPlaylistId;
     setSelectedId(openPlaylistId);
-  }, [openPlaylistId, loading, playlists]);
+    void fetchTracks(openPlaylistId, { silent: !!getCachedPlaylistTracks(openPlaylistId) });
+  }, [openPlaylistId, loading, playlists, fetchTracks]);
 
   // When ?id= is cleared (Back or Playlist nav), return to the list
   useEffect(() => {
@@ -470,16 +506,25 @@ export default function PlaylistsClient() {
     return () => window.removeEventListener("pinned-artists-updated", fetchPinnedArtists);
   }, []);
 
+  // Prefetch a few playlist track lists for instant open — not every playlist at once.
   useEffect(() => {
     if (playlists.length === 0) return;
-    playlists.forEach((pl) => {
-      if (tracksMap[pl.id]) return;
+    const PREFETCH = 8;
+    playlists.slice(0, PREFETCH).forEach((pl) => {
+      if (!beginTracksPrefetch(pl.id)) return;
       fetch(`/api/music/playlists/${pl.id}`)
         .then((r) => r.json())
-        .then((data) => setTracksMap((prev) => ({ ...prev, [pl.id]: data.items ?? [] })))
-        .catch(() => {});
+        .then((data) => {
+          const items = (data.items ?? []) as PlaylistTrack[];
+          rememberPlaylistTracks(pl.id, items);
+          setTracksMap((prev) => (prev[pl.id] ? prev : { ...prev, [pl.id]: items }));
+        })
+        .catch(() => {})
+        .finally(() => {
+          endTracksPrefetch(pl.id);
+        });
     });
-  }, [playlists, tracksMap]);
+  }, [playlists]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -487,16 +532,23 @@ export default function PlaylistsClient() {
       setPlaylists((prev) => prev.map((p) =>
         p.id === playlistId ? { ...p, tracks: { total: (p.tracks?.total ?? 0) + 1 } } : p
       ));
-      if (selectedId === playlistId) fetchTracks(playlistId);
-      else setTracksMap((prev) => { const n = { ...prev }; delete n[playlistId]; return n; });
+      if (selectedId === playlistId) void fetchTracks(playlistId, { silent: true, bust: true });
+      else {
+        clearCachedPlaylistTracks(playlistId);
+        setTracksMap((prev) => { const n = { ...prev }; delete n[playlistId]; return n; });
+      }
     };
     window.addEventListener("playlist-updated", handler);
     return () => window.removeEventListener("playlist-updated", handler);
   }, [fetchTracks, selectedId]);
 
   const openPlaylist = (pl: MusicPlaylist) => {
+    const cached = getCachedPlaylistTracks(pl.id) ?? tracksMap[pl.id];
+    if (cached) {
+      setTracksMap((prev) => (prev[pl.id] ? prev : { ...prev, [pl.id]: cached }));
+    }
     setSelectedId(pl.id);
-    fetchTracks(pl.id);
+    void fetchTracks(pl.id, { silent: !!cached });
   };
 
   const toPlayableQueue = (tracks: PlaylistTrack[]): PlayableTrack[] =>
@@ -562,6 +614,7 @@ export default function PlaylistsClient() {
       if (!res.ok) throw new Error(created.error ?? "Failed to create playlist");
 
       setPlaylists((prev) => [created, ...prev.filter((p) => p.id !== created.id)]);
+      rememberPlaylistTracks(created.id, []);
       setTracksMap((prev) => ({ ...prev, [created.id]: prev[created.id] ?? [] }));
       toast("Playlist created");
       setNewName(""); setNewDesc(""); setCreating(false);
@@ -659,7 +712,11 @@ export default function PlaylistsClient() {
         body: JSON.stringify({ trackId }),
       });
       if (!res.ok) throw new Error("Failed to remove track");
-      setTracksMap((prev) => ({ ...prev, [playlistId]: (prev[playlistId] ?? []).filter((t) => t.id !== trackId) }));
+      setTracksMap((prev) => {
+        const next = (prev[playlistId] ?? []).filter((t) => t.id !== trackId);
+        rememberPlaylistTracks(playlistId, next);
+        return { ...prev, [playlistId]: next };
+      });
       setPlaylists((prev) => prev.map((p) =>
         p.id === playlistId ? { ...p, tracks: { total: Math.max(0, (p.tracks?.total ?? 1) - 1) } } : p
       ));
@@ -906,7 +963,7 @@ export default function PlaylistsClient() {
 
         {/* Track list */}
         <div className="rounded-2xl overflow-hidden border" style={{ background: "var(--card)", borderColor: "rgba(255,255,255,0.06)" }}>
-          {isLoadingTracks ? (
+          {isLoadingTracks && tracks.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 size={14} className="animate-spin" style={{ color: "rgba(255,255,255,0.2)" }} />
             </div>
@@ -921,7 +978,10 @@ export default function PlaylistsClient() {
                       onPlay={() => playTrack(tracks, i)}
                       onRemove={() => removeTrack(pl.id, t.id)}
                       onAddToPlaylist={() => setAddModal({ name: t.track_name, uri: t.track_uri, image: t.track_image, artist: t.track_artist })}
-                      removingKey={removingTrack} />
+                      removingKey={removingTrack}
+                      isLiked={songUris.has(t.track_uri)}
+                      onToggleLike={() => toggleSong({ uri: t.track_uri, name: t.track_name, image: t.track_image ?? null, artist: t.track_artist ?? null })}
+                    />
                   ))}
                 </div>
               </SortableContext>
@@ -935,7 +995,7 @@ export default function PlaylistsClient() {
             targetPlaylistId={selectedPlaylist.id}
             targetPlaylistName={selectedPlaylist.name}
             onClose={() => setAddFromPlaylist(false)}
-            onTracksAdded={() => fetchTracks(selectedPlaylist.id)}
+            onTracksAdded={() => void fetchTracks(selectedPlaylist.id, { silent: true, bust: true })}
           />
         )}
         <EditMixArtistsSheet
