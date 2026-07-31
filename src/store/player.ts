@@ -31,6 +31,16 @@ export interface PlayableTrack {
 
 export type RepeatMode = "off" | "all" | "one";
 
+export interface PlaybackDevice {
+  id: string;
+  name: string;
+  type: string;
+  is_active: boolean;
+  is_restricted: boolean;
+  volume_percent: number | null;
+  supports_volume: boolean;
+}
+
 interface PlayerState {
   currentTrack: PlayableTrack | null;
   queue: PlayableTrack[];
@@ -43,7 +53,12 @@ interface PlayerState {
   isPlayerReady: boolean;
   sdkError: string | null;
   player: WebPlayer | null;
+  /** This browser's Web Playback SDK device id. */
   deviceId: string | null;
+  /** Where audio is currently routed (Connect target). Defaults to deviceId. */
+  activeDeviceId: string | null;
+  activeDeviceName: string | null;
+  isRemotePlayback: boolean;
   accessToken: string | null;
   repeatMode: RepeatMode;
   shuffleEnabled: boolean;
@@ -83,6 +98,8 @@ interface PlayerState {
   setCrossfadeSeconds: (seconds: number) => void;
   getNextIndex: () => number | null;
   getPrevIndex: () => number | null;
+  transferToDevice: (device: Pick<PlaybackDevice, "id" | "name">, opts?: { play?: boolean }) => Promise<void>;
+  syncRemotePlaybackState: () => Promise<void>;
 }
 
 interface WebPlayerTrack {
@@ -328,8 +345,11 @@ function hydrateFromSdkState(state: WebPlayerState | null) {
     return;
   }
 
-  const sdkTrack = state.track_window.current_track;
   const prev = usePlayerStore.getState();
+  // Remote Connect target owns playback — ignore local SDK transport noise.
+  if (isRemoteTarget(prev)) return;
+
+  const sdkTrack = state.track_window.current_track;
 
   if (prev.isTransitioning && Date.now() < ignorePausedUntil) {
     return;
@@ -418,7 +438,10 @@ async function catalogApi(path: string, accessToken: string, options: RequestIni
   }
 }
 
-async function playerApi(action: "play" | "repeat" | "shuffle", body: Record<string, unknown>) {
+async function playerApi(
+  action: "play" | "repeat" | "shuffle" | "transfer" | "pause" | "resume" | "seek" | "volume",
+  body: Record<string, unknown>
+) {
   const res = await fetch("/api/music/player", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -429,6 +452,20 @@ async function playerApi(action: "play" | "repeat" | "shuffle", body: Record<str
     const details = await res.text().catch(() => "");
     throw new Error(details || `Player API ${res.status}`);
   }
+}
+
+function effectiveDeviceId(state: { deviceId: string | null; activeDeviceId: string | null }) {
+  return state.activeDeviceId || state.deviceId;
+}
+
+function isRemoteTarget(state: {
+  deviceId: string | null;
+  activeDeviceId: string | null;
+  isRemotePlayback: boolean;
+}) {
+  if (state.isRemotePlayback) return true;
+  if (!state.deviceId || !state.activeDeviceId) return false;
+  return state.activeDeviceId !== state.deviceId;
 }
 
 /** Play one track at a time — the app manages queue navigation locally. */
@@ -467,6 +504,9 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   sdkError: null,
   player: null,
   deviceId: null,
+  activeDeviceId: null,
+  activeDeviceName: null,
+  isRemotePlayback: false,
   accessToken: null,
   repeatMode: "off",
   shuffleEnabled: false,
@@ -549,7 +589,15 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         notReadyTimer = null;
       }
       clearPlayRetry(true);
-      set({ deviceId: ready.device_id, isPlayerReady: true, sdkError: null });
+      set({
+        deviceId: ready.device_id,
+        activeDeviceId: get().isRemotePlayback ? get().activeDeviceId : ready.device_id,
+        activeDeviceName: get().isRemotePlayback
+          ? get().activeDeviceName
+          : `${APP_NAME} (this device)`,
+        isPlayerReady: true,
+        sdkError: null,
+      });
       void player.setVolume(get().volume).catch(() => {});
 
       if (pendingPlayOnReadyIndex !== null) {
@@ -632,6 +680,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         previous.isPlaying &&
         !userPausedIntent &&
         !previous.isTransitioning &&
+        !isRemoteTarget(previous) &&
         playIntentIndex === null &&
         pendingPlayOnReadyIndex === null &&
         !!nextState &&
@@ -771,7 +820,9 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
   playIndex: async (index) => {
     requestAudioFocus();
-    const { queue, deviceId, currentTrack, isPlaying, isTransitioning, queueIndex, player } = get();
+    const snap = get();
+    const { queue, currentTrack, isPlaying, isTransitioning, queueIndex, player } = snap;
+    const deviceId = effectiveDeviceId(snap);
     if (index < 0 || index >= queue.length) return;
     if (isTransitioning && isPlaying) return;
     if (isTransitioning && !isPlaying) {
@@ -955,9 +1006,6 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
-    const { player } = get();
-    if (!player) return;
-
     userPausedIntent = true;
     playIntentIndex = null;
     suppressAutoResumeUntil = Date.now() + 60_000;
@@ -965,6 +1013,23 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     clearPlayRetry(true);
     ignorePausedUntil = 0;
     wasPlayingBeforeDocumentHidden = false;
+
+    const snap = get();
+    const targetId = effectiveDeviceId(snap);
+
+    if (isRemoteTarget(snap) && targetId) {
+      try {
+        await playerApi("pause", { deviceId: targetId });
+      } catch {
+        /* still mark paused */
+      }
+      set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+      updateMediaSessionState(false);
+      return;
+    }
+
+    const { player } = snap;
+    if (!player) return;
 
     try {
       await player.pause();
@@ -997,7 +1062,22 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
-    const { player } = get();
+    const snap = get();
+    if (isRemoteTarget(snap)) {
+      const targetId = effectiveDeviceId(snap);
+      if (targetId) {
+        try {
+          await playerApi("pause", { deviceId: targetId });
+        } catch {
+          /* ignore */
+        }
+      }
+      set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+      updateMediaSessionState(false);
+      return;
+    }
+
+    const { player } = snap;
     if (!player) return;
 
     try {
@@ -1013,7 +1093,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   maintainPlayback: async (resumeIfWasPlaying = false) => {
     if (Date.now() < suppressAutoResumeUntil && userPausedIntent) return;
 
-    const { player, volume, isOfflinePlayback, currentTrack, queueIndex, queue, isPlaying, deviceId, progressMs } = get();
+    const snap = get();
+    const { player, volume, isOfflinePlayback, currentTrack, queueIndex, queue, isPlaying, progressMs } = snap;
     if (isOfflinePlayback) {
       if (resumeIfWasPlaying && !isOfflinePlaying()) {
         resumeOfflinePlayback();
@@ -1023,6 +1104,22 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
+    if (isRemoteTarget(snap)) {
+      if (!resumeIfWasPlaying && !isPlaying) return;
+      const targetId = effectiveDeviceId(snap);
+      if (!targetId || !currentTrack?.uri) return;
+      try {
+        await playerApi("resume", { deviceId: targetId });
+        set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+        lastConfirmedPlayingAt = Date.now();
+        updateMediaSessionState(true);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+
+    const deviceId = snap.deviceId;
     if (!player) return;
     requestAudioFocus();
 
@@ -1093,7 +1190,31 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
-    const { player, isPlaying, currentTrack, queue, queueIndex, deviceId, progressMs } = get();
+    const snap = get();
+    const { player, isPlaying, currentTrack, queue, queueIndex, progressMs } = snap;
+    const deviceId = effectiveDeviceId(snap);
+
+    if (isRemoteTarget(snap)) {
+      if (!deviceId) return;
+      const track = currentTrack ?? (queueIndex >= 0 ? queue[queueIndex] : null);
+      if (!track?.uri) return;
+      userPausedIntent = false;
+      suppressAutoResumeUntil = 0;
+      try {
+        await playerApi("play", {
+          deviceId,
+          uris: [track.uri],
+          positionMs: Math.max(0, progressMs ?? 0),
+        });
+        set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
+        lastConfirmedPlayingAt = Date.now();
+        updateMediaSessionState(true);
+      } catch {
+        set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+      }
+      return;
+    }
+
     if (isPlaying) {
       const sdkPlaying = await player?.getCurrentState().catch(() => null);
       if (sdkPlaying && !sdkPlaying.paused) return;
@@ -1187,9 +1308,20 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
-    const { player, durationMs } = get();
-    if (!player || !isFinite(durationMs) || durationMs <= 0) return;
+    const snap = get();
+    const { player, durationMs } = snap;
+    if (!isFinite(durationMs) || durationMs <= 0) return;
     const target = Math.max(0, Math.min(durationMs, Math.floor(durationMs * ratio)));
+    set({ progressMs: target });
+
+    if (isRemoteTarget(snap)) {
+      const deviceId = effectiveDeviceId(snap);
+      if (!deviceId) return;
+      await playerApi("seek", { deviceId, positionMs: target }).catch(() => {});
+      return;
+    }
+
+    if (!player) return;
     await player.seek(target);
   },
 
@@ -1222,7 +1354,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
   setRepeatMode: async (mode) => {
     set({ repeatMode: mode });
-    const { deviceId } = get();
+    const deviceId = effectiveDeviceId(get());
     if (!deviceId) return;
     const state = mode === "one" ? "track" : mode === "all" ? "context" : "off";
     await playerApi("repeat", { deviceId, state }).catch(() => {});
@@ -1231,7 +1363,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   toggleShuffle: async () => {
     const next = !get().shuffleEnabled;
     set({ shuffleEnabled: next });
-    const { deviceId } = get();
+    const deviceId = effectiveDeviceId(get());
     if (!deviceId) return;
     await playerApi("shuffle", { deviceId, state: next }).catch(() => {});
   },
@@ -1248,8 +1380,78 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   setVolume: async (volume) => {
     const clamped = Math.max(0, Math.min(1, volume));
     set({ volume: clamped });
-    const { player } = get();
+    const snap = get();
+    if (isRemoteTarget(snap)) {
+      const deviceId = effectiveDeviceId(snap);
+      if (!deviceId) return;
+      await playerApi("volume", {
+        deviceId,
+        volumePercent: Math.round(clamped * 100),
+      }).catch(() => {});
+      return;
+    }
+    const { player } = snap;
     if (player) await player.setVolume(clamped).catch(() => {});
+  },
+
+  transferToDevice: async (device, opts) => {
+    const play = opts?.play ?? get().isPlaying;
+    const localId = get().deviceId;
+    const isLocal = !!localId && device.id === localId;
+
+    await playerApi("transfer", { deviceId: device.id, play });
+
+    set({
+      activeDeviceId: device.id,
+      activeDeviceName: isLocal ? `${APP_NAME} (this device)` : device.name,
+      isRemotePlayback: !isLocal,
+    });
+
+    if (isLocal && play) {
+      ignorePausedUntil = Date.now() + 2500;
+      userPausedIntent = false;
+      void get().maintainPlayback(true);
+    } else if (play) {
+      set({ isPlaying: true });
+      lastConfirmedPlayingAt = Date.now();
+      updateMediaSessionState(true);
+    }
+  },
+
+  syncRemotePlaybackState: async () => {
+    if (!isRemoteTarget(get())) return;
+    try {
+      const res = await fetch("/api/music/player/devices", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        activeDeviceId?: string | null;
+        isPlaying?: boolean;
+        progressMs?: number;
+        durationMs?: number;
+        devices?: PlaybackDevice[];
+      };
+      const active = data.devices?.find((d) => d.id === data.activeDeviceId);
+      set({
+        ...(data.activeDeviceId
+          ? {
+              activeDeviceId: data.activeDeviceId,
+              activeDeviceName: active?.name ?? get().activeDeviceName,
+              isRemotePlayback: !!get().deviceId && data.activeDeviceId !== get().deviceId,
+            }
+          : {}),
+        ...(typeof data.isPlaying === "boolean" ? { isPlaying: data.isPlaying } : {}),
+        ...(typeof data.progressMs === "number" ? { progressMs: data.progressMs } : {}),
+        ...(typeof data.durationMs === "number" && data.durationMs > 0
+          ? { durationMs: data.durationMs }
+          : {}),
+      });
+      if (data.isPlaying) {
+        lastConfirmedPlayingAt = Date.now();
+        updateMediaSessionState(true);
+      }
+    } catch {
+      /* ignore */
+    }
   },
 
   removeFromQueue: (index) => {
@@ -1367,6 +1569,9 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     sdkError: null,
     player: null,
     deviceId: null,
+    activeDeviceId: null,
+    activeDeviceName: null,
+    isRemotePlayback: false,
     accessToken: null,
     initializePlayer: state.initializePlayer,
     setQueueAndPlay: state.setQueueAndPlay,
@@ -1388,6 +1593,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     getNextIndex: state.getNextIndex,
     getPrevIndex: state.getPrevIndex,
     setVolume: state.setVolume,
+    transferToDevice: state.transferToDevice,
+    syncRemotePlaybackState: state.syncRemotePlaybackState,
     removeFromQueue: state.removeFromQueue,
     setSleepTimer: state.setSleepTimer,
   }),

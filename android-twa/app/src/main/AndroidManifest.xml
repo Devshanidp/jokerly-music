@@ -236,6 +236,8 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com_shanmusic.com.WIDGET_TOGGLE" />
+                <action android:name="com_shanmusic.com.WIDGET_NEXT" />
+                <action android:name="com_shanmusic.com.WIDGET_PREV" />
             </intent-filter>
         </receiver>
 

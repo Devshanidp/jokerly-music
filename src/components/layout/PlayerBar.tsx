@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState, useRef } from "react";
 import { handleDocumentVisibilityChange, usePlayerStore } from "@/store/player";
 import { useLikesStore } from "@/store/likes";
-import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal, Share2, Radio } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Music, Repeat, Repeat1, Shuffle, ChevronDown, ListPlus, Loader2, Heart, Volume1, Volume2, VolumeX, ListOrdered, Timer, MicVocal, Share2, Radio, Cast } from "lucide-react";
 import TrackDownloadButton from "@/components/playlist/TrackDownloadButton";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
@@ -12,6 +12,7 @@ import QueueSheet from "@/components/player/QueueSheet";
 import LyricsPanel from "@/components/player/LyricsPanel";
 import SimilarMusicSection from "@/components/player/SimilarMusicSection";
 import ShareNowPlayingSheet from "@/components/player/ShareNowPlayingSheet";
+import DevicePickerSheet from "@/components/player/DevicePickerSheet";
 import { fetchRadioTracks } from "@/lib/radio";
 import { trackIdFromUri } from "@/lib/track-uri";
 import { useToastStore } from "@/store/toast";
@@ -76,6 +77,10 @@ export default function PlayerBar() {
     setRadioMode,
     setQueueAndPlay,
   } = usePlayerStore();
+  const isRemotePlayback = usePlayerStore((s) => s.isRemotePlayback);
+  const activeDeviceName = usePlayerStore((s) => s.activeDeviceName);
+  const isOfflinePlayback = usePlayerStore((s) => s.isOfflinePlayback);
+  const syncRemotePlaybackState = usePlayerStore((s) => s.syncRemotePlaybackState);
 
   const { load: loadLikes, songUris, toggleSong } = useLikesStore();
   const { toast } = useToastStore();
@@ -91,6 +96,7 @@ export default function PlayerBar() {
   const [timerRemaining, setTimerRemaining] = useState<string | null>(null);
   const [showLyrics, setShowLyrics] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
+  const [showDevicePicker, setShowDevicePicker] = useState(false);
   const [startingRadio, setStartingRadio] = useState(false);
   const radioExtendingRef = useRef(false);
   const radioRefreshRef = useRef(0);
@@ -542,6 +548,16 @@ export default function PlayerBar() {
     return () => clearInterval(id);
   }, [sleepTimerEndsAt]);
 
+  // Keep progress/state in sync while audio is on a Connect speaker/TV.
+  useEffect(() => {
+    if (!isRemotePlayback || !expanded) return;
+    void syncRemotePlaybackState();
+    const id = window.setInterval(() => {
+      void syncRemotePlaybackState();
+    }, 2500);
+    return () => window.clearInterval(id);
+  }, [isRemotePlayback, expanded, syncRemotePlaybackState]);
+
   if (!currentTrack) return null;
 
   const prevIndex = getPrevIndex();
@@ -624,6 +640,26 @@ export default function PlayerBar() {
                   <p className="truncate text-xl font-bold text-white">{currentTrack.name}</p>
                   <p className="mt-0.5 truncate text-sm text-white/55">{currentTrack.artist}</p>
                 </div>
+
+                {/* Playback device */}
+                {!isOfflinePlayback && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDevicePicker(true)}
+                    className={`w-full flex items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm transition-colors ${
+                      isRemotePlayback
+                        ? "bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/35"
+                        : "bg-white/[0.05] text-white/70 hover:bg-white/[0.08] border border-white/10"
+                    }`}
+                  >
+                    <Cast size={14} className="shrink-0" />
+                    <span className="truncate font-medium">
+                      {isRemotePlayback
+                        ? `Playing on ${activeDeviceName || "speaker"}`
+                        : "This device"}
+                    </span>
+                  </button>
+                )}
 
                 {/* Switching indicator */}
                 {(isTransitioning || fetching) && (
@@ -860,7 +896,11 @@ export default function PlayerBar() {
             <div className="min-w-0 flex-1">
               <p className="text-white text-sm font-semibold truncate leading-snug group-hover/info:text-[var(--accent)]/90 transition-colors">{currentTrack.name}</p>
               <p className="text-white/40 text-xs truncate mt-0.5">
-                {isTransitioning && pendingTrack ? `Switching to ${pendingTrack.name}...` : currentTrack.artist}
+                {isTransitioning && pendingTrack
+                  ? `Switching to ${pendingTrack.name}...`
+                  : isRemotePlayback
+                    ? `On ${activeDeviceName || "speaker"}`
+                    : currentTrack.artist}
               </p>
             </div>
           </button>
@@ -944,6 +984,11 @@ export default function PlayerBar() {
           onClose={() => setShowShareSheet(false)}
         />
       )}
+
+      <DevicePickerSheet
+        open={showDevicePicker}
+        onClose={() => setShowDevicePicker(false)}
+      />
     </>
   );
 }

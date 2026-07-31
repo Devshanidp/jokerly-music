@@ -9,7 +9,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
-import android.view.View;
 import android.widget.RemoteViews;
 
 import java.net.HttpURLConnection;
@@ -55,6 +54,17 @@ public final class WidgetRenderer {
         return PendingIntent.getActivity(context, 1, intent, flags);
     }
 
+    private static void bindControlClicks(Context context, RemoteViews views) {
+        views.setOnClickPendingIntent(
+                R.id.widget_play_pause, controlIntent(context, WidgetControlReceiver.ACTION_TOGGLE));
+        views.setOnClickPendingIntent(
+                R.id.widget_next, controlIntent(context, WidgetControlReceiver.ACTION_NEXT));
+        views.setOnClickPendingIntent(
+                R.id.widget_prev, controlIntent(context, WidgetControlReceiver.ACTION_PREV));
+        views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context));
+        views.setOnClickPendingIntent(R.id.widget_art, openAppIntent(context));
+    }
+
     public static void updateWidget(Context context, AppWidgetManager manager, int appWidgetId) {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_now_playing);
 
@@ -74,10 +84,10 @@ public final class WidgetRenderer {
         views.setImageViewResource(
                 R.id.widget_play_pause,
                 playing ? R.drawable.ic_widget_pause : R.drawable.ic_widget_play);
+        views.setImageViewResource(R.id.widget_next, R.drawable.ic_widget_next);
+        views.setImageViewResource(R.id.widget_prev, R.drawable.ic_widget_prev);
 
-        views.setOnClickPendingIntent(R.id.widget_play_pause, controlIntent(context, WidgetControlReceiver.ACTION_TOGGLE));
-        views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context));
-        views.setOnClickPendingIntent(R.id.widget_art, openAppIntent(context));
+        bindControlClicks(context, views);
 
         if (!hasTrack || imageUrl.isEmpty()) {
             views.setImageViewResource(R.id.widget_art, R.mipmap.ic_launcher);
@@ -110,11 +120,9 @@ public final class WidgetRenderer {
                     views.setImageViewResource(
                             R.id.widget_play_pause,
                             playing ? R.drawable.ic_widget_pause : R.drawable.ic_widget_play);
-                    views.setOnClickPendingIntent(
-                            R.id.widget_play_pause,
-                            controlIntent(context, WidgetControlReceiver.ACTION_TOGGLE));
-                    views.setOnClickPendingIntent(R.id.widget_root, openAppIntent(context));
-                    views.setOnClickPendingIntent(R.id.widget_art, openAppIntent(context));
+                    views.setImageViewResource(R.id.widget_next, R.drawable.ic_widget_next);
+                    views.setImageViewResource(R.id.widget_prev, R.drawable.ic_widget_prev);
+                    bindControlClicks(context, views);
                     manager.updateAppWidget(appWidgetId, views);
                 });
     }

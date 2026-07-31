@@ -40,9 +40,11 @@
     
   </string>
   <string name="widget_name">Now Playing</string>
-  <string name="widget_description">See what is playing and control playback from your home screen.</string>
+  <string name="widget_description">See what is playing and control play, pause, and next from your home screen.</string>
   <string name="widget_empty_title">ShaN\'sMusic</string>
   <string name="widget_empty_artist">Open the app and play a song</string>
   <string name="widget_art_desc">Album art</string>
   <string name="widget_play_desc">Play or pause</string>
+  <string name="widget_next_desc">Next track</string>
+  <string name="widget_prev_desc">Previous track</string>
 </resources>
