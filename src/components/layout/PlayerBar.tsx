@@ -549,12 +549,13 @@ export default function PlayerBar() {
   }, [sleepTimerEndsAt]);
 
   // Keep progress/state in sync while audio is on a Connect speaker/TV.
+  // Also runs collapsed so control returns here once that device stops.
   useEffect(() => {
-    if (!isRemotePlayback || !expanded) return;
+    if (!isRemotePlayback) return;
     void syncRemotePlaybackState();
     const id = window.setInterval(() => {
       void syncRemotePlaybackState();
-    }, 2500);
+    }, expanded ? 2500 : 7000);
     return () => window.clearInterval(id);
   }, [isRemotePlayback, expanded, syncRemotePlaybackState]);
 

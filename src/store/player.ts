@@ -187,6 +187,7 @@ let autoResumeTimer: ReturnType<typeof setTimeout> | null = null;
 const MAX_PLAY_RETRIES = 4;
 const UNEXPECTED_PAUSE_RECOVERY_MS = 350;
 const RECENTLY_PLAYING_MS = 45_000;
+const ACTIVE_TARGET_TTL = 5_000;
 
 function clearAutoResumeTimer() {
   if (!autoResumeTimer) return;
@@ -198,10 +199,110 @@ function hadRecentPlaybackIntent() {
   return Date.now() - lastConfirmedPlayingAt < RECENTLY_PLAYING_MS;
 }
 
+interface ActivePlaybackTarget {
+  deviceId: string | null;
+  name: string | null;
+  isPlaying: boolean;
+}
+
+let activeTargetCache: { at: number; target: ActivePlaybackTarget } | null = null;
+let activeTargetInFlight: Promise<ActivePlaybackTarget | null> | null = null;
+/** True only when the listener picked a device in the sheet. */
+let remoteChosenByUser = false;
+
+/** Throttled — keep-alive fires from several places on every route change. */
+async function readActivePlaybackTarget(): Promise<ActivePlaybackTarget | null> {
+  if (activeTargetCache && Date.now() - activeTargetCache.at < ACTIVE_TARGET_TTL) {
+    return activeTargetCache.target;
+  }
+  if (activeTargetInFlight) return activeTargetInFlight;
+
+  activeTargetInFlight = fetch("/api/music/player/devices", { cache: "no-store" })
+    .then(async (res) => {
+      if (!res.ok) return null;
+      const data = (await res.json()) as {
+        activeDeviceId?: string | null;
+        isPlaying?: boolean;
+        devices?: PlaybackDevice[];
+      };
+      const deviceId = data.activeDeviceId ?? null;
+      const target: ActivePlaybackTarget = {
+        deviceId,
+        name: data.devices?.find((d) => d.id === deviceId)?.name ?? null,
+        isPlaying: !!data.isPlaying,
+      };
+      activeTargetCache = { at: Date.now(), target };
+      return target;
+    })
+    .catch(() => null)
+    .finally(() => {
+      activeTargetInFlight = null;
+    });
+
+  return activeTargetInFlight;
+}
+
+export function invalidateActivePlaybackTarget() {
+  activeTargetCache = null;
+}
+
+/**
+ * A device we merely followed must not capture an explicit play in this tab —
+ * only a pick from the device sheet should keep audio on another device.
+ */
+function reclaimLocalDeviceIfAdopted() {
+  const snapshot = usePlayerStore.getState();
+  if (remoteChosenByUser || !isRemoteTarget(snapshot) || !snapshot.deviceId) return;
+  usePlayerStore.setState({
+    activeDeviceId: snapshot.deviceId,
+    activeDeviceName: `${APP_NAME} (this device)`,
+    isRemotePlayback: false,
+  });
+  activeTargetCache = null;
+}
+
+/**
+ * The Web Playback SDK reports a null state whenever this browser is not the
+ * account's active device. Follow that device instead of grabbing playback back —
+ * otherwise every open client (phone, desktop, second tab) keeps stealing from
+ * the others. Only an explicit play moves audio back here.
+ */
+async function adoptForeignPlaybackTarget() {
+  // Our own play requests leave a brief window where this device is not active yet.
+  if (
+    playIntentIndex !== null ||
+    pendingPlayOnReadyIndex !== null ||
+    Date.now() < ignorePausedUntil ||
+    usePlayerStore.getState().isTransitioning
+  ) {
+    return false;
+  }
+
+  const localId = usePlayerStore.getState().deviceId;
+  const target = await readActivePlaybackTarget();
+  if (!target?.isPlaying || !target.deviceId) return false;
+  if (localId && target.deviceId === localId) return false;
+
+  remoteChosenByUser = false;
+  usePlayerStore.setState({
+    activeDeviceId: target.deviceId,
+    activeDeviceName: target.name ?? usePlayerStore.getState().activeDeviceName,
+    isRemotePlayback: true,
+    isPlaying: true,
+    isTransitioning: false,
+    pendingIndex: null,
+  });
+  lastConfirmedPlayingAt = Date.now();
+  updateMediaSessionState(true);
+  return true;
+}
+
 function shouldAttemptPlaybackRecovery() {
-  const { currentTrack, isTransitioning } = usePlayerStore.getState();
+  const snapshot = usePlayerStore.getState();
+  const { currentTrack, isTransitioning } = snapshot;
   return (
     !userPausedIntent &&
+    !isRemoteTarget(snapshot) &&
     Date.now() >= suppressAutoResumeUntil &&
     !!currentTrack?.uri &&
     !isTransitioning &&
@@ -225,9 +326,11 @@ export function handleDocumentVisibilityChange() {
   if (typeof document === "undefined") return;
 
   if (document.visibilityState === "hidden") {
-    const { isPlaying, currentTrack } = usePlayerStore.getState();
+    const snapshot = usePlayerStore.getState();
+    const { isPlaying, currentTrack } = snapshot;
     wasPlayingBeforeDocumentHidden =
       !userPausedIntent &&
+      !isRemoteTarget(snapshot) &&
       !!currentTrack?.uri &&
       (isPlaying || hadRecentPlaybackIntent());
     return;
@@ -442,6 +545,9 @@ async function playerApi(
   action: "play" | "repeat" | "shuffle" | "transfer" | "pause" | "resume" | "seek" | "volume",
   body: Record<string, unknown>
 ) {
+  // Any transport command changes who owns playback — don't trust the cached target.
+  invalidateActivePlaybackTarget();
+
   const res = await fetch("/api/music/player", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -820,6 +926,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
   playIndex: async (index) => {
     requestAudioFocus();
+    reclaimLocalDeviceIfAdopted();
     const snap = get();
     const { queue, currentTrack, isPlaying, isTransitioning, queueIndex, player } = snap;
     const deviceId = effectiveDeviceId(snap);
@@ -1136,6 +1243,9 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     const state = await player.getCurrentState().catch(() => null);
     if (state) {
       hydrateFromSdkState(state);
+    } else if (await adoptForeignPlaybackTarget()) {
+      // Audio is live on another device — follow it rather than stealing it back.
+      return;
     }
 
     const shouldResume =
@@ -1190,6 +1300,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
+    reclaimLocalDeviceIfAdopted();
     const snap = get();
     const { player, isPlaying, currentTrack, queue, queueIndex, progressMs } = snap;
     const deviceId = effectiveDeviceId(snap);
@@ -1327,6 +1438,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
   stop: async () => {
     const { player } = get();
+    remoteChosenByUser = false;
+    activeTargetCache = null;
     userPausedIntent = true;
     playIntentIndex = null;
     suppressAutoResumeUntil = Date.now() + 60_000;
@@ -1401,6 +1514,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     await playerApi("transfer", { deviceId: device.id, play });
 
+    remoteChosenByUser = !isLocal;
+    activeTargetCache = null;
     set({
       activeDeviceId: device.id,
       activeDeviceName: isLocal ? `${APP_NAME} (this device)` : device.name,
@@ -1431,14 +1546,23 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         devices?: PlaybackDevice[];
       };
       const active = data.devices?.find((d) => d.id === data.activeDeviceId);
+      const localId = get().deviceId;
+      // A followed device that stopped should hand control back to this tab.
+      const released = !data.activeDeviceId && !remoteChosenByUser && !!localId;
       set({
         ...(data.activeDeviceId
           ? {
               activeDeviceId: data.activeDeviceId,
               activeDeviceName: active?.name ?? get().activeDeviceName,
-              isRemotePlayback: !!get().deviceId && data.activeDeviceId !== get().deviceId,
+              isRemotePlayback: !!localId && data.activeDeviceId !== localId,
             }
-          : {}),
+          : released
+            ? {
+                activeDeviceId: localId,
+                activeDeviceName: `${APP_NAME} (this device)`,
+                isRemotePlayback: false,
+              }
+            : {}),
         ...(typeof data.isPlaying === "boolean" ? { isPlaying: data.isPlaying } : {}),
         ...(typeof data.progressMs === "number" ? { progressMs: data.progressMs } : {}),
         ...(typeof data.durationMs === "number" && data.durationMs > 0
