@@ -1,3 +1,5 @@
+import { clearPreferencesCache, fetchPreferences } from "@/lib/preferences-client";
+
 export const HOME_SECTION_IDS = [
   "jumpBack",
   "dailyMix",
@@ -54,6 +56,7 @@ export function saveHomeSectionOrder(order: HomeSectionId[]) {
 export async function persistHomeSectionOrder(order: HomeSectionId[]) {
   const next = normalizeHomeSectionOrder(order);
   saveHomeSectionOrder(next);
+  clearPreferencesCache();
   try {
     await fetch("/api/preferences", {
       method: "POST",
@@ -69,18 +72,10 @@ export async function persistHomeSectionOrder(order: HomeSectionId[]) {
 /** Load order: local cache first, then server (server wins when present). */
 export async function loadHomeSectionOrder(): Promise<HomeSectionId[]> {
   const local = readHomeSectionOrder();
-  try {
-    const res = await fetch("/api/preferences", {
-      credentials: "same-origin",
-      cache: "no-store",
-    });
-    if (!res.ok) return local;
-    const data = (await res.json()) as { homeOrder?: unknown };
-    if (!Array.isArray(data.homeOrder) || data.homeOrder.length === 0) return local;
-    const server = normalizeHomeSectionOrder(data.homeOrder);
-    saveHomeSectionOrder(server);
-    return server;
-  } catch {
-    return local;
-  }
+  const data = await fetchPreferences();
+  if (!data.ok) return local;
+  if (!Array.isArray(data.homeOrder) || data.homeOrder.length === 0) return local;
+  const server = normalizeHomeSectionOrder(data.homeOrder);
+  saveHomeSectionOrder(server);
+  return server;
 }

@@ -26,6 +26,7 @@ import {
   persistHomeSectionOrder,
   readHomeSectionOrder,
 } from "@/lib/home-order";
+import { clearPreferencesCache, fetchPreferences } from "@/lib/preferences-client";
 import {
   DndContext,
   closestCenter,
@@ -86,12 +87,29 @@ interface HomeCache {
   langs: string[];
   favoriteArtists: FavoriteArtist[];
   pinned: PinnedPlaylist[];
+  pinnedArtists: PinnedArtist[];
+  pinnedAlbums: PinnedAlbum[];
   feedSections: FeedSection[];
   forYouTracks: MusicTrack[];
   ts: number;
 }
 let homeCache: HomeCache | null = null;
 const HOME_CACHE_TTL = 5 * 60 * 1000;
+
+const EMPTY_HOME_CACHE: HomeCache = {
+  langs: [],
+  favoriteArtists: [],
+  pinned: [],
+  pinnedArtists: [],
+  pinnedAlbums: [],
+  feedSections: [],
+  forYouTracks: [],
+  ts: 0,
+};
+
+function writeHomeCache(patch: Partial<HomeCache>) {
+  homeCache = { ...(homeCache ?? EMPTY_HOME_CACHE), ...patch };
+}
 
 function toPlayableFromSuggestion(s: Suggestion): PlayableTrack {
   return { name: s.name, artist: s.sub, image: s.image ?? undefined, uri: s.uri ?? null, durationMs: s.durationMs };
@@ -213,16 +231,19 @@ export default function HomeClient() {
     homeCache !== null &&
     Date.now() - homeCache.ts < HOME_CACHE_TTL &&
     homeCache.feedSections.length > 0;
+  // Stale content still paints instantly; it just refreshes in the background.
+  const hasStaleCache = homeCache !== null && homeCache.feedSections.length > 0;
+  const cachedHome = homeCache;
 
-  const [langs, setLangs] = useState<string[] | null>(hasFreshCache ? homeCache!.langs : null);
-  const [favoriteArtists, setFavoriteArtists] = useState<FavoriteArtist[]>(hasFreshCache ? homeCache!.favoriteArtists : []);
+  const [langs, setLangs] = useState<string[] | null>(cachedHome?.langs ?? null);
+  const [favoriteArtists, setFavoriteArtists] = useState<FavoriteArtist[]>(cachedHome?.favoriteArtists ?? []);
   const [prefsChecked, setPrefsChecked] = useState(hasFreshCache);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [feedSections, setFeedSections] = useState<FeedSection[]>(hasFreshCache ? homeCache!.feedSections : []);
-  const [feedLoading, setFeedLoading] = useState(!hasFreshCache);
-  const [pinned, setPinned] = useState<PinnedPlaylist[]>(hasFreshCache ? homeCache!.pinned : []);
-  const [pinnedLoading, setPinnedLoading] = useState(true);
-  const [forYouTracks, setForYouTracks] = useState<MusicTrack[]>(hasFreshCache ? homeCache!.forYouTracks : []);
+  const [feedSections, setFeedSections] = useState<FeedSection[]>(cachedHome?.feedSections ?? []);
+  const [feedLoading, setFeedLoading] = useState(!hasStaleCache);
+  const [pinned, setPinned] = useState<PinnedPlaylist[]>(cachedHome?.pinned ?? []);
+  const [pinnedLoading, setPinnedLoading] = useState(!cachedHome?.pinned?.length);
+  const [forYouTracks, setForYouTracks] = useState<MusicTrack[]>(cachedHome?.forYouTracks ?? []);
   const [forYouLoading, setForYouLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showPersonalize, setShowPersonalize] = useState(false);
@@ -236,10 +257,10 @@ export default function HomeClient() {
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [selectedArtist, setSelectedArtist] = useState<MusicArtist | null>(null);
   const [selectedAlbum, setSelectedAlbum] = useState<{ id: string; name: string; images: { url: string }[]; release_date: string; artists: { id: string; name: string; external_urls: { web: string } }[]; external_urls: { web: string }; total_tracks: number; album_type: string; uri: string } | null>(null);
-  const [pinnedArtists, setPinnedArtists] = useState<PinnedArtist[]>([]);
+  const [pinnedArtists, setPinnedArtists] = useState<PinnedArtist[]>(cachedHome?.pinnedArtists ?? []);
   const [removingPinnedArtist, setRemovingPinnedArtist] = useState<string | null>(null);
-  const [pinnedAlbums, setPinnedAlbums] = useState<PinnedAlbum[]>([]);
-  const [sectionOrder, setSectionOrder] = useState<HomeSectionId[]>([...HOME_SECTION_IDS]);
+  const [pinnedAlbums, setPinnedAlbums] = useState<PinnedAlbum[]>(cachedHome?.pinnedAlbums ?? []);
+  const [sectionOrder, setSectionOrder] = useState<HomeSectionId[]>(() => readHomeSectionOrder());
   const [reorderMode, setReorderMode] = useState(false);
 
   const [listening, setListening] = useState(false);
@@ -255,10 +276,12 @@ export default function HomeClient() {
   const { setQueueAndPlay } = usePlayerStore();
 
   useEffect(() => {
-    setSectionOrder(readHomeSectionOrder());
     let cancelled = false;
     void loadHomeSectionOrder().then((order) => {
-      if (!cancelled) setSectionOrder(order);
+      if (cancelled) return;
+      setSectionOrder((prev) =>
+        prev.length === order.length && prev.every((id, i) => id === order[i]) ? prev : order
+      );
     });
     return () => {
       cancelled = true;
@@ -284,19 +307,17 @@ export default function HomeClient() {
   };
 
   const fetchPinnedPlaylists = useCallback(async () => {
-    setPinnedLoading(true);
+    // Cached rows stay on screen while we revalidate — no skeleton flash on re-entry.
+    if (!homeCache?.pinned?.length) setPinnedLoading(true);
     try {
       const res = await fetch("/api/pinned", { cache: "no-store" });
-      if (!res.ok) {
-        setPinned([]);
-        return;
-      }
+      if (!res.ok) return;
       const data = await res.json();
       const safeData = Array.isArray(data) ? data : [];
       setPinned(safeData);
-      if (homeCache) homeCache.pinned = safeData;
+      writeHomeCache({ pinned: safeData });
     } catch {
-      setPinned([]);
+      /* keep whatever is already rendered */
     } finally {
       setPinnedLoading(false);
     }
@@ -305,14 +326,26 @@ export default function HomeClient() {
   const fetchPinnedAlbums = useCallback(async () => {
     try {
       const res = await fetch("/api/pinned-albums", { cache: "no-store" });
-      if (!res.ok) {
-        setPinnedAlbums([]);
-        return;
-      }
+      if (!res.ok) return;
       const data = await res.json();
-      setPinnedAlbums(Array.isArray(data) ? data : []);
+      const safeData = Array.isArray(data) ? data : [];
+      setPinnedAlbums(safeData);
+      writeHomeCache({ pinnedAlbums: safeData });
     } catch {
-      setPinnedAlbums([]);
+      /* keep whatever is already rendered */
+    }
+  }, []);
+
+  const fetchPinnedArtists = useCallback(async () => {
+    try {
+      const res = await fetch("/api/pinned-artists");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!Array.isArray(data)) return;
+      setPinnedArtists(data);
+      writeHomeCache({ pinnedArtists: data });
+    } catch {
+      /* keep whatever is already rendered */
     }
   }, []);
 
@@ -327,50 +360,29 @@ export default function HomeClient() {
     }
     fetchPinnedPlaylists();
     fetchPinnedAlbums();
-
-    fetch("/api/pinned-artists")
-      .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setPinnedArtists(data); })
-      .catch(() => {});
-  }, [fetchPinnedAlbums, fetchPinnedPlaylists, isSessionHealthy]);
+    fetchPinnedArtists();
+  }, [fetchPinnedAlbums, fetchPinnedArtists, fetchPinnedPlaylists, isSessionHealthy]);
 
   // Initial load (prefs only — pinned is always fetched above)
   useEffect(() => {
     if (hasFreshCache) return;
-    fetch("/api/preferences", { cache: "no-store" })
-      .then(async (r) => {
-        if (!r.ok) return { languages: null as string[] | null, favoriteArtists: [] as FavoriteArtist[], ok: false };
-        const data = await r.json();
-        return {
-          languages: Array.isArray(data.languages) ? data.languages : [],
-          favoriteArtists: Array.isArray(data.favoriteArtists) ? data.favoriteArtists : [],
-          ok: true,
-          degraded: !!data.degraded,
-        };
-      })
-      .catch(() => ({ languages: ["english"], favoriteArtists: [], ok: false, degraded: true }))
-      .then((prefsData) => {
-        const newLangs = prefsData.languages;
-        const newArtists = prefsData.favoriteArtists;
-        if (newLangs !== null) {
-          setLangs(newLangs);
-          setNeedsOnboarding(
-            prefsData.ok && !prefsData.degraded && newLangs.length === 0
-          );
-        } else {
-          setLangs(["english"]);
-        }
-        setFavoriteArtists(newArtists);
-        setPrefsChecked(true);
-        homeCache = {
-          langs: newLangs ?? [],
-          favoriteArtists: newArtists,
-          pinned: homeCache?.pinned ?? [],
-          feedSections: homeCache?.feedSections ?? [],
-          forYouTracks: homeCache?.forYouTracks ?? [],
-          ts: homeCache?.ts ?? 0,
-        };
-      });
+    void fetchPreferences().then((prefsData) => {
+      const newLangs = prefsData.ok
+        ? (Array.isArray(prefsData.languages) ? (prefsData.languages as string[]) : [])
+        : null;
+      const newArtists = (Array.isArray(prefsData.favoriteArtists)
+        ? prefsData.favoriteArtists
+        : []) as FavoriteArtist[];
+      if (newLangs !== null) {
+        setLangs(newLangs);
+        setNeedsOnboarding(!prefsData.degraded && newLangs.length === 0);
+      } else {
+        setLangs(["english"]);
+      }
+      setFavoriteArtists(newArtists);
+      setPrefsChecked(true);
+      writeHomeCache({ langs: newLangs ?? [], favoriteArtists: newArtists });
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -382,28 +394,35 @@ export default function HomeClient() {
   const fetchFeed = useCallback((langList: string[], bust = false) => {
     if (!isSessionHealthy) return;
     if (!langList.length) return;
-    setFeedLoading(true);
+    const hasContent = !bust && (homeCache?.feedSections.length ?? 0) > 0;
+    if (!hasContent) setFeedLoading(true);
     if (bust) setFeedSections([]); // clear stale content immediately
     const url = `/api/music/language-feed?langs=${langList.join(",")}${bust ? `&r=${Date.now()}` : ""}`;
     fetch(url, bust ? { cache: "no-store" } : {})
       .then((r) => r.json())
       .then((data) => {
         const sections: FeedSection[] = data.sections ?? [];
+        if (!sections.length && hasContent) return;
         setFeedSections(sections);
         // Only mark cache as fresh when we actually got content — ts:0 means hasFreshCache will
         // be false on the next mount so an empty load doesn't block future retries.
-        homeCache = {
-          ...(homeCache ?? { langs: langList, favoriteArtists: [], pinned: [], forYouTracks: [], ts: 0 }),
+        writeHomeCache({
+          langs: langList,
           feedSections: sections,
           ts: sections.length > 0 ? Date.now() : 0,
-        };
+        });
       })
       .catch(() => {})
       .finally(() => setFeedLoading(false));
   }, [isSessionHealthy]);
 
+  const lastFeedKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (langs && langs.length > 0 && !hasFreshCache) fetchFeed(langs);
+    if (!langs || langs.length === 0 || hasFreshCache) return;
+    const key = langs.join(",");
+    if (lastFeedKeyRef.current === key) return;
+    lastFeedKeyRef.current = key;
+    fetchFeed(langs);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [langs, fetchFeed]);
 
@@ -414,7 +433,8 @@ export default function HomeClient() {
       setForYouTracks([]);
       return;
     }
-    setForYouLoading(true);
+    const hasContent = !bust && (homeCache?.forYouTracks.length ?? 0) > 0;
+    if (!hasContent) setForYouLoading(true);
     if (bust) setForYouTracks([]);
     const ids = artists.map((a) => a.id).filter(Boolean).join(",");
     if (!ids) {
@@ -425,18 +445,23 @@ export default function HomeClient() {
       .then((r) => r.json())
       .then((data) => {
         const tracks: MusicTrack[] = Array.isArray(data.tracks) ? data.tracks : [];
+        if (!tracks.length && hasContent) return;
         setForYouTracks(tracks);
-        if (homeCache) homeCache.forYouTracks = tracks;
+        writeHomeCache({ forYouTracks: tracks });
       })
       .catch(() => {})
       .finally(() => setForYouLoading(false));
   }, [isSessionHealthy]);
 
+  const lastForYouKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!favoriteArtists.length) return;
     // Always fetch when cache has no For You tracks — don't skip just because the feed cache is fresh.
     const cacheHasForYou = hasFreshCache && (homeCache?.forYouTracks?.length ?? 0) > 0;
     if (cacheHasForYou) return;
+    const key = favoriteArtists.map((a) => a.id).join(",");
+    if (lastForYouKeyRef.current === key) return;
+    lastForYouKeyRef.current = key;
     fetchForYou(favoriteArtists);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [favoriteArtists, fetchForYou]);
@@ -445,14 +470,11 @@ export default function HomeClient() {
   useEffect(() => {
     if (!isSessionHealthy) return;
     const handler = () => {
-      fetch("/api/pinned-artists")
-        .then((r) => r.json())
-        .then((data) => { if (Array.isArray(data)) setPinnedArtists(data); })
-        .catch(() => {});
+      void fetchPinnedArtists();
     };
     window.addEventListener("pinned-artists-updated", handler);
     return () => window.removeEventListener("pinned-artists-updated", handler);
-  }, [isSessionHealthy]);
+  }, [fetchPinnedArtists, isSessionHealthy]);
 
   // Sync pinned playlists when playlist page toggles pin state
   useEffect(() => {
@@ -482,6 +504,7 @@ export default function HomeClient() {
     // 1. Clear module-level caches
     homeCache = null;
     suggestCache.clear();
+    clearPreferencesCache();
 
     // 2. Clear all service worker caches
     if (typeof caches !== "undefined") {
@@ -504,7 +527,11 @@ export default function HomeClient() {
         body: JSON.stringify({ artist_id: artistId }),
       });
       if (!res.ok) throw new Error("Failed to remove artist");
-      setPinnedArtists((prev) => prev.filter((pa) => pa.artist_id !== artistId));
+      setPinnedArtists((prev) => {
+        const next = prev.filter((pa) => pa.artist_id !== artistId);
+        writeHomeCache({ pinnedArtists: next });
+        return next;
+      });
       window.dispatchEvent(new CustomEvent("pinned-artists-updated"));
     } finally {
       setRemovingPinnedArtist(null);
@@ -524,7 +551,11 @@ export default function HomeClient() {
       });
       if (res.ok) {
         const data = await res.json();
-        setPinnedArtists((prev) => [data, ...prev]);
+        setPinnedArtists((prev) => {
+          const next = [data, ...prev];
+          writeHomeCache({ pinnedArtists: next });
+          return next;
+        });
       } else {
         console.error("Pin failed:", await res.text());
       }
@@ -536,6 +567,9 @@ export default function HomeClient() {
     setLangs(newLangs);
     setFavoriteArtists(newArtists);
     homeCache = null;
+    clearPreferencesCache();
+    lastFeedKeyRef.current = newLangs.join(",");
+    lastForYouKeyRef.current = newArtists.map((a) => a.id).join(",");
     fetchFeed(newLangs, true);
     if (newArtists.length) fetchForYou(newArtists, true);
     else setForYouTracks([]);

@@ -22,6 +22,10 @@ const CARD_THEMES = [
   "from-[#7c2d12] via-[#ea580c] to-[#fbbf24]",
 ];
 
+/** Mixes only change once a day — keep them across home remounts so re-entry is instant. */
+let mixCache: { mixes: DailyMix[]; dayKey: string | null; at: number } | null = null;
+const MIX_CACHE_TTL = 15 * 60 * 1000;
+
 function toPlayable(track: SimilarTrack): PlayableTrack {
   return {
     name: track.name,
@@ -35,25 +39,25 @@ function toPlayable(track: SimilarTrack): PlayableTrack {
 export default function DailyMixSection() {
   const { setQueueAndPlay } = usePlayerStore();
   const { toast } = useToastStore();
-  const [mixes, setMixes] = useState<DailyMix[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dayKey, setDayKey] = useState<string | null>(null);
+  const [mixes, setMixes] = useState<DailyMix[]>(mixCache?.mixes ?? []);
+  const [loading, setLoading] = useState(!mixCache?.mixes.length);
+  const [dayKey, setDayKey] = useState<string | null>(mixCache?.dayKey ?? null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (mixCache && Date.now() - mixCache.at < MIX_CACHE_TTL && mixCache.mixes.length) return;
     let cancelled = false;
-    setLoading(true);
     fetch("/api/music/daily-mix", { credentials: "same-origin" })
       .then((res) => res.json())
       .then((data: { mixes?: DailyMix[]; dayKey?: string }) => {
+        const next = data.mixes ?? [];
+        mixCache = { mixes: next, dayKey: data.dayKey ?? null, at: Date.now() };
         if (cancelled) return;
-        setMixes(data.mixes ?? []);
+        setMixes(next);
         setDayKey(data.dayKey ?? null);
       })
-      .catch(() => {
-        if (!cancelled) setMixes([]);
-      })
+      .catch(() => {})
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
