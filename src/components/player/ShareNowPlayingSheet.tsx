@@ -141,23 +141,36 @@ export default function ShareNowPlayingSheet({ open, track, onClose }: Props) {
 
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           <div
-            className="relative mx-auto w-full max-w-[280px] overflow-hidden rounded-3xl border-2 border-[#EF4444]/40 shadow-2xl shadow-black/30"
+            className="relative isolate mx-auto w-full max-w-[280px] overflow-hidden rounded-3xl border border-white/20 shadow-2xl shadow-black/40"
             style={{
               aspectRatio: "4 / 5",
-              background: "linear-gradient(160deg, #0a0a0a 0%, #111827 45%, #1a0505 100%)",
+              background: "linear-gradient(160deg, #131316 0%, #09090b 50%, #18090b 100%)",
             }}
           >
+            {track.image && (
+              <Image
+                src={track.image}
+                alt=""
+                fill
+                unoptimized
+                aria-hidden
+                sizes="280px"
+                className="-z-20 scale-125 object-cover opacity-55 blur-2xl saturate-150"
+              />
+            )}
+            <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/25 via-black/50 to-black/80" />
             <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute -right-8 top-8 h-28 w-28 rounded-full bg-[#EF4444]/12 blur-2xl" />
-              <div className="absolute -left-6 bottom-16 h-24 w-24 rounded-full bg-[#EF4444]/10 blur-2xl" />
+              <div className="absolute -right-8 top-8 h-28 w-28 rounded-full bg-[#EF4444]/20 blur-2xl" />
+              <div className="absolute -left-6 bottom-16 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+              <div className="absolute inset-3 rounded-[1.35rem] border border-white/20 bg-black/30 shadow-inner backdrop-blur-md" />
             </div>
 
-            <div className="relative flex h-full flex-col px-5 pt-5 pb-4">
-              <p className="text-center text-[10px] font-bold uppercase tracking-[0.28em] text-[#EF4444]">
+            <div className="relative flex h-full flex-col px-7 pb-6 pt-6">
+              <p className="mx-auto rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-center text-[9px] font-bold uppercase tracking-[0.24em] text-white/90 backdrop-blur-xl">
                 Now playing
               </p>
 
-              <div className="relative mx-auto mt-4 aspect-square w-[72%] overflow-hidden rounded-3xl border border-[#EF4444]/35 bg-white/[0.06] shadow-xl">
+              <div className="relative mx-auto mt-4 aspect-square w-[72%] overflow-hidden rounded-3xl border border-white/25 bg-white/10 shadow-2xl shadow-black/40">
                 {track.image ? (
                   <Image src={track.image} alt="" fill unoptimized className="object-cover" sizes="220px" />
                 ) : (
@@ -172,9 +185,9 @@ export default function ShareNowPlayingSheet({ open, track, onClose }: Props) {
                 <p className="mt-1 line-clamp-2 text-sm text-white/55">{track.artist}</p>
               </div>
 
-              <div className="mt-auto pt-3 text-center border-t border-white/10">
+              <div className="mt-auto border-t border-white/15 pt-3 text-center">
                 <p className="text-sm font-bold text-[#EF4444]">{APP_NAME}</p>
-                <p className="text-[11px] text-white/40">Listening you</p>
+                <p className="text-[11px] text-white/50">Listening you</p>
               </div>
             </div>
           </div>

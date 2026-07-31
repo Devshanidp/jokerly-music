@@ -77,6 +77,32 @@ function drawRoundedRect(
   ctx.closePath();
 }
 
+function drawCoverImage(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+) {
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const sourceWidth = width / scale;
+  const sourceHeight = height / scale;
+  const sourceX = (image.naturalWidth - sourceWidth) / 2;
+  const sourceY = (image.naturalHeight - sourceHeight) / 2;
+  ctx.drawImage(
+    image,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    x,
+    y,
+    width,
+    height
+  );
+}
+
 function drawPlaceholderArt(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
   drawRoundedRect(ctx, x, y, size, size, 48);
   ctx.fillStyle = "rgba(255,255,255,0.08)";
@@ -102,36 +128,71 @@ export async function createNowPlayingCardBlob(input: NowPlayingCardInput): Prom
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not create share image");
 
+  const cover = input.imageUrl ? await loadImage(input.imageUrl) : null;
+
   const bg = ctx.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT);
-  bg.addColorStop(0, "#0a0a0a");
-  bg.addColorStop(0.45, "#111827");
-  bg.addColorStop(1, "#1a0505");
+  bg.addColorStop(0, "#131316");
+  bg.addColorStop(0.5, "#09090b");
+  bg.addColorStop(1, "#18090b");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
-  ctx.fillStyle = "rgba(239,68,68,0.12)";
+  if (cover) {
+    ctx.save();
+    ctx.filter = "blur(70px) saturate(1.35)";
+    ctx.globalAlpha = 0.58;
+    drawCoverImage(ctx, cover, -90, -90, CARD_WIDTH + 180, CARD_HEIGHT + 180);
+    ctx.restore();
+
+    const shade = ctx.createLinearGradient(0, 0, 0, CARD_HEIGHT);
+    shade.addColorStop(0, "rgba(4,4,6,0.32)");
+    shade.addColorStop(0.55, "rgba(4,4,6,0.58)");
+    shade.addColorStop(1, "rgba(4,4,6,0.82)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+  }
+
+  ctx.fillStyle = "rgba(239,68,68,0.16)";
   ctx.beginPath();
   ctx.arc(CARD_WIDTH * 0.82, CARD_HEIGHT * 0.18, 220, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
   ctx.beginPath();
-  ctx.arc(CARD_WIDTH * 0.12, CARD_HEIGHT * 0.72, 180, 0, Math.PI * 2);
+  ctx.arc(CARD_WIDTH * 0.1, CARD_HEIGHT * 0.74, 210, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "rgba(239,68,68,0.9)";
-  ctx.font = "bold 34px system-ui, -apple-system, Segoe UI, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("NOW PLAYING", CARD_WIDTH / 2, 120);
+  const glassX = 62;
+  const glassY = 52;
+  const glassWidth = CARD_WIDTH - glassX * 2;
+  const glassHeight = CARD_HEIGHT - glassY * 2;
+  drawRoundedRect(ctx, glassX, glassY, glassWidth, glassHeight, 64);
+  ctx.fillStyle = "rgba(10,10,14,0.48)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
 
-  const artSize = 720;
+  drawRoundedRect(ctx, CARD_WIDTH / 2 - 142, 88, 284, 62, 31);
+  ctx.fillStyle = "rgba(255,255,255,0.10)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.16)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(255,255,255,0.88)";
+  ctx.font = "bold 27px system-ui, -apple-system, Segoe UI, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("NOW PLAYING", CARD_WIDTH / 2, 129);
+
+  const artSize = 680;
   const artX = (CARD_WIDTH - artSize) / 2;
   const artY = 190;
-  const cover = input.imageUrl ? await loadImage(input.imageUrl) : null;
 
   ctx.save();
   drawRoundedRect(ctx, artX, artY, artSize, artSize, 56);
   ctx.clip();
   if (cover) {
-    ctx.drawImage(cover, artX, artY, artSize, artSize);
+    drawCoverImage(ctx, cover, artX, artY, artSize, artSize);
   } else {
     drawPlaceholderArt(ctx, artX, artY, artSize);
   }
@@ -139,8 +200,8 @@ export async function createNowPlayingCardBlob(input: NowPlayingCardInput): Prom
 
   if (cover) {
     drawRoundedRect(ctx, artX, artY, artSize, artSize, 56);
-    ctx.strokeStyle = "rgba(239,68,68,0.55)";
-    ctx.lineWidth = 6;
+    ctx.strokeStyle = "rgba(255,255,255,0.28)";
+    ctx.lineWidth = 4;
     ctx.stroke();
   }
 
@@ -149,16 +210,16 @@ export async function createNowPlayingCardBlob(input: NowPlayingCardInput): Prom
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 64px system-ui, -apple-system, Segoe UI, sans-serif";
-  wrapText(ctx, input.name, textX, artY + artSize + 110, textMax, 74, 2);
+  ctx.font = "bold 60px system-ui, -apple-system, Segoe UI, sans-serif";
+  wrapText(ctx, input.name, textX, artY + artSize + 102, textMax, 70, 2);
 
-  ctx.fillStyle = "rgba(255,255,255,0.62)";
+  ctx.fillStyle = "rgba(255,255,255,0.68)";
   ctx.font = "500 42px system-ui, -apple-system, Segoe UI, sans-serif";
-  wrapText(ctx, input.artist, textX, artY + artSize + 250, textMax, 52, 2);
+  wrapText(ctx, input.artist, textX, artY + artSize + 230, textMax, 52, 2);
 
-  const footerY = CARD_HEIGHT - 120;
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  ctx.fillRect(90, footerY - 36, CARD_WIDTH - 180, 2);
+  const footerY = CARD_HEIGHT - 124;
+  ctx.fillStyle = "rgba(255,255,255,0.16)";
+  ctx.fillRect(118, footerY - 38, CARD_WIDTH - 236, 2);
 
   ctx.fillStyle = "#EF4444";
   ctx.font = "bold 38px system-ui, -apple-system, Segoe UI, sans-serif";
