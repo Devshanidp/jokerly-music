@@ -32,9 +32,6 @@ function buildMediaArtwork(imageUrl?: string) {
   return sizes.map((size) => ({ src: imageUrl, sizes: size }));
 }
 
-// Client-side resolve cache so the same track never hits the API twice
-const resolveCache = new Map<string, { uri: string | null; imageUrl?: string | null; durationMs?: number }>();
-
 export default function PlayerBar() {
   const { data: session } = useSession();
   const sessionError = (session as { error?: string } | null)?.error;
@@ -61,7 +58,6 @@ export default function PlayerBar() {
     pausePlayback,
     resumePlayback,
     playIndex,
-    updateTrackUri,
     seek,
     stop,
     setRepeatMode,
@@ -91,7 +87,6 @@ export default function PlayerBar() {
     toggleSong({ uri: currentTrack.uri, name: currentTrack.name, image: currentTrack.image, artist: currentTrack.artist });
   };
 
-  const [fetching, setFetching] = useState(false);
   const [showTimerPicker, setShowTimerPicker] = useState(false);
   const [timerRemaining, setTimerRemaining] = useState<string | null>(null);
   const [showLyrics, setShowLyrics] = useState(false);
@@ -102,7 +97,6 @@ export default function PlayerBar() {
   const radioRefreshRef = useRef(0);
   const [modalTrack, setModalTrack] = useState<{ name: string; uri: string; image?: string | null; artist?: string | null } | null>(null);
   const [resolvingAdd, setResolvingAdd] = useState(false);
-  const fetchingRef = useRef(false);
   const crossfadeGuardRef = useRef<string | null>(null);
 
   const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
@@ -121,14 +115,14 @@ export default function PlayerBar() {
 
   const playWithTransition = useCallback(async (index: number, smooth = false) => {
     if (!smooth || !crossfadeEnabled || crossfadeSeconds <= 0) {
-      playIndex(index);
+      await playIndex(index);
       return;
     }
 
     const baseVolume = usePlayerStore.getState().volume;
     const lowVolume = Math.max(0.12, baseVolume * 0.35);
     await fadePlayerVolumeTransient(baseVolume, lowVolume, 260);
-    playIndex(index);
+    await playIndex(index);
     await wait(120);
     await fadePlayerVolumeTransient(lowVolume, baseVolume, 520);
   }, [crossfadeEnabled, crossfadeSeconds, fadePlayerVolumeTransient, playIndex]);
@@ -141,18 +135,11 @@ export default function PlayerBar() {
     }
     setResolvingAdd(true);
     try {
-      const cacheKey = `${currentTrack.name}::${currentTrack.artist}`;
-      const cached = resolveCache.get(cacheKey);
-      if (cached?.uri) {
-        setModalTrack({ name: currentTrack.name, uri: cached.uri });
-        return;
-      }
       const res = await fetch(
         `/api/music/resolve?track=${encodeURIComponent(currentTrack.name)}&artist=${encodeURIComponent(currentTrack.artist)}`
       );
       const data = await res.json();
       if (data.uri) {
-        resolveCache.set(cacheKey, data);
         setModalTrack({ name: currentTrack.name, uri: data.uri });
       }
     } finally {
@@ -193,41 +180,14 @@ export default function PlayerBar() {
   }, []);
 
   const fetchAndPlay = useCallback(async (index: number, options?: { smooth?: boolean }) => {
-    if (index < 0 || index >= queue.length || fetchingRef.current) return;
-    const track = queue[index];
-
-    if (track.uri !== undefined) {
-      await playWithTransition(index, options?.smooth ?? false);
-      return;
-    }
-
-    // Check client-side cache first
-    const cacheKey = `${track.name}::${track.artist}`;
-    const cached = resolveCache.get(cacheKey);
-    if (cached !== undefined) {
-      updateTrackUri(index, cached.uri, cached.imageUrl, cached.durationMs);
-      await playWithTransition(index, options?.smooth ?? false);
-      return;
-    }
-
-    fetchingRef.current = true;
-    setFetching(true);
-    try {
-      const res = await fetch(
-        `/api/music/resolve?track=${encodeURIComponent(track.name)}&artist=${encodeURIComponent(track.artist)}`
-      );
-      const data = await res.json();
-      resolveCache.set(cacheKey, data);
-      updateTrackUri(index, data.uri ?? null, data.imageUrl, data.durationMs ?? undefined);
-      await playWithTransition(index, options?.smooth ?? false);
-    } finally {
-      fetchingRef.current = false;
-      setFetching(false);
-    }
-  }, [playWithTransition, queue, updateTrackUri]);
+    const { queue: liveQueue } = usePlayerStore.getState();
+    if (index < 0 || index >= liveQueue.length) return;
+    // playIndex now resolves URIs and supersedes in-flight plays.
+    await playWithTransition(index, options?.smooth ?? false);
+  }, [playWithTransition]);
 
   const ensurePlayingForAction = useCallback((action: "pause" | "next" | "prev" | "switch") => {
-    const { isPlaying, queue, queueIndex, currentTrack } = usePlayerStore.getState();
+    const { isPlaying, queue, currentTrack } = usePlayerStore.getState();
     if (isPlaying) return true;
 
     // Next/prev/switch can start playback from a paused or loaded queue.
@@ -251,39 +211,52 @@ export default function PlayerBar() {
   const handleNextTrack = useCallback(() => {
     if (!ensurePlayingForAction("next")) return;
     const state = usePlayerStore.getState();
-    const next = state.getNextIndex();
-    if (next === null || next === state.queueIndex) return;
-    fetchAndPlay(next);
-  }, [ensurePlayingForAction, fetchAndPlay]);
+    const next = state.getNextIndex("skip");
+    if (next === null) {
+      toast("No next track in queue", "error");
+      return;
+    }
+    void fetchAndPlay(next);
+  }, [ensurePlayingForAction, fetchAndPlay, toast]);
 
   const handlePrevTrack = useCallback(() => {
     if (!ensurePlayingForAction("prev")) return;
     const state = usePlayerStore.getState();
-    const prev = state.getPrevIndex();
-    if (prev === null || prev === state.queueIndex) return;
-    fetchAndPlay(prev);
-  }, [ensurePlayingForAction, fetchAndPlay]);
+    // Match lock-screen / widget: restart current track if past 3s.
+    if (state.progressMs > 3000) {
+      void seek(0);
+      if (!state.isPlaying) void resumePlayback();
+      return;
+    }
+    const prev = state.getPrevIndex("skip");
+    if (prev === null) {
+      void seek(0);
+      if (!state.isPlaying) void resumePlayback();
+      return;
+    }
+    void fetchAndPlay(prev);
+  }, [ensurePlayingForAction, fetchAndPlay, resumePlayback, seek]);
 
   /** Lock-screen / notification controls — work even when paused. */
   const mediaNextTrack = useCallback(() => {
     const state = usePlayerStore.getState();
-    const next = state.getNextIndex();
-    if (next === null || next === state.queueIndex) return;
-    fetchAndPlay(next);
+    const next = state.getNextIndex("skip");
+    if (next === null) return;
+    void fetchAndPlay(next);
   }, [fetchAndPlay]);
 
   const mediaPrevTrack = useCallback(() => {
     const state = usePlayerStore.getState();
     if (state.progressMs > 3000) {
-      seek(0);
+      void seek(0);
       return;
     }
-    const prev = state.getPrevIndex();
-    if (prev === null || prev === state.queueIndex) {
-      seek(0);
+    const prev = state.getPrevIndex("skip");
+    if (prev === null) {
+      void seek(0);
       return;
     }
-    fetchAndPlay(prev);
+    void fetchAndPlay(prev);
   }, [fetchAndPlay, seek]);
 
   const mediaSeekBy = useCallback(
@@ -348,7 +321,7 @@ export default function PlayerBar() {
 
   const handlePlayPause = useCallback(async () => {
     const state = usePlayerStore.getState();
-    if (state.isTransitioning && !state.isPlaying) {
+    if (state.isTransitioning) {
       usePlayerStore.setState({ isTransitioning: false, pendingIndex: null });
     }
     if (state.isPlaying) {
@@ -365,7 +338,7 @@ export default function PlayerBar() {
   const handleQueuePlayIndex = useCallback((index: number) => {
     if (!ensurePlayingForAction("switch")) return false;
     usePlayerStore.setState({ isPlayerExpanded: true, isQueueOpen: false });
-    fetchAndPlay(index);
+    void fetchAndPlay(index);
     return true;
   }, [ensurePlayingForAction, fetchAndPlay]);
 
@@ -373,9 +346,9 @@ export default function PlayerBar() {
     if (!endedToken) return;
     const { progressMs: pos, durationMs: dur } = usePlayerStore.getState();
     if (dur > 0 && pos < dur * 0.85) return;
-    const nextIndex = getNextIndex();
+    const nextIndex = getNextIndex("auto");
     if (nextIndex === null) return;
-    fetchAndPlay(nextIndex);
+    void fetchAndPlay(nextIndex);
   }, [endedToken, fetchAndPlay, getNextIndex]);
 
   useEffect(() => {
@@ -384,7 +357,7 @@ export default function PlayerBar() {
 
   useEffect(() => {
     if (!crossfadeEnabled || !isPlaying || isTransitioning || durationMs <= 0 || progressMs < 8000) return;
-    const nextIndex = getNextIndex();
+    const nextIndex = getNextIndex("auto");
     if (nextIndex === null || nextIndex === queueIndex) return;
 
     const remainingMs = durationMs - progressMs;
@@ -394,7 +367,7 @@ export default function PlayerBar() {
     const guardKey = `${queueIndex}:${currentTrack?.uri ?? currentTrack?.name}:${nextIndex}`;
     if (crossfadeGuardRef.current === guardKey) return;
     crossfadeGuardRef.current = guardKey;
-    fetchAndPlay(nextIndex, { smooth: true });
+    void fetchAndPlay(nextIndex, { smooth: true });
   }, [
     crossfadeEnabled,
     crossfadeSeconds,
@@ -417,7 +390,8 @@ export default function PlayerBar() {
     const id = setInterval(() => {
       usePlayerStore.setState((s) => {
         if (!s.isPlaying || s.durationMs <= 0) return s;
-        const maxProgress = Math.max(0, s.durationMs - 1500);
+        // Cap just shy of the end so UI doesn't freeze one frame before track change.
+        const maxProgress = Math.max(0, s.durationMs - 250);
         const next = Math.min(s.progressMs + 500, maxProgress);
         if (typeof navigator !== "undefined" && "mediaSession" in navigator && "setPositionState" in navigator.mediaSession) {
           try {
@@ -561,16 +535,12 @@ export default function PlayerBar() {
 
   if (!currentTrack) return null;
 
-  const prevIndex = getPrevIndex();
-  const nextIndex = getNextIndex();
   const progressRatio = durationMs > 0 ? Math.min(progressMs / durationMs, 1) : 0;
-  const noTrackUri = currentTrack.uri === null;
   const RepeatIcon = repeatMode === "one" ? Repeat1 : Repeat;
   const pendingTrack = pendingIndex !== null ? queue[pendingIndex] ?? null : null;
 
-  // Play button state
-  const playBusy = fetching || (isTransitioning && isPlaying);
-  const playDisabled = noTrackUri || playBusy;
+  // Keep pause available during switches; never lock Next/Prev on transition.
+  const playBusy = isTransitioning && pendingIndex !== null && pendingIndex !== queueIndex;
 
   const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
@@ -663,7 +633,7 @@ export default function PlayerBar() {
                 )}
 
                 {/* Switching indicator */}
-                {(isTransitioning || fetching) && (
+                {(isTransitioning || playBusy) && (
                   <div className="rounded-2xl border border-[#EF4444]/25 bg-[#EF4444]/5 px-3 py-2 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[11px] uppercase tracking-[0.16em] text-[#EF4444]/60">Up Next</p>
@@ -672,7 +642,7 @@ export default function PlayerBar() {
                     <div className="flex items-center gap-2 shrink-0">
                       <Loader2 size={13} className="animate-spin text-[#EF4444]" />
                       <span className="text-xs text-white/50">
-                        {fetching ? "Loading track…" : isTransitioning ? "Switching…" : "Connecting…"}
+                        {isTransitioning ? "Switching…" : "Connecting…"}
                       </span>
                     </div>
                   </div>
@@ -712,20 +682,20 @@ export default function PlayerBar() {
                     className={`p-2 rounded-2xl transition-colors ${shuffleEnabled ? "text-[#EF4444] bg-[#EF4444]/10" : "text-[#EF4444]/55 hover:text-[#EF4444] hover:bg-[#EF4444]/10"}`}>
                     <Shuffle size={14} />
                   </button>
-                  <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
+                  <button onClick={handlePrevTrack} title="Previous"
                     className="p-2 rounded-2xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
                     <SkipBack size={16} fill="currentColor" />
                   </button>
-                  <button onClick={handlePlayPause} disabled={playDisabled || (isTransitioning && isPlaying)} title={isPlaying ? "Pause" : "Play"}
+                  <button onClick={handlePlayPause} title={isPlaying ? "Pause" : "Play"}
                     className="btn-play p-3.5 rounded-full active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
-                    {fetching
+                    {playBusy && !isPlaying
                       ? <Loader2 size={18} className="text-white animate-spin" />
                       : isPlaying
                         ? <Pause size={18} fill="white" className="text-white" />
                         : <Play size={18} fill="white" className="text-white" />
                     }
                   </button>
-                  <button onClick={handleNextTrack} title="Next" disabled={isTransitioning}
+                  <button onClick={handleNextTrack} title="Next"
                     className="p-2 rounded-2xl text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors">
                     <SkipForward size={16} fill="currentColor" />
                   </button>
@@ -912,20 +882,20 @@ export default function PlayerBar() {
               className={`p-1.5 rounded-xl transition-colors ${shuffleEnabled ? "text-[var(--accent)]" : "text-white/30 hover:text-white"}`}>
               <Shuffle size={12} />
             </button>
-            <button onClick={handlePrevTrack} title="Previous" disabled={isTransitioning}
-              className="p-1.5 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
+            <button onClick={handlePrevTrack} title="Previous"
+              className="p-1.5 rounded-xl text-white/40 hover:text-white transition-colors">
               <SkipBack size={12} fill="currentColor" />
             </button>
-            <button onClick={handlePlayPause} disabled={playDisabled || (isTransitioning && isPlaying)}
+            <button onClick={handlePlayPause}
               className="btn-play mx-0.5 p-2.5 rounded-full active:scale-95 disabled:opacity-40 transition-transform">
-              {(!currentTrack || !isPlaying) && fetching
+              {playBusy && !isPlaying
                 ? <Loader2 size={12} className="text-white animate-spin" />
                 : isPlaying
                   ? <Pause size={12} fill="white" className="text-white" />
                   : <Play size={12} fill="white" className="text-white ml-0.5" />}
             </button>
-            <button onClick={handleNextTrack} title="Next" disabled={isTransitioning}
-              className="p-1.5 rounded-xl text-white/40 hover:text-white transition-colors disabled:opacity-30">
+            <button onClick={handleNextTrack} title="Next"
+              className="p-1.5 rounded-xl text-white/40 hover:text-white transition-colors">
               <SkipForward size={12} fill="currentColor" />
             </button>
             <button onClick={cycleRepeatMode} title={repeatMode === "one" ? "Repeat one" : repeatMode === "all" ? "Repeat all" : "Repeat off"}

@@ -83,21 +83,22 @@ interface PlayerState {
   appendToQueue: (tracks: PlayableTrack[]) => number;
   setRadioMode: (enabled: boolean) => void;
   updateTrackUri: (index: number, uri: string | null, imageUrl?: string | null, durationMs?: number) => void;
-  playIndex: (index: number) => void;
+  playIndex: (index: number) => Promise<void>;
   pausePlayback: () => Promise<void>;
   /** Pause without blocking auto-resume (MediaSession / transient OS pauses). */
   softPausePlayback: () => Promise<void>;
   resumePlayback: () => Promise<void>;
   maintainPlayback: (resumeIfWasPlaying?: boolean) => Promise<void>;
-  togglePlay: () => void;
-  seek: (ratio: number) => void;
-  stop: () => void;
+  togglePlay: () => Promise<void>;
+  seek: (ratio: number) => Promise<void>;
+  stop: () => Promise<void>;
   setRepeatMode: (mode: RepeatMode) => Promise<void>;
   toggleShuffle: () => Promise<void>;
   setCrossfadeEnabled: (enabled: boolean) => void;
   setCrossfadeSeconds: (seconds: number) => void;
-  getNextIndex: () => number | null;
-  getPrevIndex: () => number | null;
+  /** `auto` = track end / crossfade (honors repeat-one). `skip` = user next/prev. */
+  getNextIndex: (reason?: "auto" | "skip") => number | null;
+  getPrevIndex: (reason?: "auto" | "skip") => number | null;
   transferToDevice: (device: Pick<PlaybackDevice, "id" | "name">, opts?: { play?: boolean }) => Promise<void>;
   syncRemotePlaybackState: () => Promise<void>;
 }
@@ -184,10 +185,94 @@ let playRetryCount = 0;
 let playIntentIndex: number | null = null;
 let notReadyTimer: ReturnType<typeof setTimeout> | null = null;
 let autoResumeTimer: ReturnType<typeof setTimeout> | null = null;
+/** Bumped on every playIndex call so a newer skip/play cancels in-flight work. */
+let playGeneration = 0;
+let transitionWatchdog: ReturnType<typeof setTimeout> | null = null;
+const resolveCache = new Map<string, { uri: string | null; imageUrl?: string | null; durationMs?: number }>();
 const MAX_PLAY_RETRIES = 4;
 const UNEXPECTED_PAUSE_RECOVERY_MS = 350;
 const RECENTLY_PLAYING_MS = 45_000;
 const ACTIVE_TARGET_TTL = 5_000;
+const TRANSITION_WATCHDOG_MS = 8_000;
+const MAX_SKIP_ATTEMPTS = 25;
+
+/** Tracks that failed catalog resolve (uri === null) are not playable; undefined still needs resolve. */
+function isPlayableQueueEntry(track: PlayableTrack | undefined) {
+  return !!track && track.uri !== null;
+}
+
+/** Walk the queue from `fromIndex` in `direction`, skipping catalog misses (uri === null). */
+function findPlayableIndex(
+  queue: PlayableTrack[],
+  fromIndex: number,
+  direction: 1 | -1,
+  opts: { wrap: boolean; excludeIndex?: number }
+): number | null {
+  if (queue.length === 0) return null;
+  const exclude = opts.excludeIndex;
+  let i = fromIndex;
+  for (let step = 0; step < queue.length; step += 1) {
+    i += direction;
+    if (i >= queue.length) {
+      if (!opts.wrap) return null;
+      i = 0;
+    } else if (i < 0) {
+      if (!opts.wrap) return null;
+      i = queue.length - 1;
+    }
+    if (exclude !== undefined && i === exclude) continue;
+    if (isPlayableQueueEntry(queue[i])) return i;
+  }
+  return null;
+}
+
+function clearTransitionWatchdog() {
+  if (!transitionWatchdog) return;
+  clearTimeout(transitionWatchdog);
+  transitionWatchdog = null;
+}
+
+function armTransitionWatchdog() {
+  clearTransitionWatchdog();
+  transitionWatchdog = setTimeout(() => {
+    transitionWatchdog = null;
+    const snapshot = usePlayerStore.getState();
+    if (!snapshot.isTransitioning) return;
+    usePlayerStore.setState({ isTransitioning: false, pendingIndex: null });
+  }, TRANSITION_WATCHDOG_MS);
+}
+
+async function resolveTrackUri(track: PlayableTrack): Promise<{
+  uri: string | null;
+  imageUrl?: string | null;
+  durationMs?: number;
+}> {
+  const cacheKey = `${track.name}::${track.artist}`;
+  const cached = resolveCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  try {
+    const res = await fetch(
+      `/api/music/resolve?track=${encodeURIComponent(track.name)}&artist=${encodeURIComponent(track.artist)}`
+    );
+    const data = (await res.json()) as {
+      uri?: string | null;
+      imageUrl?: string | null;
+      durationMs?: number | null;
+    };
+    const resolved = {
+      uri: data.uri ?? null,
+      imageUrl: data.imageUrl,
+      durationMs: typeof data.durationMs === "number" ? data.durationMs : undefined,
+    };
+    resolveCache.set(cacheKey, resolved);
+    return resolved;
+  } catch {
+    const failed = { uri: null as string | null };
+    resolveCache.set(cacheKey, failed);
+    return failed;
+  }
+}
 
 function clearAutoResumeTimer() {
   if (!autoResumeTimer) return;
@@ -925,18 +1010,83 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   playIndex: async (index) => {
+    const generation = ++playGeneration;
+    const isCurrentGeneration = () => generation === playGeneration;
+
     requestAudioFocus();
     reclaimLocalDeviceIfAdopted();
-    const snap = get();
-    const { queue, currentTrack, isPlaying, isTransitioning, queueIndex, player } = snap;
-    const deviceId = effectiveDeviceId(snap);
+
+    let snap = get();
+    let { queue, currentTrack, isPlaying, queueIndex, player } = snap;
+    let deviceId = effectiveDeviceId(snap);
     if (index < 0 || index >= queue.length) return;
-    if (isTransitioning && isPlaying) return;
-    if (isTransitioning && !isPlaying) {
+
+    // Newer skip/play should always win — never no-op just because a prior transition is open.
+    if (snap.isTransitioning) {
       set({ isTransitioning: false, pendingIndex: null });
     }
 
-    const nextTrack = queue[index];
+    let nextTrack = queue[index];
+    let skipAttempts = 0;
+
+    // Resolve unresolved tracks; auto-skip catalog misses so Next never dead-ends.
+    while (nextTrack.uri === undefined || nextTrack.uri === null) {
+      if (nextTrack.uri === undefined) {
+        set({
+          pendingIndex: index,
+          isTransitioning: true,
+          queueIndex: index,
+          currentTrack: nextTrack,
+        });
+        armTransitionWatchdog();
+        const resolved = await resolveTrackUri(nextTrack);
+        if (!isCurrentGeneration()) return;
+        get().updateTrackUri(index, resolved.uri, resolved.imageUrl, resolved.durationMs);
+        snap = get();
+        queue = snap.queue;
+        nextTrack = queue[index];
+        if (nextTrack?.uri) break;
+      }
+
+      // uri === null (not in catalog) — skip forward to next playable slot
+      skipAttempts += 1;
+      if (skipAttempts > MAX_SKIP_ATTEMPTS) {
+        clearTransitionWatchdog();
+        set({
+          pendingIndex: null,
+          isTransitioning: false,
+          queueIndex: index,
+          currentTrack: nextTrack,
+          isPlaying: false,
+          sdkError: "Could not find a playable track in the queue.",
+        });
+        return;
+      }
+
+      const skipTo = findPlayableIndex(get().queue, index, 1, {
+        wrap: get().repeatMode === "all",
+        excludeIndex: index,
+      });
+      if (skipTo === null) {
+        clearTransitionWatchdog();
+        set({
+          pendingIndex: null,
+          isTransitioning: false,
+          queueIndex: index,
+          currentTrack: nextTrack,
+          isPlaying: false,
+        });
+        return;
+      }
+      index = skipTo;
+      nextTrack = get().queue[index];
+      if (!nextTrack) return;
+      queueIndex = get().queueIndex;
+      currentTrack = get().currentTrack;
+      isPlaying = get().isPlaying;
+    }
+
+    if (!isCurrentGeneration()) return;
 
     const tryOffline =
       typeof navigator !== "undefined" &&
@@ -944,10 +1094,13 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       useOfflineStore.getState().isDownloaded(nextTrack.uri ?? "", nextTrack.name, nextTrack.artist);
     if (tryOffline) {
       const blob = await fetchOfflineBlob(nextTrack.uri ?? "", nextTrack.name, nextTrack.artist);
+      if (!isCurrentGeneration()) return;
       if (blob) {
         stopOfflinePlayback();
         if (player) await player.pause().catch(() => {});
+        if (!isCurrentGeneration()) return;
         userPausedIntent = false;
+        clearTransitionWatchdog();
         set({
           queueIndex: index,
           currentTrack: nextTrack,
@@ -961,10 +1114,14 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         updateMediaSessionState(true);
         await playOfflineBlob(
           blob,
-          (ms) => set({ progressMs: ms, durationMs: getOfflineDurationMs() || 30_000 }),
+          (ms) => {
+            if (!isCurrentGeneration()) return;
+            set({ progressMs: ms, durationMs: getOfflineDurationMs() || 30_000 });
+          },
           () => {
-            const next = get().getNextIndex();
-            if (next !== null) get().playIndex(next);
+            if (!isCurrentGeneration()) return;
+            const next = get().getNextIndex("auto");
+            if (next !== null) void get().playIndex(next);
             else set({ isPlaying: false, isOfflinePlayback: false });
           }
         );
@@ -978,22 +1135,29 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       nextTrack.uri &&
       nextTrack.uri === currentTrack?.uri
     ) {
-      if (isPlaying) return;
+      if (isPlaying) {
+        const sdkPlaying = player ? await player.getCurrentState().catch(() => null) : null;
+        if (!isCurrentGeneration()) return;
+        if (sdkPlaying && !sdkPlaying.paused) return;
+      }
       if (player && deviceId) {
         await get().resumePlayback();
+        if (!isCurrentGeneration()) return;
         const sdk = await player.getCurrentState().catch(() => null);
+        if (!isCurrentGeneration()) return;
         if (sdk && !sdk.paused) return;
         // Fall through to a full play request if resume did not start playback.
       }
     }
     const resumeSameTrack =
-      index === queueIndex &&
+      index === get().queueIndex &&
       !!nextTrack.uri &&
-      nextTrack.uri === currentTrack?.uri;
+      nextTrack.uri === get().currentTrack?.uri;
     const startPositionMs = resumeSameTrack ? Math.max(0, get().progressMs || 0) : 0;
 
     const playRequest = playUrisForTrack(nextTrack);
     if (!playRequest) {
+      clearTransitionWatchdog();
       set({
         pendingIndex: null,
         isTransitioning: false,
@@ -1004,16 +1168,20 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
+    player = get().player;
+    deviceId = effectiveDeviceId(get());
+
     if (!deviceId) {
       // First click can happen before SDK reports ready device; queue it and auto-start on ready.
       pendingPlayOnReadyIndex = index;
+      clearTransitionWatchdog();
       set({
         pendingIndex: index,
         isTransitioning: false,
         queueIndex: index,
         currentTrack: nextTrack,
         isPlaying: false,
-        progressMs: 0,
+        progressMs: resumeSameTrack ? startPositionMs : 0,
         durationMs: nextTrack.durationMs ?? 0,
       });
       if (player) {
@@ -1027,20 +1195,16 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     playIntentIndex = index;
     clearPlayRetry(index !== playRetryIndex);
     ignorePausedUntil = Date.now() + 2500;
-    const hasActivePlayback = !!currentTrack && isPlaying && queueIndex !== index;
     set({
       pendingIndex: index,
       isTransitioning: true,
       queueIndex: index,
       currentTrack: nextTrack,
-      ...(hasActivePlayback
-        ? {}
-        : {
-            isPlaying: false,
-            progressMs: resumeSameTrack ? startPositionMs : 0,
-            durationMs: nextTrack.durationMs ?? 0,
-          }),
+      isPlaying: true,
+      progressMs: resumeSameTrack ? startPositionMs : 0,
+      durationMs: nextTrack.durationMs ?? get().durationMs,
     });
+    armTransitionWatchdog();
 
     try {
       await playerApi("play", {
@@ -1049,20 +1213,22 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         positionMs: startPositionMs,
       });
     } catch (e) {
+      if (!isCurrentGeneration()) return;
       const errorText = parseErrorText(e);
       if (isStaleDeviceError(errorText)) {
         pendingPlayOnReadyIndex = index;
         clearPlayRetry(true);
+        clearTransitionWatchdog();
         set({
           deviceId: null,
           pendingIndex: index,
           isTransitioning: false,
+          isPlaying: false,
           sdkError: null,
-          ...(hasActivePlayback ? {} : { isPlaying: false }),
         });
-        const player = get().player;
-        if (player) {
-          Promise.resolve(player.connect()).catch(() => {});
+        const activePlayer = get().player;
+        if (activePlayer) {
+          Promise.resolve(activePlayer.connect()).catch(() => {});
         }
         schedulePlayRetry(index);
         return;
@@ -1070,16 +1236,20 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
       clearPlayRetry(true);
       playIntentIndex = null;
+      clearTransitionWatchdog();
       set({
         pendingIndex: null,
         isTransitioning: false,
+        isPlaying: false,
         sdkError: formatPlayError(errorText),
-        ...(hasActivePlayback ? {} : { isPlaying: false }),
       });
       return;
     }
 
+    if (!isCurrentGeneration()) return;
+
     playIntentIndex = null;
+    clearTransitionWatchdog();
     set({
       queueIndex: index,
       currentTrack: nextTrack,
@@ -1097,7 +1267,11 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
   pausePlayback: async () => {
     if (get().isOfflinePlayback) {
-      if (!isOfflinePlaying()) return;
+      if (!isOfflinePlaying()) {
+        set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+        updateMediaSessionState(false);
+        return;
+      }
       pauseOfflinePlayback();
       set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
       updateMediaSessionState(false);
@@ -1115,11 +1289,14 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
 
     userPausedIntent = true;
     playIntentIndex = null;
+    playGeneration += 1; // cancel in-flight play/skip
     suppressAutoResumeUntil = Date.now() + 60_000;
     clearAutoResumeTimer();
     clearPlayRetry(true);
+    clearTransitionWatchdog();
     ignorePausedUntil = 0;
     wasPlayingBeforeDocumentHidden = false;
+    pendingPlayOnReadyIndex = null;
 
     const snap = get();
     const targetId = effectiveDeviceId(snap);
@@ -1136,12 +1313,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
 
     const { player } = snap;
-    if (!player) return;
-
-    try {
-      await player.pause();
-    } catch {
-      // Still mark paused so UI matches user intent
+    if (player) {
+      try {
+        await player.pause();
+      } catch {
+        // Still mark paused so UI matches user intent
+      }
     }
 
     set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
@@ -1162,7 +1339,11 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     wasPlayingBeforeDocumentHidden = false;
 
     if (get().isOfflinePlayback) {
-      if (!isOfflinePlaying()) return;
+      if (!isOfflinePlaying()) {
+        set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
+        updateMediaSessionState(false);
+        return;
+      }
       pauseOfflinePlayback();
       set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
       updateMediaSessionState(false);
@@ -1185,12 +1366,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
 
     const { player } = snap;
-    if (!player) return;
-
-    try {
-      await player.pause();
-    } catch {
-      /* ignore */
+    if (player) {
+      try {
+        await player.pause();
+      } catch {
+        /* ignore */
+      }
     }
 
     set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
@@ -1442,8 +1623,10 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     activeTargetCache = null;
     userPausedIntent = true;
     playIntentIndex = null;
+    playGeneration += 1;
     suppressAutoResumeUntil = Date.now() + 60_000;
     clearAutoResumeTimer();
+    clearTransitionWatchdog();
     pendingPlayOnReadyIndex = null;
     clearPlayRetry();
     stopOfflinePlayback();
@@ -1579,13 +1762,32 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   removeFromQueue: (index) => {
-    const { queue, queueIndex } = get();
+    const { queue, queueIndex, isPlaying } = get();
+    if (index < 0 || index >= queue.length) return;
+    const removingCurrent = index === queueIndex;
     const updated = queue.filter((_, i) => i !== index);
+
+    if (updated.length === 0) {
+      void get().stop();
+      return;
+    }
+
     const newIndex =
       index < queueIndex ? queueIndex - 1
       : index === queueIndex ? Math.min(queueIndex, updated.length - 1)
       : queueIndex;
-    set({ queue: updated, queueIndex: Math.max(0, newIndex) });
+
+    set({
+      queue: updated,
+      queueIndex: Math.max(0, newIndex),
+      ...(removingCurrent
+        ? { currentTrack: updated[Math.max(0, newIndex)] ?? null, pendingIndex: null }
+        : {}),
+    });
+
+    if (removingCurrent && isPlaying) {
+      void get().playIndex(Math.max(0, newIndex));
+    }
   },
 
   reorderQueue: (fromIndex, toIndex) => {
@@ -1622,48 +1824,47 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     }
   },
 
-  getNextIndex: () => {
+  getNextIndex: (reason = "auto") => {
     const { queue, queueIndex, repeatMode, shuffleEnabled } = get();
     if (queue.length === 0 || queueIndex < 0) return null;
-    if (repeatMode === "one") return queueIndex;
+    // Repeat-one only loops on natural end / crossfade — Skip Forward still advances.
+    if (repeatMode === "one" && reason === "auto") return queueIndex;
 
-    const playableIndexes = queue
-      .map((track, index) => ({ index, uri: track.uri }))
-      .filter((item) => item.uri !== null);
-    if (playableIndexes.length === 0) return null;
-
-    if (shuffleEnabled && playableIndexes.length > 1) {
-      const candidates = playableIndexes.map((item) => item.index).filter((index) => index !== queueIndex);
-      if (candidates.length === 0) return queueIndex;
+    if (shuffleEnabled && queue.length > 1) {
+      const candidates = queue
+        .map((track, index) => ({ index, track }))
+        .filter((item) => item.index !== queueIndex && isPlayableQueueEntry(item.track))
+        .map((item) => item.index);
+      if (candidates.length === 0) {
+        return reason === "skip"
+          ? findPlayableIndex(queue, queueIndex, 1, { wrap: repeatMode === "all" })
+          : null;
+      }
       return candidates[Math.floor(Math.random() * candidates.length)];
     }
 
-    const nextIndex = queueIndex + 1;
-    if (nextIndex < queue.length) return nextIndex;
-    if (repeatMode === "all") return 0;
-    return null;
+    return findPlayableIndex(queue, queueIndex, 1, { wrap: repeatMode === "all" });
   },
 
-  getPrevIndex: () => {
+  getPrevIndex: (reason = "auto") => {
     const { queue, queueIndex, repeatMode, shuffleEnabled } = get();
     if (queue.length === 0 || queueIndex < 0) return null;
-    if (repeatMode === "one") return queueIndex;
+    if (repeatMode === "one" && reason === "auto") return queueIndex;
 
-    const playableIndexes = queue
-      .map((track, index) => ({ index, uri: track.uri }))
-      .filter((item) => item.uri !== null);
-    if (playableIndexes.length === 0) return null;
-
-    if (shuffleEnabled && playableIndexes.length > 1) {
-      const candidates = playableIndexes.map((item) => item.index).filter((index) => index !== queueIndex);
-      if (candidates.length === 0) return queueIndex;
+    if (shuffleEnabled && queue.length > 1) {
+      const candidates = queue
+        .map((track, index) => ({ index, track }))
+        .filter((item) => item.index !== queueIndex && isPlayableQueueEntry(item.track))
+        .map((item) => item.index);
+      if (candidates.length === 0) {
+        return reason === "skip"
+          ? findPlayableIndex(queue, queueIndex, -1, { wrap: repeatMode === "all" })
+          : null;
+      }
       return candidates[Math.floor(Math.random() * candidates.length)];
     }
 
-    const prevIndex = queueIndex - 1;
-    if (prevIndex >= 0) return prevIndex;
-    if (repeatMode === "all") return queue.length - 1;
-    return null;
+    return findPlayableIndex(queue, queueIndex, -1, { wrap: repeatMode === "all" });
   },
 }), {
   name: "jokerly-player-v1",
@@ -1672,9 +1873,6 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     currentTrack: state.currentTrack,
     queue: state.queue,
     queueIndex: state.queueIndex,
-    pendingIndex: null,
-    isPlaying: false,
-    isTransitioning: false,
     progressMs: state.progressMs,
     durationMs: state.durationMs,
     repeatMode: state.repeatMode,
@@ -1682,44 +1880,5 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     crossfadeEnabled: state.crossfadeEnabled,
     crossfadeSeconds: state.crossfadeSeconds,
     volume: state.volume,
-    isPlayerExpanded: false,
-    isQueueOpen: false,
-    queueSheetTab: "queue",
-    sleepTimerEndsAt: null,
-    isOfflinePlayback: false,
-    radioMode: false,
-    endedToken: 0,
-    isPlayerReady: false,
-    sdkError: null,
-    player: null,
-    deviceId: null,
-    activeDeviceId: null,
-    activeDeviceName: null,
-    isRemotePlayback: false,
-    accessToken: null,
-    initializePlayer: state.initializePlayer,
-    setQueueAndPlay: state.setQueueAndPlay,
-    appendToQueue: state.appendToQueue,
-    setRadioMode: state.setRadioMode,
-    updateTrackUri: state.updateTrackUri,
-    playIndex: state.playIndex,
-    pausePlayback: state.pausePlayback,
-    softPausePlayback: state.softPausePlayback,
-    resumePlayback: state.resumePlayback,
-    maintainPlayback: state.maintainPlayback,
-    togglePlay: state.togglePlay,
-    seek: state.seek,
-    stop: state.stop,
-    setRepeatMode: state.setRepeatMode,
-    toggleShuffle: state.toggleShuffle,
-    setCrossfadeEnabled: state.setCrossfadeEnabled,
-    setCrossfadeSeconds: state.setCrossfadeSeconds,
-    getNextIndex: state.getNextIndex,
-    getPrevIndex: state.getPrevIndex,
-    setVolume: state.setVolume,
-    transferToDevice: state.transferToDevice,
-    syncRemotePlaybackState: state.syncRemotePlaybackState,
-    removeFromQueue: state.removeFromQueue,
-    setSleepTimer: state.setSleepTimer,
   }),
 }));
