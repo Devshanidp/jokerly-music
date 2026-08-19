@@ -22,23 +22,25 @@ function runWidgetPlayerAction(action: string) {
   }
 
   if (action === "next") {
-    const next = state.getNextIndex();
-    if (next === null || next === state.queueIndex) return;
-    state.playIndex(next);
+    const next = state.getNextIndex("skip");
+    if (next === null) return;
+    void state.playIndex(next);
     return;
   }
 
   if (action === "prev") {
     if (state.progressMs > 3000) {
-      state.seek(0);
+      void state.seek(0);
+      if (!state.isPlaying) void state.resumePlayback();
       return;
     }
-    const prev = state.getPrevIndex();
-    if (prev === null || prev === state.queueIndex) {
-      state.seek(0);
+    const prev = state.getPrevIndex("skip");
+    if (prev === null) {
+      void state.seek(0);
+      if (!state.isPlaying) void state.resumePlayback();
       return;
     }
-    state.playIndex(prev);
+    void state.playIndex(prev);
   }
 }
 

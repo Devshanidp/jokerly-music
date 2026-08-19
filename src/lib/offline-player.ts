@@ -29,14 +29,30 @@ export async function playOfflineBlob(
   const el = ensureAudio();
   if (!el) return;
 
-  stopOfflinePlayback();
+  // Tear down previous source without wiping the element we are about to use.
+  el.pause();
+  el.ontimeupdate = null;
+  el.onended = null;
+  el.onerror = null;
+  if (objectUrl) {
+    URL.revokeObjectURL(objectUrl);
+    objectUrl = null;
+  }
+
   objectUrl = URL.createObjectURL(blob);
   el.src = objectUrl;
 
   el.ontimeupdate = () => onTimeUpdate?.(Math.floor(el.currentTime * 1000));
   el.onended = () => onEnded?.();
+  el.onerror = () => onEnded?.();
 
   await el.play();
+}
+
+export function setOfflineVolume(volume: number) {
+  const el = ensureAudio();
+  if (!el) return;
+  el.volume = Math.max(0, Math.min(1, volume));
 }
 
 export function pauseOfflinePlayback() {

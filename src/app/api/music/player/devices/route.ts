@@ -53,18 +53,20 @@ export async function GET() {
     let isPlaying = false;
     let progressMs = 0;
     let durationMs = 0;
+    let trackUri: string | null = null;
 
     if (playerRes.ok && playerRes.status !== 204) {
       const playerJson = (await playerRes.json()) as {
         device?: { id?: string };
         is_playing?: boolean;
         progress_ms?: number;
-        item?: { duration_ms?: number };
+        item?: { duration_ms?: number; uri?: string };
       };
       activeDeviceId = playerJson.device?.id ?? null;
       isPlaying = Boolean(playerJson.is_playing);
       progressMs = playerJson.progress_ms ?? 0;
       durationMs = playerJson.item?.duration_ms ?? 0;
+      trackUri = playerJson.item?.uri ?? null;
     }
 
     if (!activeDeviceId) {
@@ -72,7 +74,7 @@ export async function GET() {
     }
 
     return NextResponse.json(
-      { devices, activeDeviceId, isPlaying, progressMs, durationMs },
+      { devices, activeDeviceId, isPlaying, progressMs, durationMs, trackUri },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (e) {
