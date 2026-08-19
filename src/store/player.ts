@@ -10,6 +10,7 @@ import {
   playOfflineBlob,
   resumeOfflinePlayback,
   seekOfflinePlayback,
+  setOfflineVolume,
   stopOfflinePlayback,
 } from "@/lib/offline-player";
 import { fetchOfflineBlob } from "@/store/offline";
@@ -243,7 +244,7 @@ function armTransitionWatchdog() {
 }
 
 async function resolveTrackUri(track: PlayableTrack): Promise<{
-  uri: string | null;
+  uri: string | null | undefined;
   imageUrl?: string | null;
   durationMs?: number;
 }> {
@@ -255,6 +256,9 @@ async function resolveTrackUri(track: PlayableTrack): Promise<{
     const res = await fetch(
       `/api/music/resolve?track=${encodeURIComponent(track.name)}&artist=${encodeURIComponent(track.artist)}`
     );
+    if (!res.ok) {
+      return { uri: undefined, imageUrl: undefined, durationMs: undefined };
+    }
     const data = (await res.json()) as {
       uri?: string | null;
       imageUrl?: string | null;
@@ -268,9 +272,7 @@ async function resolveTrackUri(track: PlayableTrack): Promise<{
     resolveCache.set(cacheKey, resolved);
     return resolved;
   } catch {
-    const failed = { uri: null as string | null };
-    resolveCache.set(cacheKey, failed);
-    return failed;
+    return { uri: undefined, imageUrl: undefined, durationMs: undefined };
   }
 }
 
@@ -294,6 +296,97 @@ let activeTargetCache: { at: number; target: ActivePlaybackTarget } | null = nul
 let activeTargetInFlight: Promise<ActivePlaybackTarget | null> | null = null;
 /** True only when the listener picked a device in the sheet. */
 let remoteChosenByUser = false;
+/** Remote Connect sync — detect track end for queue auto-advance. */
+let lastRemoteTrackUri: string | null = null;
+let lastRemoteIsPlaying = false;
+let lastRemoteProgressMs = 0;
+let lastRemoteDurationMs = 0;
+let remoteAdvanceInFlight = false;
+
+function clearStalePlaybackDevice() {
+  usePlayerStore.setState({
+    deviceId: null,
+    activeDeviceId: null,
+    isRemotePlayback: false,
+    isPlayerReady: false,
+  });
+  activeTargetCache = null;
+}
+
+function findQueueIndexForUri(queue: PlayableTrack[], uri: string, preferredIndex: number) {
+  if (preferredIndex >= 0 && preferredIndex < queue.length && queue[preferredIndex]?.uri === uri) {
+    return preferredIndex;
+  }
+  return queue.findIndex((item) => item.uri === uri);
+}
+
+async function maybeAdvanceRemoteQueue(
+  data: {
+    isPlaying?: boolean;
+    progressMs?: number;
+    durationMs?: number;
+    trackUri?: string | null;
+  }
+) {
+  if (remoteAdvanceInFlight || userPausedIntent) return;
+
+  const snapshot = usePlayerStore.getState();
+  if (!isRemoteTarget(snapshot) || snapshot.isTransitioning || playIntentIndex !== null) return;
+
+  const progressMs = data.progressMs ?? 0;
+  const durationMs = data.durationMs ?? snapshot.durationMs;
+  const trackUri = data.trackUri ?? null;
+  const isPlaying = !!data.isPlaying;
+
+  const wasNearEnd =
+    lastRemoteDurationMs > 0 &&
+    lastRemoteProgressMs >= Math.max(0, lastRemoteDurationMs - 3000);
+  const trackEndedOnRemote =
+    lastRemoteIsPlaying &&
+    !isPlaying &&
+    wasNearEnd &&
+    (!trackUri || trackUri === lastRemoteTrackUri || trackUri === snapshot.currentTrack?.uri);
+
+  const remoteTrackChanged =
+    !!trackUri &&
+    !!lastRemoteTrackUri &&
+    trackUri !== lastRemoteTrackUri &&
+    isPlaying;
+
+  if (!trackEndedOnRemote && !remoteTrackChanged) return;
+
+  if (remoteTrackChanged) {
+    const { queue, queueIndex } = snapshot;
+    const matchedIndex = findQueueIndexForUri(queue, trackUri, queueIndex);
+    if (matchedIndex >= 0 && matchedIndex !== queueIndex) {
+      const matched = queue[matchedIndex];
+      usePlayerStore.setState({
+        queueIndex: matchedIndex,
+        currentTrack: matched,
+        progressMs,
+        durationMs: durationMs > 0 ? durationMs : matched.durationMs ?? snapshot.durationMs,
+        isPlaying: true,
+      });
+      return;
+    }
+  }
+
+  if (!trackEndedOnRemote) return;
+
+  const next = snapshot.getNextIndex("auto");
+  if (next === null) {
+    usePlayerStore.setState({ isPlaying: false });
+    updateMediaSessionState(false);
+    return;
+  }
+
+  remoteAdvanceInFlight = true;
+  try {
+    await snapshot.playIndex(next);
+  } finally {
+    remoteAdvanceInFlight = false;
+  }
+}
 
 /** Throttled — keep-alive fires from several places on every route change. */
 async function readActivePlaybackTarget(): Promise<ActivePlaybackTarget | null> {
@@ -415,6 +508,7 @@ export function handleDocumentVisibilityChange() {
     const { isPlaying, currentTrack } = snapshot;
     wasPlayingBeforeDocumentHidden =
       !userPausedIntent &&
+      !snapshot.isOfflinePlayback &&
       !isRemoteTarget(snapshot) &&
       !!currentTrack?.uri &&
       (isPlaying || hadRecentPlaybackIntent());
@@ -554,7 +648,8 @@ function hydrateFromSdkState(state: WebPlayerState | null) {
   }
 
   const { queue } = usePlayerStore.getState();
-  const queueIndex = queue.findIndex((item) => item.uri === sdkTrack.uri);
+  const preferredIndex = usePlayerStore.getState().queueIndex;
+  const queueIndex = findQueueIndexForUri(queue, sdkTrack.uri, preferredIndex);
   const currentTrack =
     queueIndex >= 0
       ? queue[queueIndex]
@@ -819,7 +914,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
             .then((connected) => {
               if (!connected) {
                 clearPlayRetry(true);
-                set({ deviceId: null, isPlayerReady: false });
+                clearStalePlaybackDevice();
                 return;
               }
               set({ isPlayerReady: true, sdkError: null });
@@ -827,13 +922,13 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
             })
             .catch(() => {
               clearPlayRetry(true);
-              set({ deviceId: null, isPlayerReady: false });
+              clearStalePlaybackDevice();
             });
           return;
         }
 
         clearPlayRetry(true);
-        set({ deviceId: null, isPlayerReady: false });
+        clearStalePlaybackDevice();
       }, 1200);
     });
 
@@ -1041,6 +1136,18 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         armTransitionWatchdog();
         const resolved = await resolveTrackUri(nextTrack);
         if (!isCurrentGeneration()) return;
+        if (resolved.uri === undefined) {
+          clearTransitionWatchdog();
+          set({
+            pendingIndex: null,
+            isTransitioning: false,
+            queueIndex: index,
+            currentTrack: nextTrack,
+            isPlaying: false,
+            sdkError: "Could not load track info. Check your connection and try again.",
+          });
+          return;
+        }
         get().updateTrackUri(index, resolved.uri, resolved.imageUrl, resolved.durationMs);
         snap = get();
         queue = snap.queue;
@@ -1112,6 +1219,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
           durationMs: 30_000,
         });
         updateMediaSessionState(true);
+        setOfflineVolume(get().volume);
         await playOfflineBlob(
           blob,
           (ms) => {
@@ -1127,6 +1235,11 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         );
         return;
       }
+    }
+
+    if (get().isOfflinePlayback) {
+      stopOfflinePlayback();
+      set({ isOfflinePlayback: false });
     }
 
     // Same track — resume without restarting from 0:00.
@@ -1153,7 +1266,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       index === get().queueIndex &&
       !!nextTrack.uri &&
       nextTrack.uri === get().currentTrack?.uri;
-    const startPositionMs = resumeSameTrack ? Math.max(0, get().progressMs || 0) : 0;
+    const nearEndOfTrack =
+      resumeSameTrack &&
+      get().durationMs > 0 &&
+      get().progressMs >= get().durationMs - 3000;
+    const startPositionMs =
+      resumeSameTrack && !nearEndOfTrack ? Math.max(0, get().progressMs || 0) : 0;
 
     const playRequest = playUrisForTrack(nextTrack);
     if (!playRequest) {
@@ -1219,8 +1337,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         pendingPlayOnReadyIndex = index;
         clearPlayRetry(true);
         clearTransitionWatchdog();
+        clearStalePlaybackDevice();
         set({
-          deviceId: null,
           pendingIndex: index,
           isTransitioning: false,
           isPlaying: false,
@@ -1235,12 +1353,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       }
 
       clearPlayRetry(true);
-      playIntentIndex = null;
       clearTransitionWatchdog();
       set({
         pendingIndex: null,
         isTransitioning: false,
         isPlaying: false,
+        isOfflinePlayback: false,
         sdkError: formatPlayError(errorText),
       });
       return;
@@ -1266,13 +1384,21 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   pausePlayback: async () => {
+    userPausedIntent = true;
+    playIntentIndex = null;
+    playGeneration += 1;
+    suppressAutoResumeUntil = Date.now() + 60_000;
+    clearAutoResumeTimer();
+    clearPlayRetry(true);
+    clearTransitionWatchdog();
+    ignorePausedUntil = 0;
+    wasPlayingBeforeDocumentHidden = false;
+    pendingPlayOnReadyIndex = null;
+
     if (get().isOfflinePlayback) {
-      if (!isOfflinePlaying()) {
-        set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
-        updateMediaSessionState(false);
-        return;
+      if (isOfflinePlaying()) {
+        pauseOfflinePlayback();
       }
-      pauseOfflinePlayback();
       set({ isPlaying: false, isTransitioning: false, pendingIndex: null });
       updateMediaSessionState(false);
       const after = get();
@@ -1286,17 +1412,6 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       }
       return;
     }
-
-    userPausedIntent = true;
-    playIntentIndex = null;
-    playGeneration += 1; // cancel in-flight play/skip
-    suppressAutoResumeUntil = Date.now() + 60_000;
-    clearAutoResumeTimer();
-    clearPlayRetry(true);
-    clearTransitionWatchdog();
-    ignorePausedUntil = 0;
-    wasPlayingBeforeDocumentHidden = false;
-    pendingPlayOnReadyIndex = null;
 
     const snap = get();
     const targetId = effectiveDeviceId(snap);
@@ -1379,7 +1494,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   maintainPlayback: async (resumeIfWasPlaying = false) => {
-    if (Date.now() < suppressAutoResumeUntil && userPausedIntent) return;
+    if (userPausedIntent) return;
 
     const snap = get();
     const { player, volume, isOfflinePlayback, currentTrack, queueIndex, queue, isPlaying, progressMs } = snap;
@@ -1475,6 +1590,7 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   resumePlayback: async () => {
     if (get().isOfflinePlayback) {
       if (isOfflinePlaying()) return;
+      setOfflineVolume(get().volume);
       resumeOfflinePlayback();
       set({ isPlaying: true, isTransitioning: false, pendingIndex: null });
       updateMediaSessionState(true);
@@ -1523,7 +1639,11 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
       return;
     }
 
-    if (!player) return;
+    if (!player) {
+      pendingPlayOnReadyIndex = queueIndex >= 0 ? queueIndex : null;
+      set({ isPlaying: false, isTransitioning: false });
+      return;
+    }
 
     userPausedIntent = false;
     suppressAutoResumeUntil = 0;
@@ -1618,7 +1738,8 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   },
 
   stop: async () => {
-    const { player } = get();
+    const snap = get();
+    const targetId = effectiveDeviceId(snap);
     remoteChosenByUser = false;
     activeTargetCache = null;
     userPausedIntent = true;
@@ -1630,6 +1751,16 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
     pendingPlayOnReadyIndex = null;
     clearPlayRetry();
     stopOfflinePlayback();
+    lastRemoteTrackUri = null;
+    lastRemoteIsPlaying = false;
+    lastRemoteProgressMs = 0;
+    lastRemoteDurationMs = 0;
+
+    if (isRemoteTarget(snap) && targetId) {
+      await playerApi("pause", { deviceId: targetId }).catch(() => {});
+    }
+
+    const { player } = snap;
     if (player) {
       await player.pause().catch(() => {});
     }
@@ -1676,6 +1807,12 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
   setVolume: async (volume) => {
     const clamped = Math.max(0, Math.min(1, volume));
     set({ volume: clamped });
+
+    if (get().isOfflinePlayback) {
+      setOfflineVolume(clamped);
+      return;
+    }
+
     const snap = get();
     if (isRemoteTarget(snap)) {
       const deviceId = effectiveDeviceId(snap);
@@ -1726,12 +1863,24 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         isPlaying?: boolean;
         progressMs?: number;
         durationMs?: number;
+        trackUri?: string | null;
         devices?: PlaybackDevice[];
       };
+
+      await maybeAdvanceRemoteQueue(data);
+
       const active = data.devices?.find((d) => d.id === data.activeDeviceId);
       const localId = get().deviceId;
-      // A followed device that stopped should hand control back to this tab.
       const released = !data.activeDeviceId && !remoteChosenByUser && !!localId;
+
+      const trackUri = data.trackUri ?? null;
+      const queue = get().queue;
+      const queueIndex = get().queueIndex;
+      const matchedIndex =
+        trackUri && queue.length > 0
+          ? findQueueIndexForUri(queue, trackUri, queueIndex)
+          : -1;
+
       set({
         ...(data.activeDeviceId
           ? {
@@ -1751,11 +1900,26 @@ export const usePlayerStore = create<PlayerState>()(persist((set, get) => ({
         ...(typeof data.durationMs === "number" && data.durationMs > 0
           ? { durationMs: data.durationMs }
           : {}),
+        ...(matchedIndex >= 0
+          ? {
+              queueIndex: matchedIndex,
+              currentTrack: queue[matchedIndex],
+            }
+          : {}),
       });
+
       if (data.isPlaying) {
         lastConfirmedPlayingAt = Date.now();
         updateMediaSessionState(true);
+      } else if (data.isPlaying === false) {
+        updateMediaSessionState(false);
       }
+
+      lastRemoteTrackUri = trackUri ?? get().currentTrack?.uri ?? null;
+      lastRemoteIsPlaying = !!data.isPlaying;
+      lastRemoteProgressMs = data.progressMs ?? get().progressMs;
+      lastRemoteDurationMs =
+        (data.durationMs && data.durationMs > 0 ? data.durationMs : get().durationMs) || 0;
     } catch {
       /* ignore */
     }
