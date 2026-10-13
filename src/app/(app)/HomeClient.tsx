@@ -218,11 +218,17 @@ function SortableHomeSection({
 
 export default function HomeClient() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const sessionError = (session as { error?: string } | null)?.error;
   const sessionUserId = (session as { userId?: string } | null)?.userId;
   const isSessionHealthy =
     !!session?.accessToken && !!sessionUserId?.trim() && !sessionError;
+
+  // An expired/broken session used to leave Home silently empty. Send the user to sign in again.
+  useEffect(() => {
+    if (sessionStatus === "loading") return;
+    if (!isSessionHealthy) router.replace("/login");
+  }, [sessionStatus, isSessionHealthy, router]);
   // Require non-empty feedSections so a failed/empty feed load never poisons the cache
   const hasFreshCache =
     homeCache !== null &&

@@ -8,13 +8,15 @@ import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const VERCEL_SCOPE = "shanid77shan-2820s-projects";
 const PRIMARY_HOST = "music.devshanidp.xyz";
 const EXTRA_ALIASES = ["www.devshanidp.xyz", "devshanidp.xyz"];
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const localBin = join(root, "node_modules", ".bin", process.platform === "win32" ? "vercel.cmd" : "vercel");
 
-function runVercel(args) {
+function runVercel(rawArgs) {
+  const args = [...rawArgs, "--scope", VERCEL_SCOPE];
   if (existsSync(localBin)) {
     return execFileSync(localBin, args, {
       encoding: "utf8",

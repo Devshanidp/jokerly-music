@@ -5,7 +5,7 @@ import LoginClient from "./LoginClient";
 
 export default async function LoginPage() {
   const session = await auth();
-  if (session?.userId?.trim() && session.accessToken?.trim()) {
+  if (session?.userId?.trim() && session.accessToken?.trim() && !session.error) {
     redirect("/");
   }
 
