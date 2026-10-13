@@ -23,11 +23,11 @@
 23-->
 24<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 25    package="com_shanmusic.com"
-26    android:versionCode="18"
-27    android:versionName="18" >
+26    android:versionCode="19"
+27    android:versionName="19" >
 28
 29    <uses-sdk
-30        android:minSdkVersion="21"
+30        android:minSdkVersion="24"
 31        android:targetSdkVersion="36" />
 32
 33    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -84,7 +84,7 @@
 59-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:44:9-35
 60        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
 60-->[androidx.core:core:1.13.0] C:\Users\ShaN\.gradle\caches\8.11.1\transforms\a5429f7b20c607b890f08b5283ad4ec0\transformed\core-1.13.0\AndroidManifest.xml:28:18-86
-61        android:extractNativeLibs="true"
+61        android:extractNativeLibs="false"
 62        android:icon="@mipmap/ic_launcher"
 62-->D:\ClaudeVscode\jokerly-music\android-twa\app\src\main\AndroidManifest.xml:45:9-43
 63        android:label="@string/appName"

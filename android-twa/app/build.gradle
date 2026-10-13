@@ -55,10 +55,10 @@ android {
     namespace "com_shanmusic.com"
     defaultConfig {
         applicationId "com_shanmusic.com"
-        minSdkVersion 21
+        minSdkVersion 24
         targetSdkVersion 36
-        versionCode 18
-        versionName "18"
+        versionCode 19
+        versionName "19"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name

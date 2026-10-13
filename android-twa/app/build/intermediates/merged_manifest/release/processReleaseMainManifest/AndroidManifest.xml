@@ -23,11 +23,11 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com_shanmusic.com"
-    android:versionCode="18"
-    android:versionName="18" >
+    android:versionCode="19"
+    android:versionName="19" >
 
     <uses-sdk
-        android:minSdkVersion="21"
+        android:minSdkVersion="24"
         android:targetSdkVersion="36" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -58,7 +58,7 @@
         android:name="com_shanmusic.com.Application"
         android:allowBackup="true"
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-        android:extractNativeLibs="true"
+        android:extractNativeLibs="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/appName"
         android:manageSpaceActivity="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
