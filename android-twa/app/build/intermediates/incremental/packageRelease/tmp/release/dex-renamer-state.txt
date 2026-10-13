@@ -1,4 +1,0 @@
-#Sat Aug 01 01:05:41 IST 2026
-base.0=D\:\\ClaudeVscode\\jokerly-music\\android-twa\\app\\build\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
-path.0=classes.dex
-renamed.0=classes.dex
