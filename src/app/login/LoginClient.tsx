@@ -110,6 +110,14 @@ export default function LoginClient() {
           Continue with your account
         </Link>
 
+        <Link
+          href="/login/guest"
+          prefetch={false}
+          className="block w-full rounded-2xl border border-white/15 py-3.5 text-center text-sm font-semibold text-white/80 transition-colors hover:bg-white/[0.06]"
+        >
+          Continue as guest
+        </Link>
+
         <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
           Each person signs in with their own account. Playlists, likes, and pins are saved per account.
         </p>

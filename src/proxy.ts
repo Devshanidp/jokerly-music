@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { GUEST_COOKIE } from "@/lib/guest";
 
 const CANONICAL_HOST = "music.devshanidp.xyz";
 
@@ -25,6 +26,7 @@ export function proxy(req: NextRequest) {
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/.well-known/") ||
     pathname === "/login/start" ||
+    pathname === "/login/guest" ||
     pathname === "/favicon.ico" ||
     pathname === "/manifest.json" ||
     pathname === "/manifest.webmanifest" ||
@@ -48,6 +50,12 @@ export function proxy(req: NextRequest) {
 
   const isLoginPage = pathname === "/login";
   const isPublicPage = pathname === "/privacy" || pathname === "/delete-account";
+
+  // Guests may only browse the home screen; everything else needs a real sign-in.
+  const isGuest = req.cookies.get(GUEST_COOKIE)?.value === "1";
+  if (!hasSession && isGuest && pathname === "/") {
+    return NextResponse.next();
+  }
 
   if (!hasSession && !isLoginPage && !isPublicPage) {
     return NextResponse.redirect(new URL("/login", req.url));
