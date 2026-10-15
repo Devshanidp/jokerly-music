@@ -12,7 +12,7 @@ const LAST_UPDATED = "June 19, 2026";
 
 export default function DeleteAccountPage() {
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10 pb-24 text-[15px] leading-relaxed text-white/90">
+    <main className="relative z-10 mx-auto max-w-2xl px-5 py-10 pb-24 text-[15px] leading-relaxed text-white/90">
       <p className="mb-2 text-sm text-white/50">
         <Link href="/login" className="hover:text-white/70">
           {APP_NAME}

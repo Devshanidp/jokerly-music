@@ -50,7 +50,7 @@ export default function LoginClient() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#080406" }}>
+      <div className="relative z-[60] min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#080406" }}>
         <Loader2 size={28} className="animate-spin text-white/50" />
         <p className="mt-4 text-sm text-white/45">Loading…</p>
       </div>
@@ -64,7 +64,7 @@ export default function LoginClient() {
       !session?.accessToken);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#080406" }}>
+    <div className="relative z-[60] min-h-screen flex flex-col items-center justify-center px-4" style={{ background: "#080406" }}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full blur-3xl" style={{ background: "radial-gradient(ellipse, rgba(140, 80, 200,0.18) 0%, transparent 70%)" }} />
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full blur-3xl" style={{ background: "rgba(140, 80, 200,0.06)" }} />
