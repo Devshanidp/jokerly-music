@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Loader2, LogIn, Music, Search, X } from "lucide-react";
+import { ExternalLink, Loader2, LogIn, Music, Search, X } from "lucide-react";
 import { APP_LOGO, APP_NAME } from "@/lib/branding";
 import {
   MusicArtist,
   MusicTrack,
   artistImage,
   artistNames,
+  externalWebUrl,
   trackImage,
 } from "@/types/music-catalog";
 
@@ -30,26 +31,36 @@ const SIGN_IN_NOTICE = "Sign in with your Spotify Premium account to play full s
 
 function TrackRow({ track, onTap }: { track: MusicTrack; onTap: () => void }) {
   const image = trackImage(track);
+  const openUrl = externalWebUrl(track.external_urls as { web?: string; [key: string]: string | undefined });
   return (
-    <button
-      type="button"
-      onClick={onTap}
-      className="w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-white/[0.06]"
-    >
-      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl" style={{ background: "var(--card)" }}>
-        {image ? (
-          <Image src={image} alt={track.name} fill unoptimized className="object-cover" sizes="44px" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Music size={14} className="text-white/25" />
-          </div>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-white">{track.name}</p>
-        <p className="truncate text-xs text-white/45">{artistNames(track)}</p>
-      </div>
-    </button>
+    <div className="flex w-full items-center gap-1 rounded-2xl pr-2 transition-colors hover:bg-white/[0.06]">
+      <button type="button" onClick={onTap} className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left">
+        <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl" style={{ background: "var(--card)" }}>
+          {image ? (
+            <Image src={image} alt={track.name} fill unoptimized className="object-cover" sizes="44px" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Music size={14} className="text-white/25" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-white">{track.name}</p>
+          <p className="truncate text-xs text-white/45">{artistNames(track)}</p>
+        </div>
+      </button>
+      {openUrl && (
+        <a
+          href={openUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Open ${track.name} in Spotify`}
+          className="shrink-0 rounded-xl p-2.5 text-white/50 hover:bg-white/[0.08] hover:text-white"
+        >
+          <ExternalLink size={15} />
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -88,6 +99,12 @@ export default function GuestHome() {
   };
 
   useEffect(() => () => clearTimeout(noticeTimer.current), []);
+
+  // Tapping an artist searches for them, so the tap always visibly does something.
+  const searchArtist = (name: string) => {
+    setQuery(name);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -198,7 +215,7 @@ export default function GuestHome() {
               {results.artists.length > 0 && (
                 <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
                   {results.artists.map((artist) => (
-                    <ArtistChip key={artist.id} artist={artist} onTap={showNotice} />
+                    <ArtistChip key={artist.id} artist={artist} onTap={() => searchArtist(artist.name)} />
                   ))}
                 </div>
               )}
@@ -233,7 +250,7 @@ export default function GuestHome() {
               {section.artists.length > 0 && (
                 <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
                   {section.artists.map((artist) => (
-                    <ArtistChip key={artist.id} artist={artist} onTap={showNotice} />
+                    <ArtistChip key={artist.id} artist={artist} onTap={() => searchArtist(artist.name)} />
                   ))}
                 </div>
               )}

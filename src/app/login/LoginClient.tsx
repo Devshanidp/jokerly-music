@@ -2,10 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LogIn, Loader2 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { APP_LOGO, APP_NAME, APP_TAGLINE } from "@/lib/branding";
 
 function loginErrorMessage(code: string | null): string | null {
@@ -26,6 +25,20 @@ export default function LoginClient() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
+  const [opening, setOpening] = useState<"account" | "guest" | null>(null);
+
+  // If the page comes back from the back button or a slow navigation, make the buttons usable again.
+  useEffect(() => {
+    if (!opening) return;
+    const timer = setTimeout(() => setOpening(null), 15_000);
+    const onShow = () => setOpening(null);
+    window.addEventListener("pageshow", onShow);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("pageshow", onShow);
+    };
+  }, [opening]);
+
   const authError = useMemo(
     () => loginErrorMessage(searchParams.get("error")),
     [searchParams]
@@ -102,21 +115,30 @@ export default function LoginClient() {
           </div>
         )}
 
-        <Link
+        {/* Plain anchors: a real page navigation (no client-router fetch) that works even before hydration. */}
+        <a
           href="/login/start"
-          className="w-full flex items-center justify-center gap-3 text-white font-bold py-4 rounded-2xl transition-all duration-200 text-base active:scale-[0.98] btn-accent"
+          onClick={() => setOpening("account")}
+          aria-busy={opening === "account"}
+          className={`w-full flex items-center justify-center gap-3 text-white font-bold py-4 rounded-2xl transition-all duration-200 text-base active:scale-[0.98] btn-accent ${
+            opening ? "pointer-events-none opacity-80" : ""
+          }`}
         >
-          <LogIn size={14} />
-          Continue with your account
-        </Link>
+          {opening === "account" ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={14} />}
+          {opening === "account" ? "Opening sign-in…" : "Continue with your account"}
+        </a>
 
-        <Link
+        <a
           href="/login/guest"
-          prefetch={false}
-          className="block w-full rounded-2xl border border-white/15 py-3.5 text-center text-sm font-semibold text-white/80 transition-colors hover:bg-white/[0.06]"
+          onClick={() => setOpening("guest")}
+          aria-busy={opening === "guest"}
+          className={`flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 py-3.5 text-center text-sm font-semibold text-white/80 transition-colors hover:bg-white/[0.06] active:scale-[0.98] ${
+            opening ? "pointer-events-none opacity-80" : ""
+          }`}
         >
-          Continue as guest
-        </Link>
+          {opening === "guest" && <Loader2 size={14} className="animate-spin" />}
+          {opening === "guest" ? "Opening…" : "Continue as guest"}
+        </a>
 
         <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
           Each person signs in with their own account. Playlists, likes, and pins are saved per account.
