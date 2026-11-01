@@ -2,7 +2,7 @@
 
 A full-featured music streaming app for web, Android and desktop, built with **Next.js, TypeScript and Supabase**.
 
-> Screenshot: add `docs/screenshot-home.png` here
+**Portfolio:** [devshanidp.xyz](https://devshanidp.xyz/)
 
 ## Features
 
